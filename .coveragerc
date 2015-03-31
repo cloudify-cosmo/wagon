@@ -1,0 +1,3 @@
+[run]
+omit = plugin_packager/six.py
+       plugin_packager/dictconfig.py

@@ -1,0 +1,3 @@
+- plugin_packager/logger.py:60:    #  TODO: (IMPRV) only perform file related actions if file handler is
+- plugin_packager/logger.py:61:    #  TODO: (IMPRV) defined.
+- plugin_packager/utils.py:36:    #  TODO: implement using sh

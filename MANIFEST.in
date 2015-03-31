@@ -1,0 +1,1 @@
+include agent_packager/resources/included_plugins.py.j2
