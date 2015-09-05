@@ -138,11 +138,13 @@ class PluginPackager():
         """
         if os.path.isfile(os.path.join(source, 'setup.py')):
             lgr.debug('setup.py file found. Retrieving name and version...')
-            stppy = os.path.join(source, 'setup.py')
+            setuppy_path = os.path.join(source, 'setup.py')
             self.name = utils.run('{0} --name'.format(
-                stppy)).aggr_stdout.strip('\n')
+                setuppy_path)).aggr_stdout.strip('\n')
             self.version = utils.run('{0} --version'.format(
-                stppy)).aggr_stdout.strip('\n')
+                setuppy_path)).aggr_stdout.strip('\n')
+        # TODO: maybe we don't want to be that explicit and allow using >=
+        # TODO: or just a module name...
         elif '==' in source:
             lgr.debug('Retrieving name and version...')
             self.name, self.version = source.split('==')
@@ -168,9 +170,9 @@ class PluginPackager():
             lgr.info('Removing previous agent package...')
             os.remove(destination_tar)
         if os.path.exists(destination_tar):
-                lgr.error('Destination tar already exists: {0}. You can use '
-                          'the -f flag to overwrite.'.format(destination_tar))
-                sys.exit(codes.errors['tar_already_exists'])
+            lgr.error('Destination tar already exists: {0}. You can use '
+                      'the -f flag to overwrite.'.format(destination_tar))
+            sys.exit(codes.errors['tar_already_exists'])
 
     def handle_output_directory(self, wheels_path, force):
         if os.path.isdir(wheels_path):
