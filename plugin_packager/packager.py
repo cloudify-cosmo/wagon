@@ -105,18 +105,25 @@ class PluginPackager():
         If the source is a url to a module's tar file,
         this will download the source and extract it to a temporary directory.
         """
-        split = source.split('://')
-        schema = split[0]
         lgr.debug('Retrieving source...')
-        if schema in ['http', 'https']:
-            tmpdir = tempfile.mkdtemp()
-            tmpfile = os.path.join(tmpdir, str(uuid.uuid4()))
-            utils.download_file(source, tmpfile)
-            utils.untar(tmpfile)
-            source = os.path.join(
-                tmpdir, [d for d in os.walk(tmpdir).next()[1]][0])
+        if '://' in source:
+            split = source.split('://')
+            schema = split[0]
+            if schema in ['http', 'https']:
+                tmpdir = tempfile.mkdtemp()
+                tmpfile = os.path.join(tmpdir, str(uuid.uuid4()))
+                utils.download_file(source, tmpfile)
+                utils.untar(tmpfile)
+                source = os.path.join(
+                    tmpdir, [d for d in os.walk(tmpdir).next()[1]][0])
+            else:
+                lgr.error('Source type for {0} is not supported'.format(
+                    source))
+                sys.exit(1)
         elif os.path.isdir(source):
             source = os.path.expanduser(source)
+        else:
+            lgr.error('Path to source {0} does not exist.'.format(source))
         lgr.debug('Source is: {0}'.format(source))
         return source
 
