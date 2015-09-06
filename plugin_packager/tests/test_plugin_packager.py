@@ -13,8 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'nir0s'
-
 import plugin_packager.packager as pp
 import plugin_packager.utils as utils
 # import plugin_packager.codes as codes
@@ -129,6 +127,8 @@ MOCK_MODULE_NO_INCLUDES_FILE = os.path.join(
 
 class TestCreate(testtools.TestCase):
 
+    maxDiff = None
+
     def test_create_plugin_package_from_pypi(self):
         runner = clicktest.CliRunner()
         packager = pp.PluginPackager(
@@ -144,31 +144,31 @@ class TestCreate(testtools.TestCase):
                 'cloudify-script-plugin', '1.2', 'any')
             self.assertTrue(os.path.isfile(tar_name))
             utils.untar(tar_name, '.')
-            # mock_metadata = {
-            #     "archive_name":
-            #     "cloudify_script_plugin-1.2-py27-none-any.tar.gz",
-            #     "platform": "any",
-            #     "plugin_name": "cloudify-script-plugin",
-            #     "plugin_source": "cloudify-script-plugin==1.2",
-            #     "plugin_version": "1.2",
-            #     "wheels": [
-            #         "proxy_tools-0.1.0-py2-none-any.whl",
-            #         "bottle-0.12.7-py2-none-any.whl",
-            #         "networkx-1.8.1-py2-none-any.whl",
-            #         "pika-0.9.13-py2-none-any.whl",
-            #         "cloudify_plugins_common-3.2.1-py2-none-any.whl",
-            #         "requests-2.7.0-py2.py3-none-any.whl",
-            #         "cloudify_rest_client-3.2.1-py2-none-any.whl",
-            #         "cloudify_script_plugin-1.2-py2-none-any.whl"
-            #     ]
-            # }
+            mock_metadata = {
+                "archive_name":
+                "cloudify_script_plugin-1.2-py27-none-any.tar.gz",
+                "platform": "any",
+                "plugin_name": "cloudify-script-plugin",
+                "plugin_source": "cloudify-script-plugin==1.2",
+                "plugin_version": "1.2",
+                "wheels": [
+                    "proxy_tools-0.1.0-py2-none-any.whl",
+                    "bottle-0.12.7-py2-none-any.whl",
+                    "networkx-1.8.1-py2-none-any.whl",
+                    "pika-0.9.13-py2-none-any.whl",
+                    "cloudify_plugins_common-3.2.1-py2-none-any.whl",
+                    "requests-2.7.0-py2.py3-none-any.whl",
+                    "cloudify_rest_client-3.2.1-py2-none-any.whl",
+                    "cloudify_script_plugin-1.2-py2-none-any.whl"
+                ]
+            }
             with open(os.path.join('plugin', 'plugin.json'), 'r') as f:
                 m = json.loads(f.read())
-            # self.assertDictEqual(mock_metadata, metadata)
-            self.assertEqual(m['plugin_source'], 'cloudify-script-plugin==1.2')
-            self.assertEqual(m['plugin_version'], '1.2')
-            self.assertEqual(m['plugin_name'], 'cloudify-script-plugin')
-            self.assertEqual(m['platform'], 'any')
+            self.assertDictEqual(mock_metadata, m)
+            # self.assertEqual(m['plugin_source'], 'cloudify-script-plugin==1.2
+            # self.assertEqual(m['plugin_version'], '1.2')
+            # self.assertEqual(m['plugin_name'], 'cloudify-script-plugin')
+            # self.assertEqual(m['platform'], 'any')
             pyver = utils.get_python_version()
             if pyver == 'py27':
                 self.assertEqual(len(m['wheels']), 8)
