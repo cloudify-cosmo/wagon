@@ -113,7 +113,7 @@ class PluginPackager():
                 tmpdir = tempfile.mkdtemp()
                 tmpfile = os.path.join(tmpdir, str(uuid.uuid4()))
                 utils.download_file(source, tmpfile)
-                utils.untar(tmpfile)
+                utils.untar(tmpfile, tmpdir)
                 source = os.path.join(
                     tmpdir, [d for d in os.walk(tmpdir).next()[1]][0])
             else:
@@ -139,9 +139,9 @@ class PluginPackager():
         if os.path.isfile(os.path.join(source, 'setup.py')):
             lgr.debug('setup.py file found. Retrieving name and version...')
             setuppy_path = os.path.join(source, 'setup.py')
-            self.name = utils.run('{0} --name'.format(
+            self.name = utils.run('python {0} --name'.format(
                 setuppy_path)).aggr_stdout.strip('\n')
-            self.version = utils.run('{0} --version'.format(
+            self.version = utils.run('python {0} --version'.format(
                 setuppy_path)).aggr_stdout.strip('\n')
         # TODO: maybe we don't want to be that explicit and allow using >=
         # TODO: or just a module name...
