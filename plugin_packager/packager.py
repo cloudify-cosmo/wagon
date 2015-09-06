@@ -204,13 +204,14 @@ def create(source, pre, requirements_file, force, keep_wheels,
            output_directory, verbose):
     """Creates a plugin package (tar.gz)
 
+    \b
     Example sources:
-
-    - http://github.com/cloudify-cosmo/cloudify-script-plugin/
-     archive/master.tar.gz
+    - http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/master.tar.gz
     - ~/repos/cloudify-script-plugin
     - cloudify-script-plugin==1.2.1
 
+    \b
+    Note:
     - If source is URL, download and extract it and get module name and version
      from setup.py.
     - If source is a local path, get module name and version from setup.py.
