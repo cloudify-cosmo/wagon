@@ -28,7 +28,7 @@ class PipeReader(Thread):
             output = self.fd.readline()
             if len(output) > 0:
                 self.aggr += output
-                self.logger.log(self.log_level, output)
+                self.logger.log(self.log_level, output.strip())
             else:
                 time.sleep(PROCESS_POLLING_INTERVAL)
 
