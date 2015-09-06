@@ -206,7 +206,8 @@ def create(source, pre, requirements_file, force, keep_wheels,
 
     \b
     Example sources:
-    - http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/master.tar.gz
+    - http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/
+    master.tar.gz
     - ~/repos/cloudify-script-plugin
     - cloudify-script-plugin==1.2.1
 
