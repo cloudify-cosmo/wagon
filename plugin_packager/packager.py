@@ -117,13 +117,16 @@ class PluginPackager():
                 source = os.path.join(
                     tmpdir, [d for d in os.walk(tmpdir).next()[1]][0])
             else:
-                lgr.error('Source type for {0} is not supported'.format(
-                    source))
+                lgr.error('Source URL type {0} is not supported'.format(
+                    schema))
                 sys.exit(1)
         elif os.path.isdir(source):
             source = os.path.expanduser(source)
+        elif '==' in source:
+            pass
         else:
             lgr.error('Path to source {0} does not exist.'.format(source))
+            sys.exit(1)
         lgr.debug('Source is: {0}'.format(source))
         return source
 
@@ -148,10 +151,6 @@ class PluginPackager():
         elif '==' in source:
             lgr.debug('Retrieving name and version...')
             self.name, self.version = source.split('==')
-        else:
-            lgr.error('Source must either be a folder containing a setup.py '
-                      'file or of format MODULE_NAME==MODULE_VERSION.')
-            sys.exit(1)
         lgr.info('Module name: {0}'.format(self.name))
         lgr.info('Module version: {0}'.format(self.version))
         return self.name, self.version

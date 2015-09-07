@@ -86,6 +86,31 @@ class TestUtils(testtools.TestCase):
         self.assertIn("No such file or directory: 'missing'", str(e))
         os.remove('file')
 
+    def test_wheel_nonexisting_module(self):
+        try:
+            e = self.assertRaises(
+                SystemExit, utils.wheel, 'cloudify-script-plug==1.2')
+            self.assertEqual('1', str(e))
+        finally:
+            shutil.rmtree('plugin')
+
+
+class TestCreateBadSources(testtools.TestCase):
+    def test_bad_source(self):
+        packager = pp.PluginPackager(source='cloudify', verbose=True)
+        e = self.assertRaises(SystemExit, packager.create)
+        self.assertIn('1', str(e))
+
+    def test_unsupported_url_schema(self):
+        packager = pp.PluginPackager(source='ftp://x', verbose=True)
+        e = self.assertRaises(SystemExit, packager.create)
+        self.assertIn('1', str(e))
+
+    def test_nonexisting_path(self):
+        packager = pp.PluginPackager(source='~/nonexisting_path', verbose=True)
+        e = self.assertRaises(SystemExit, packager.create)
+        self.assertIn('1', str(e))
+
 
 class TestCreate(testtools.TestCase):
 
@@ -144,5 +169,23 @@ class TestCreate(testtools.TestCase):
     def test_create_package_tar_already_exists(self):
         self.packager.create()
         self.assertTrue(os.path.isfile(self.tar_name))
-        ex = self.assertRaises(SystemExit, self.packager.create)
-        self.assertIn('9', str(ex))
+        e = self.assertRaises(SystemExit, self.packager.create)
+        self.assertIn('9', str(e))
+
+    def test_create_packager_tar_already_exists_force(self):
+        self.packager.create()
+        self.assertTrue(os.path.isfile(self.tar_name))
+        self.packager.create(force=True)
+        self.assertTrue(os.path.isfile(self.tar_name))
+
+    def test_create_package_plugin_directory_already_exists(self):
+        self.packager.create(keep_wheels=True)
+        self.assertTrue(os.path.isdir('plugin'))
+        e = self.assertRaises(SystemExit, self.packager.create)
+        self.assertIn('1', str(e))
+
+    def test_create_package_plugin_directory_already_exists_force(self):
+        self.packager.create(keep_wheels=True)
+        self.assertTrue(os.path.isdir('plugin'))
+        self.packager.create(force=True)
+        self.assertTrue(os.path.isfile(self.tar_name))

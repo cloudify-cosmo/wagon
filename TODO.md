@@ -1,3 +1,7 @@
 - plugin_packager/logger.py:60:    #  TODO: (IMPRV) only perform file related actions if file handler is
 - plugin_packager/logger.py:61:    #  TODO: (IMPRV) defined.
+- plugin_packager/packager.py:146:    #  TODO: maybe we don't want to be that explicit and allow using >=
+- plugin_packager/packager.py:147:    #  TODO: or just a module name...
+- plugin_packager/packager.py:230:    #  TODO: Let the user provide supported Python versions.
+- plugin_packager/packager.py:231:    #  TODO: Let the user provide supported Architectures.
 - plugin_packager/utils.py:36:    #  TODO: implement using sh

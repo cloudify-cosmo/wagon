@@ -1,3 +1,8 @@
-[33m21aea67[m[33m ([1;36mHEAD[m[33m, [1;31morigin/master[m[33m, [1;31morigin/HEAD[m[33m, [1;32mmaster[m[33m)[m Functionality added
-[33m1f941b5[m oops
-[33m713015c[m new new new
+[33m953d991[m[33m ([1;36mHEAD[m[33m, [1;31morigin/master[m[33m, [1;31morigin/HEAD[m[33m, [1;32mmaster[m[33m)[m added tests for source path and source url
+[33me0003e9[m Merge branch 'master' of github.com:cloudify-cosmo/cloudify-plugin-packager
+[33m0cf7402[m testing
+[33m9a6fe82[m fix flake8
+[33m9638396[m fix help text layout
+[33m3da1dd8[m nothing
+[33med5ce71[m error handling
+[33mabfe4dd[m CFY-3466-implemented-plugin-packager-utility
