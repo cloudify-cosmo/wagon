@@ -27,7 +27,7 @@ class Wheelr():
             lgr.setLevel(logging.INFO)
         self.source = source
 
-    def create(self, pre=False, with_requirements=None, force=False,
+    def create(self, with_requirements=None, force=False,
                keep_wheels=False, tar_destination_directory='.'):
         lgr.info('Creating module package for {0}...'.format(self.source))
         source = self.get_source(self.source)
@@ -42,7 +42,7 @@ class Wheelr():
         elif with_requirements:
             with_requirements = [with_requirements]
 
-        utils.wheel(source, pre, with_requirements, wheels_path)
+        utils.wheel(source, with_requirements, wheels_path)
         wheels = utils.get_downloaded_wheels(wheels_path)
         platform = utils.get_platform_for_set_of_wheels(wheels_path)
 
@@ -258,8 +258,6 @@ def main():
 @click.command()
 @click.option('-s', '--source', required=True,
               help='Source URL, Path or Module name.')
-@click.option('--pre', default=False, is_flag=True,
-              help='Whether to pack a prerelease of the module.')
 @click.option('-r', '--with-requirements', required=False,
               help='Whether to also pack wheels from a requirements file.')
 @click.option('-f', '--force', default=False, is_flag=True,
@@ -269,7 +267,7 @@ def main():
 @click.option('-o', '--output-directory', default='.',
               help='Output directory for the tar file.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
-def create(source, pre, with_requirements, force, keep_wheels,
+def create(source, with_requirements, force, keep_wheels,
            output_directory, verbose):
     """Creates a Python module's wheel base archive (tar.gz)
 
@@ -290,7 +288,7 @@ def create(source, pre, with_requirements, force, keep_wheels,
     # TODO: Let the user provide supported Python versions.
     # TODO: Let the user provide supported Architectures.
     packager = Wheelr(source, verbose)
-    packager.create(pre, with_requirements, force, keep_wheels,
+    packager.create(with_requirements, force, keep_wheels,
                     output_directory)
 
 
