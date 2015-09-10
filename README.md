@@ -48,6 +48,19 @@ wheelr install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgra
 wheelr install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz --virtualenv my_venv -v
 ```
 
+### Validate Packages
+
+```sheel
+wheelr validate --help
+```
+
+#### Examples
+
+```shell
+# validate that a package is a wheelr compatible package
+wheelr validate ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+```
+
 ## Naming and Versioning
 
 ### Source: PyPI
