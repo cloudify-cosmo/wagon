@@ -11,20 +11,20 @@ def read(*parts):
 
 
 setup(
-    name='cloudify-plugin-packager',
+    name='wheelr',
     version=0.1,
-    url='https://github.com/cloudify-cosmo/cloudify-plugin-packager',
+    url='https://github.com/cloudify-cosmo/wheelr',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
     license='LICENSE',
     platforms='All',
-    description='Creates Cloudify Plugin Packages',
+    description='Creates Python Wheel Archives.',
     long_description=read('README.rst'),
-    packages=['plugin_packager'],
+    packages=['wheelr'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'cfy-pp = plugin_packager.packager:main',
+            'wheelr = wheelr.wheelr:main',
         ]
     },
     install_requires=[

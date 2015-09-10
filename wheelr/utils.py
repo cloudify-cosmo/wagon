@@ -61,15 +61,16 @@ def run(cmd, suppress_errors=False):
     return proc
 
 
-def wheel(module, pre=False, requirements_file=False, wheels_dir='plugin'):
+def wheel(module, pre=False, requirement_files=False, wheels_dir='plugin'):
     lgr.info('Downloading Wheels for {0}...'.format(module))
     wheel_cmd = ['pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_dir))
     wheel_cmd.append('--find-links={0}'.format(wheels_dir))
     if pre:
         wheel_cmd.append('--pre')
-    if requirements_file:
-        wheel_cmd.extend(['-r', requirements_file])
+    if requirement_files:
+        for req_file in requirement_files:
+            wheel_cmd.extend(['-r', req_file])
     wheel_cmd.append(module)
     p = run(' '.join(wheel_cmd))
     if not p.returncode == 0:
