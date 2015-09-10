@@ -63,7 +63,7 @@ class Wheelr():
             shutil.rmtree(module_name)
         lgr.info('Process complete!')
 
-    def install(self, virtualenv=None):
+    def install(self, virtualenv=None, requirements_file=None, upgrade=False):
         source = self.get_source(self.source)
         with open(os.path.join(source, 'module.json'), 'r') as f:
             metadata = json.loads(f.read())
@@ -75,7 +75,8 @@ class Wheelr():
                 sys.exit(1)
 
         wheels_path = os.path.join(source, DEFAULT_WHEELS_PATH)
-        utils.install_module(metadata['module_name'], wheels_path, virtualenv)
+        utils.install_module(metadata['module_name'], wheels_path, virtualenv,
+                             requirements_file, upgrade)
 
     @staticmethod
     def _get_default_requirement_files(source):
@@ -252,8 +253,12 @@ def create(source, pre, with_requirements, force, keep_wheels,
               help='Source URL, Path or Module name.')
 @click.option('--virtualenv', default=None,
               help='Virtualenv to install in.')
+@click.option('-r', '--with-requirements', required=False,
+              help='A requirements file to install.')
+@click.option('-u', '--upgrade', required=False,
+              help='Upgrades the module if it is already installed.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
-def install(source, virtualenv, verbose):
+def install(source, virtualenv, requirements_file, upgrade, verbose):
     """Creates a Python module's wheel base archive (tar.gz)
 
     \b
@@ -273,7 +278,7 @@ def install(source, virtualenv, verbose):
     # TODO: Let the user provide supported Python versions.
     # TODO: Let the user provide supported Architectures.
     installer = Wheelr(source, verbose)
-    installer.install(virtualenv)
+    installer.install(virtualenv, requirements_file, upgrade)
 
 
 main.add_command(create)

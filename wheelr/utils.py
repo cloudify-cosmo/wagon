@@ -90,7 +90,7 @@ def wheel(module, pre=False, requirement_files=False, wheels_dir='plugin'):
 
 
 def install_module(module, wheels_path, virtualenv_path=None,
-                   requirement_files=None, upgrade=False):
+                   requirements_file=None, upgrade=False):
     """This will install a Python module.
 
     Can specify a specific version.
@@ -106,9 +106,8 @@ def install_module(module, wheels_path, virtualenv_path=None,
     if virtualenv_path:
         pip_cmd[0] = os.path.join(
             _get_env_bin_path(virtualenv_path), pip_cmd[0])
-    # if requirement_files:
-    #     for req_file in requirement_files:
-    #         pip_cmd.extend(['-r', req_file])
+    if requirements_file:
+        pip_cmd.extend(['-r', requirements_file])
     pip_cmd.append(module)
     pip_cmd.extend(['--use-wheel', '--no-index', '--find-links', wheels_path])
     pip_cmd.append('--pre')
