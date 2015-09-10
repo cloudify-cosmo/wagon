@@ -8,6 +8,15 @@ from threading import Thread
 import time
 import sys
 from contextlib import closing
+import platform
+
+
+IS_VIRTUALENV = hasattr(sys, 'real_prefix')
+
+PLATFORM = sys.platform
+IS_WIN = (PLATFORM == 'win32')
+IS_DARWIN = (PLATFORM == 'darwin')
+IS_LINUX = (PLATFORM == 'linux2')
 
 PROCESS_POLLING_INTERVAL = 0.1
 
@@ -80,6 +89,40 @@ def wheel(module, pre=False, requirement_files=False, wheels_dir='plugin'):
         sys.exit(1)
 
 
+def install_module(module, wheels_path, virtualenv_path=None,
+                   requirement_files=None, upgrade=False):
+    """This will install a Python module.
+
+    Can specify a specific version.
+    Can specify a prerelease.
+    Can specify a virtualenv to install in.
+    Can specify a list of paths or urls to requirement txt files.
+    Can specify a local wheels_path to use for offline installation.
+    Can request an upgrade.
+    """
+    lgr.info('Installing {0}...'.format(module))
+
+    pip_cmd = ['pip', 'install']
+    if virtualenv_path:
+        pip_cmd[0] = os.path.join(
+            _get_env_bin_path(virtualenv_path), pip_cmd[0])
+    # if requirement_files:
+    #     for req_file in requirement_files:
+    #         pip_cmd.extend(['-r', req_file])
+    pip_cmd.append(module)
+    pip_cmd.extend(['--use-wheel', '--no-index', '--find-links', wheels_path])
+    pip_cmd.append('--pre')
+    if upgrade:
+        pip_cmd.append('--upgrade')
+    if IS_VIRTUALENV and not virtualenv_path:
+        lgr.info('Installing within current virtualenv: {0}...'.format(
+            IS_VIRTUALENV))
+    result = run(' '.join(pip_cmd))
+    if not result.returncode == 0:
+        lgr.error(result.aggr_stdout)
+        sys.exit('Could not install module: {0}.'.format(module))
+
+
 def get_downloaded_wheels(wheels_path):
     """Returns a list of a set of wheel files.
     """
@@ -139,3 +182,23 @@ def get_platform_for_set_of_wheels(wheels_dir):
 def get_python_version():
     version = sys.version_info
     return 'py{0}{1}'.format(version[0], version[1])
+
+
+def get_machine_platform():
+    id = '{0}_{1}'.format(platform.system().lower(), platform.machine())
+    lgr.info('Identified machine platform: {0}'.format(id))
+    return id
+
+
+def _get_env_bin_path(env_path):
+    """returns the bin path for a virtualenv
+    """
+    try:
+        import virtualenv
+        return virtualenv.path_locations(env_path)[3]
+    except ImportError:
+        # this is a fallback for a race condition in which you're trying
+        # to use the script and create a virtualenv from within
+        # a virtualenv in which virtualenv isn't installed and so
+        # is not importable.
+        return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')

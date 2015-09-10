@@ -12,9 +12,8 @@ import utils
 import codes
 
 REQUIREMENT_FILE_NAMES = ['dev-requirements.txt', 'requirements.txt']
-DEFAULT_MODULE_PATH = 'module'
 METADATA_FILE_NAME = 'module.json'
-DEFAULT_WHEELS_PATH = os.path.join(DEFAULT_MODULE_PATH, 'wheels')
+DEFAULT_WHEELS_PATH = 'wheels'
 TAR_NAME_FORMAT = '{0}-{1}-{2}-none-{3}.tar.gz'
 
 lgr = logger.init()
@@ -35,17 +34,17 @@ class Wheelr():
         module_name, module_version = \
             self.get_source_name_and_version(source)
 
-        self.handle_output_directory(DEFAULT_MODULE_PATH, force)
+        wheels_path = os.path.join(module_name, DEFAULT_WHEELS_PATH)
+        self.handle_output_directory(module_name, force)
 
         if with_requirements == '.':
             with_requirements = self._get_default_requirement_files(source)
-        else:
+        elif with_requirements:
             with_requirements = [with_requirements]
 
-        utils.wheel(source, pre, with_requirements, DEFAULT_WHEELS_PATH)
-        wheels = utils.get_downloaded_wheels(DEFAULT_WHEELS_PATH)
-        platform = utils.get_platform_for_set_of_wheels(
-            DEFAULT_WHEELS_PATH)
+        utils.wheel(source, pre, with_requirements, wheels_path)
+        wheels = utils.get_downloaded_wheels(wheels_path)
+        platform = utils.get_platform_for_set_of_wheels(wheels_path)
 
         tar_file = self.set_tar_name(module_name, module_version, platform)
         tar_path = os.path.join(tar_destination_directory, tar_file)
@@ -57,12 +56,26 @@ class Wheelr():
                      wheels, indent=4, sort_keys=True)))
         self.generate_metadata_file(wheels, platform)
 
-        utils.tar(DEFAULT_MODULE_PATH, tar_path)
+        utils.tar(module_name, tar_path)
 
         if not keep_wheels:
             lgr.debug('Cleaning up...')
-            shutil.rmtree(DEFAULT_MODULE_PATH)
+            shutil.rmtree(module_name)
         lgr.info('Process complete!')
+
+    def install(self, virtualenv=None):
+        source = self.get_source(self.source)
+        with open(os.path.join(source, 'module.json'), 'r') as f:
+            metadata = json.loads(f.read())
+        if metadata['supported_platform'] != 'any':
+            machine_platform = utils.get_machine_platform()
+            if machine_platform != metadata['supported_platform']:
+                lgr.error('Platform unsupported for module ({0}).'.format(
+                    machine_platform))
+                sys.exit(1)
+
+        wheels_path = os.path.join(source, DEFAULT_WHEELS_PATH)
+        utils.install_module(metadata['module_name'], wheels_path, virtualenv)
 
     @staticmethod
     def _get_default_requirement_files(source):
@@ -84,7 +97,7 @@ class Wheelr():
         }
         formatted_metadata = json.dumps(metadata, indent=4, sort_keys=True)
         lgr.debug('Metadata is: {0}'.format(formatted_metadata))
-        output_path = os.path.join(DEFAULT_MODULE_PATH, METADATA_FILE_NAME)
+        output_path = os.path.join(self.name, METADATA_FILE_NAME)
         with open(output_path, 'w') as f:
             lgr.info('Writing metadata to file: {0}'.format(output_path))
             f.write(formatted_metadata)
@@ -110,6 +123,11 @@ class Wheelr():
         If the source is a url to a module's tar file,
         this will download the source and extract it to a temporary directory.
         """
+        def extract_source(source, destination):
+            utils.untar(source, destination)
+            return os.path.join(
+                destination, [d for d in os.walk(destination).next()[1]][0])
+
         lgr.debug('Retrieving source...')
         if '://' in source:
             split = source.split('://')
@@ -118,13 +136,14 @@ class Wheelr():
                 tmpdir = tempfile.mkdtemp()
                 tmpfile = os.path.join(tmpdir, str(uuid.uuid4()))
                 utils.download_file(source, tmpfile)
-                utils.untar(tmpfile, tmpdir)
-                source = os.path.join(
-                    tmpdir, [d for d in os.walk(tmpdir).next()[1]][0])
+                source = extract_source(tmpfile, tmpdir)
             else:
                 lgr.error('Source URL type {0} is not supported'.format(
                     schema))
                 sys.exit(1)
+        elif os.path.isfile(source) and source.endswith('.tar.gz'):
+            tmpdir = tempfile.mkdtemp()
+            source = extract_source(source, tmpdir)
         elif os.path.isdir(source):
             source = os.path.expanduser(source)
         elif '==' in source:
@@ -180,7 +199,7 @@ class Wheelr():
                 shutil.rmtree(wheels_path)
             else:
                 lgr.error('Directory {0} already exists. Please remove it and '
-                          'run this again.'.format(DEFAULT_WHEELS_PATH))
+                          'run this again.'.format(wheels_path))
                 sys.exit(1)
 
 
@@ -228,4 +247,34 @@ def create(source, pre, with_requirements, force, keep_wheels,
                     output_directory)
 
 
+@click.command()
+@click.option('-s', '--source', required=True,
+              help='Source URL, Path or Module name.')
+@click.option('--virtualenv', default=None,
+              help='Virtualenv to install in.')
+@click.option('-v', '--verbose', default=False, is_flag=True)
+def install(source, virtualenv, verbose):
+    """Creates a Python module's wheel base archive (tar.gz)
+
+    \b
+    Example sources:
+    - http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/
+    master.tar.gz
+    - ~/repos/cloudify-script-plugin
+    - cloudify-script-plugin==1.2.1
+
+    \b
+    Note:
+    - If source is URL, download and extract it and get module name and version
+     from setup.py.
+    - If source is a local path, get module name and version from setup.py.
+    - If source is module_name==module_version, use them as name and version.
+    """
+    # TODO: Let the user provide supported Python versions.
+    # TODO: Let the user provide supported Architectures.
+    installer = Wheelr(source, verbose)
+    installer.install(virtualenv)
+
+
 main.add_command(create)
+main.add_command(install)
