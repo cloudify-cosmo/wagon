@@ -301,7 +301,7 @@ def create(source, pre, with_requirements, force, keep_wheels,
               help='Virtualenv to install in.')
 @click.option('-r', '--requirements-file', required=False,
               help='A requirements file to install.')
-@click.option('-u', '--upgrade', required=False,
+@click.option('-u', '--upgrade', required=False, is_flag=True,
               help='Upgrades the module if it is already installed.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
 def install(source, virtualenv, requirements_file, upgrade, verbose):
