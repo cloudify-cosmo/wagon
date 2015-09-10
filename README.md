@@ -6,6 +6,12 @@ This tool creates tar.gz based Python Wheel archives for single modules and allo
 
 Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz files and so we needed a tool to create such archives. Hence, Wheelr.
 
+## Installation
+
+```shell
+pip install wheelr
+```
+
 ## Usage
 
 ### Create Packages

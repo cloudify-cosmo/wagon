@@ -1,62 +1,58 @@
-Cloudify Plugin Packager
-========================
+Wheelr
+======
 
-This tool creates Cloudify plugin packages (Currently, only tested on
-Linux).
+This tool creates tar.gz based Python Wheel archives for single modules
+and allows to install them.
+
+(NOTE: Currently, only tested on Linux).
 
 Cloudify Plugins are packaged as sets of Python
 `Wheels <https://packaging.python.org/en/latest/distributing.html#wheels>`__
-in tar.gz files.
+in tar.gz files and so we needed a tool to create such archives. Hence,
+Wheelr.
 
 Usage
 -----
 
+Create Packages
+~~~~~~~~~~~~~~~
+
 .. code:: shell
 
-    cfy-pp create --help
-
-    Usage: cfy-pp create [OPTIONS]
-
-      Creates a plugin package (tar.gz)
-
-      Example sources:
-      - http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/master.tar.gz
-      - ~/repos/cloudify-script-plugin
-      - cloudify-script-plugin==1.2.1
-
-      - If source is URL, download and extract it and get module name and version
-      from setup.py.
-      - If source is a local path, get module name and version from
-      setup.py.
-      - If source is module_name==module_version, use them as name and
-      version.
-
-    Options:
-      -s, --source TEXT             Source URL, Path or Module name.  [required]
-      --pre                         Whether to pack a prerelease of the plugin.
-      -r, --requirements-file TEXT  Whether to also pack wheels from a
-                                    requirements file.
-      -f, --force                   Force overwriting existing output file.
-      --keep-wheels                 Force overwriting existing output file.
-      -o, --output-directory TEXT   Output directory for the tar file.
-      -v, --verbose
-      --help                        Show this message and exit.
+    wheelr create --help
 
 Examples
---------
+^^^^^^^^
 
 .. code:: shell
 
-    # create a plugin package by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin)
-    cfy-pp create -s cloudify-script-plugin==1.2 --keep-wheels
-    # create a plugin package by retrieving the source from a URL.
-    cfy-pp create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz
-    # create a plugin package by retrieving the source from a local path and output the tar.gz file to /tmp/<PLUGIN>.tar.gz (defaults to <cwd>/<PLUGIN>.tar.gz)
-    cfy-pp create -s ~/repos/cloudify-script-plugin/ -o /tmp/
+    # create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin)
+    wheelr create -s cloudify-script-plugin==1.2 --keep-wheels -v
+    # create an archive package by retrieving the source from a URL and creates wheels from requirement files found within the archive.
+    wheelr create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r .
+    # create an archive package by retrieving the source from a local path and output the tar.gz file to /tmp/<MODULE>.tar.gz (defaults to <cwd>/<MODULE>.tar.gz)
+    wheelr create -s ~/modules/cloudify-script-plugin/ -o /tmp/
 
-The output package of all three commands should be
+The output package of the three commands should be something like
 ``cloudify_script_plugin-1.2-py27-none-any.tar.gz`` if running under
 Python 2.7.x.
+
+Install Packages
+~~~~~~~~~~~~~~~~
+
+.. code:: shell
+
+    wheelr install --help
+
+Examples
+^^^^^^^^
+
+.. code:: shell
+
+    # install a packaged module from a local package tar file and upgrade if already installed
+    wheelr install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade
+    # install a packaged module from a url into an existing virtualenv
+    wheelr install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz --virtualenv my_venv -v
 
 Naming and Versioning
 ---------------------
@@ -65,8 +61,8 @@ Source: PyPI
 ~~~~~~~~~~~~
 
 When providing a PyPI source, it must be supplied as
-PLUGIN\_NAME==PLUGIN\_VERSION. The packager then applies the correct
-name and version to the package according to the two parameters.
+MODULE\_NAME==MODULE\_VERSION. Wheelr then applies the correct name and
+version to the archive according to the two parameters.
 
 Source: Else
 ~~~~~~~~~~~~
@@ -80,17 +76,17 @@ path to the root of where your setup.py file resides.
 Metadata File and Wheels
 ------------------------
 
-A Metadata file is generated for the plugin and looks somewhat like
+A Metadata file is generated for the archive and looks somewhat like
 this:
 
 ::
 
     {
         "archive_name": "cloudify_script_plugin-1.2-py27-none-any.tar.gz",
-        "platform": "any",
-        "plugin_name": "cloudify-script-plugin",
-        "plugin_source": "cloudify-script-plugin==1.2",
-        "plugin_version": "1.2",
+        "supported_platform": "any",
+        "module_name": "cloudify-script-plugin",
+        "module_source": "cloudify-script-plugin==1.2",
+        "module_version": "1.2",
         "wheels": [
             "proxy_tools-0.1.0-py2-none-any.whl",
             "bottle-0.12.7-py2-none-any.whl",
@@ -103,15 +99,13 @@ this:
         ]
     }
 
-The metadata file is used by our plugin installer to identify which
-plugin to install under certain conditions. PROVIDE MORE INFORMATION
-HERE ABOUT THE PLUGIN INSTALLER (AS A LINK, PROBABLY!)
+-  The wheels to be installed reside in the tar.gz file under
+   'wheels/\*.whl'.
+-  The Metadata file resides in the tar.gz file under 'module.json'.
+-  The installer uses the metadata file to check that the platform fits
+   the machine the module is being installed on.
 
--  The wheels to be installed as a part of the plugin reside in the
-   tar.gz file under 'wheels/\*.whl'.
--  The Metadata file resides in the tar.gz file under 'plugin.json'
-
-Package naming convention and Platform
+Archive naming convention and Platform
 --------------------------------------
 
 The tar.gz archive is named according to the Wheel naming convention
@@ -122,13 +116,13 @@ aside from two fields:
 Example: ``cloudify_fabric_plugin-1.2.1-py27-none-linux_x86_64.tar.gz``
 
 -  ``{python tag}``: The Python version is set by the Python running the
-   packaging process. That means that while a plugin can run on both
+   packaging process. That means that while a module might run on both
    py27 and py33 (for example), since the packaging process took place
    using Python 2.7, only py27 will be appended to the name. Note that
    we will be providing a way for the user to provide the supported
    Python versions explicitly.
 -  ``{platform tag}``: The platform (e.g. ``linux_x86_64``, ``win32``)
-   is set for a specific wheel. To know which platform the plugin can be
+   is set for a specific wheel. To know which platform the module can be
    installed on, all wheels are checked. If a specific wheel has a
    platform property other than ``any``, that platform will be used as
    the platform of the package. Of course, we assume that there can't be

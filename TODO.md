@@ -1,7 +1,7 @@
-- plugin_packager/logger.py:60:    #  TODO: (IMPRV) only perform file related actions if file handler is
-- plugin_packager/logger.py:61:    #  TODO: (IMPRV) defined.
-- plugin_packager/packager.py:146:    #  TODO: maybe we don't want to be that explicit and allow using >=
-- plugin_packager/packager.py:147:    #  TODO: or just a module name...
-- plugin_packager/packager.py:230:    #  TODO: Let the user provide supported Python versions.
-- plugin_packager/packager.py:231:    #  TODO: Let the user provide supported Architectures.
-- plugin_packager/utils.py:36:    #  TODO: implement using sh
+- wheelr/logger.py:60:    #  TODO: (IMPRV) only perform file related actions if file handler is
+- wheelr/logger.py:61:    #  TODO: (IMPRV) defined.
+- wheelr/wheelr.py:220:    #  TODO: maybe we don't want to be that explicit and allow using >=
+- wheelr/wheelr.py:221:    #  TODO: or just a module name...
+- wheelr/wheelr.py:288:    #  TODO: Let the user provide supported Python versions.
+- wheelr/wheelr.py:289:    #  TODO: Let the user provide supported Architectures.
+- wheelr/utils.py:46:    #  TODO: implement using sh

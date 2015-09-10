@@ -1,7 +1,25 @@
-[33m953d991[m[33m ([1;36mHEAD[m[33m, [1;31morigin/master[m[33m, [1;31morigin/HEAD[m[33m, [1;32mmaster[m[33m)[m added tests for source path and source url
+[33mad48881[m[33m ([1;36mHEAD[m[33m, [1;31morigin/master[m[33m, [1;31morigin/HEAD[m[33m, [1;32mmaster[m[33m)[m more fixes
+[33m9fc7bc3[m test fixes
+[33mf6119a7[m more tests
+[33me33e157[m doc fiX
+[33m80c6a55[m doc fiX
+[33ma5189fb[m doc fiX
+[33me7fc5d2[m Merge pull request #3 from cloudify-cosmo/make-module-generic
+[33mb7a5029[m validator
+[33m6f616c7[m Merge pull request #2 from cloudify-cosmo/make-module-generic
+[33m52056fd[m Merge branch 'master' into make-module-generic
+[33ma0ce9a6[m yay!
+[33m025ee77[m Merge pull request #1 from cloudify-cosmo/logging_format
+[33m80f755a[m added upgrade supportg
+[33m4c82e3c[m now supporting installation of the module from the tar file
+[33me1a31af[m made generic and added support for requirement files
+[33ma2c0141[m many more tests
+[33m953d991[m added tests for source path and source url
 [33me0003e9[m Merge branch 'master' of github.com:cloudify-cosmo/cloudify-plugin-packager
 [33m0cf7402[m testing
+[33mc05a008[m Merge branch 'master' into logging_format
 [33m9a6fe82[m fix flake8
+[33m7c420d1[m strip() log lines from whitespaces and newlines
 [33m9638396[m fix help text layout
 [33m3da1dd8[m nothing
 [33med5ce71[m error handling
