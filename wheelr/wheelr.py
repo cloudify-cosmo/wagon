@@ -79,6 +79,47 @@ class Wheelr():
         utils.install_module(metadata['module_name'], wheels_path, virtualenv,
                              requirements_file, upgrade)
 
+    def validate(self):
+        source = self.get_source(self.source)
+        with open(os.path.join(source, 'module.json'), 'r') as f:
+            metadata = json.loads(f.read())
+        wheels_path = os.path.join(source, DEFAULT_WHEELS_PATH)
+        validation_errors = []
+
+        lgr.debug('Verifying that `supported_platform` key is in metadata...')
+        if not metadata.get('supported_platform'):
+            validation_errors.append(
+                '`supported_platform` key not found in metadata file '
+                'and is required for installation.')
+
+        lgr.debug('Verifying that `module_name` key is in metadata...')
+        if not metadata.get('module_name'):
+            validation_errors.append(
+                '`module_name` key not found in metadata file '
+                'and is required for installation.')
+
+        lgr.debug('Verifying that `wheels` key is in metadata...')
+        if not metadata.get('wheels') or not \
+                isinstance(metadata['wheels'], list):
+            validation_errors.append(
+                '`wheels` key missing or is not a list of wheels '
+                'in metadata file. Cannot continue validation.')
+            sys.exit(1)
+
+        lgr.debug('Verifying that all required files exist...')
+        for wheel in metadata['wheels']:
+            if not os.path.isfile(os.path.join(wheels_path, wheel)):
+                validation_errors.append('Missing wheel: {0}'.format(wheel))
+
+        if validation_errors:
+            lgr.info('Validation failed!')
+            for error in validation_errors:
+                lgr.info(error)
+            lgr.info('Source can be found at: {0}'.format(source))
+        else:
+            lgr.info('Validation Passed! (Removing Source).')
+            shutil.rmtree(os.path.dirname(source))
+
     @staticmethod
     def _get_default_requirement_files(source):
         if os.path.isdir(source):
@@ -260,27 +301,23 @@ def create(source, pre, with_requirements, force, keep_wheels,
               help='Upgrades the module if it is already installed.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
 def install(source, virtualenv, requirements_file, upgrade, verbose):
-    """Creates a Python module's wheel base archive (tar.gz)
-
-    \b
-    Example sources:
-    - http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/
-    master.tar.gz
-    - ~/repos/cloudify-script-plugin
-    - cloudify-script-plugin==1.2.1
-
-    \b
-    Note:
-    - If source is URL, download and extract it and get module name and version
-     from setup.py.
-    - If source is a local path, get module name and version from setup.py.
-    - If source is module_name==module_version, use them as name and version.
+    """Installs a Wheelr packaged archive.
     """
-    # TODO: Let the user provide supported Python versions.
-    # TODO: Let the user provide supported Architectures.
     installer = Wheelr(source, verbose)
     installer.install(virtualenv, requirements_file, upgrade)
 
 
+@click.command()
+@click.option('-s', '--source', required=True,
+              help='Source URL, Path or Module name.')
+@click.option('-v', '--verbose', default=False, is_flag=True)
+def validate(source, verbose):
+    """Validates an archive.
+    """
+    validator = Wheelr(source, verbose)
+    validator.validate()
+
+
 main.add_command(create)
 main.add_command(install)
+main.add_command(validate)

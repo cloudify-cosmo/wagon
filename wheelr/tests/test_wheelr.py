@@ -157,7 +157,7 @@ class TestCreate(testtools.TestCase):
         m = self._test()
         self.assertEqual(m['module_source'], 'cloudify-script-plugin==1.2')
 
-    def test_create_plugin_package_from_url_with_requirements(self):
+    def test_create_package_from_url_with_requirements(self):
         self.tar_name = self.wheelr.set_tar_name(
             'cloudify-script-plugin', '1.2', 'linux_x86_64')
         self.platform = 'linux_x86_64'
@@ -166,7 +166,7 @@ class TestCreate(testtools.TestCase):
         m = self._test()
         self.assertEqual(m['module_source'], TEST_FILE)
 
-    def test_create_plugin_package_from_path(self):
+    def test_create_package_from_path(self):
         source = self.wheelr.get_source(TEST_FILE)
         self.runner.invoke(
             wheelr.create, ['-s{0}'.format(source), '-v', '-f'])
@@ -179,7 +179,7 @@ class TestCreate(testtools.TestCase):
         e = self.assertRaises(SystemExit, self.wheelr.create)
         self.assertIn('9', str(e))
 
-    def test_create_packager_tar_already_exists_force(self):
+    def test_create_package_tar_already_exists_force(self):
         self.wheelr.create()
         self.assertTrue(os.path.isfile(self.tar_name))
         self.wheelr.create(force=True)
