@@ -34,7 +34,8 @@ wheelr install --help
 ```
 
 #### Examples
-```
+
+```shell
 # install a packaged module from a local package tar file and upgrade if already installed
 wheelr install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade
 # install a packaged module from a url into an existing virtualenv
