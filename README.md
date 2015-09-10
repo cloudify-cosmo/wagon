@@ -33,7 +33,7 @@ The output package of the three commands should be something like `cloudify_scri
 wheelr install --help
 ```
 
-####
+#### Examples
 ```
 # install a packaged module from a local package tar file and upgrade if already installed
 wheelr install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade
