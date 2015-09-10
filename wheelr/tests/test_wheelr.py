@@ -117,35 +117,37 @@ class TestCreate(testtools.TestCase):
     def setUp(self):
         super(TestCreate, self).setUp()
         self.runner = clicktest.CliRunner()
-        self.packager = wheelr.Wheelr(
+        self.wheelr = wheelr.Wheelr(
             'cloudify-script-plugin==1.2', verbose=True)
-        self.tar_name = self.packager.set_tar_name(
+        self.tar_name = self.wheelr.set_tar_name(
             'cloudify-script-plugin', '1.2', 'any')
         self.pyver = utils.get_python_version()
+        self.platform = 'any'
 
     def tearDown(self):
         super(TestCreate, self).tearDown()
-        os.remove(self.tar_name)
-        if os.path.isdir(wheelr.DEFAULT_MODULE_PATH):
-            shutil.rmtree(wheelr.DEFAULT_MODULE_PATH)
+        if os.path.isfile(self.tar_name):
+            os.remove(self.tar_name)
+        if os.path.isdir('cloudify-script-plugin'):
+            shutil.rmtree('cloudify-script-plugin')
 
     def _test(self):
         self.assertTrue(os.path.isfile(self.tar_name))
         utils.untar(self.tar_name, '.')
         with open(os.path.join(
-                wheelr.DEFAULT_MODULE_PATH,
+                'cloudify-script-plugin',
                 wheelr.METADATA_FILE_NAME), 'r') as f:
             m = json.loads(f.read())
         self.assertEqual(m['module_version'], '1.2')
         self.assertEqual(m['module_name'], 'cloudify-script-plugin')
-        self.assertEqual(m['supported_platform'], 'any')
+        self.assertEqual(m['supported_platform'], self.platform)
         self.assertTrue(len(m['wheels']) >= 8)
         self.assertEqual(
             m['archive_name'],
-            'cloudify_script_plugin-1.2-{0}-none-any.tar.gz'.format(
-                self.pyver))
+            'cloudify_script_plugin-1.2-{0}-none-{1}.tar.gz'.format(
+                self.pyver, self.platform))
         self.assertTrue(os.path.isfile(os.path.join(
-            wheelr.DEFAULT_WHEELS_PATH,
+            'cloudify-script-plugin', wheelr.DEFAULT_WHEELS_PATH,
             'cloudify_script_plugin-1.2-py2-none-any.whl')))
         return m
 
@@ -155,39 +157,65 @@ class TestCreate(testtools.TestCase):
         m = self._test()
         self.assertEqual(m['module_source'], 'cloudify-script-plugin==1.2')
 
-    def test_create_plugin_package_from_url(self):
+    def test_create_plugin_package_from_url_with_requirements(self):
+        self.tar_name = self.wheelr.set_tar_name(
+            'cloudify-script-plugin', '1.2', 'linux_x86_64')
+        self.platform = 'linux_x86_64'
         self.runner.invoke(
-            wheelr.create, ['-s{0}'.format(TEST_FILE), '-v', '-f'])
+            wheelr.create, ['-s{0}'.format(TEST_FILE), '-v', '-f', '-r.'])
         m = self._test()
         self.assertEqual(m['module_source'], TEST_FILE)
 
     def test_create_plugin_package_from_path(self):
-        source = self.packager.get_source(TEST_FILE)
+        source = self.wheelr.get_source(TEST_FILE)
         self.runner.invoke(
             wheelr.create, ['-s{0}'.format(source), '-v', '-f'])
         m = self._test()
         self.assertEqual(m['module_source'], source)
 
     def test_create_package_tar_already_exists(self):
-        self.packager.create()
+        self.wheelr.create()
         self.assertTrue(os.path.isfile(self.tar_name))
-        e = self.assertRaises(SystemExit, self.packager.create)
+        e = self.assertRaises(SystemExit, self.wheelr.create)
         self.assertIn('9', str(e))
 
     def test_create_packager_tar_already_exists_force(self):
-        self.packager.create()
+        self.wheelr.create()
         self.assertTrue(os.path.isfile(self.tar_name))
-        self.packager.create(force=True)
+        self.wheelr.create(force=True)
         self.assertTrue(os.path.isfile(self.tar_name))
 
     def test_create_package_plugin_directory_already_exists(self):
-        self.packager.create(keep_wheels=True)
-        self.assertTrue(os.path.isdir(wheelr.DEFAULT_MODULE_PATH))
-        e = self.assertRaises(SystemExit, self.packager.create)
+        self.wheelr.create(keep_wheels=True)
+        self.assertTrue(os.path.isdir('cloudify-script-plugin'))
+        e = self.assertRaises(SystemExit, self.wheelr.create)
         self.assertIn('1', str(e))
 
     def test_create_package_plugin_directory_already_exists_force(self):
-        self.packager.create(keep_wheels=True)
-        self.assertTrue(os.path.isdir(wheelr.DEFAULT_MODULE_PATH))
-        self.packager.create(force=True)
+        self.wheelr.create(keep_wheels=True)
+        self.assertTrue(os.path.isdir('cloudify-script-plugin'))
+        self.wheelr.create(force=True)
         self.assertTrue(os.path.isfile(self.tar_name))
+
+
+class TestInstall(testtools.TestCase):
+
+    def setUp(self):
+        super(TestInstall, self).setUp()
+        self.runner = clicktest.CliRunner()
+        self.packager = wheelr.Wheelr(
+            'cloudify-script-plugin==1.2', verbose=True)
+        utils.run('virtualenv test_env')
+        self.tar_path = self.packager.create(force=True)
+
+    def tearDown(self):
+        super(TestInstall, self).tearDown()
+        os.remove(self.tar_path)
+        if os.path.isdir('test_env'):
+            shutil.rmtree('test_env')
+
+    def test_install_module_from_local_tar(self):
+        self.installer = wheelr.Wheelr(self.tar_path, verbose=True)
+        self.installer.install(virtualenv='test_env')
+        self.assertTrue(utils.check_installed(
+            'cloudify-script-plugin', 'test_env'))

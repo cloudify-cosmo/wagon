@@ -1,6 +1,7 @@
 import os
 import subprocess
 import logger
+import re
 import urllib
 import tarfile
 import logging
@@ -37,13 +38,13 @@ class PipeReader(Thread):
             output = self.fd.readline()
             if len(output) > 0:
                 self.aggr += output
-                self.logger.log(self.log_level, output)
+                self.logger.log(self.log_level, output.strip())
             else:
                 time.sleep(PROCESS_POLLING_INTERVAL)
 
 
 # TODO: implement using sh
-def run(cmd, suppress_errors=False):
+def run(cmd, suppress_errors=False, suppress_output=False):
     """Executes a command
     """
     lgr.debug('Executing: {0}...'.format(cmd))
@@ -51,8 +52,9 @@ def run(cmd, suppress_errors=False):
     proc = subprocess.Popen(cmd, shell=True, stdout=pipe, stderr=pipe)
 
     stderr_log_level = logging.NOTSET if suppress_errors else logging.ERROR
+    stdout_log_level = logging.NOTSET if suppress_errors else logging.DEBUG
 
-    stdout_thread = PipeReader(proc.stdout, proc, lgr, logging.DEBUG)
+    stdout_thread = PipeReader(proc.stdout, proc, lgr, stdout_log_level)
     stderr_thread = PipeReader(proc.stderr, proc, lgr, stderr_log_level)
 
     stdout_thread.start()
@@ -201,3 +203,18 @@ def _get_env_bin_path(env_path):
         # a virtualenv in which virtualenv isn't installed and so
         # is not importable.
         return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')
+
+
+def check_installed(module, virtualenv):
+    """checks to see if a module is installed
+
+    :param string module: module to install. can be a url or a path.
+    :param string virtualenv: path of virtualenv to install in.
+    """
+    pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
+    p = run('{0} freeze'.format(pip_path), suppress_output=True)
+    if re.search(r'{0}'.format(module), p.aggr_stdout.lower()):
+        lgr.debug('Module {0} is installed in {1}'.format(module, virtualenv))
+        return True
+    lgr.debug('Module {0} is not installed in {1}'.format(module, virtualenv))
+    return False

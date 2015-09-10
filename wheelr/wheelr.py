@@ -62,6 +62,7 @@ class Wheelr():
             lgr.debug('Cleaning up...')
             shutil.rmtree(module_name)
         lgr.info('Process complete!')
+        return tar_path
 
     def install(self, virtualenv=None, requirements_file=None, upgrade=False):
         source = self.get_source(self.source)
