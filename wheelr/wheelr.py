@@ -65,6 +65,7 @@ class Wheelr():
         return tar_path
 
     def install(self, virtualenv=None, requirements_file=None, upgrade=False):
+        lgr.info('Installing {0}'.format(self.source))
         source = self.get_source(self.source)
         with open(os.path.join(source, 'module.json'), 'r') as f:
             metadata = json.loads(f.read())
@@ -80,6 +81,7 @@ class Wheelr():
                              requirements_file, upgrade)
 
     def validate(self):
+        lgr.info('Validating {0}'.format(self.source))
         source = self.get_source(self.source)
         with open(os.path.join(source, 'module.json'), 'r') as f:
             metadata = json.loads(f.read())
@@ -116,9 +118,11 @@ class Wheelr():
             for error in validation_errors:
                 lgr.info(error)
             lgr.info('Source can be found at: {0}'.format(source))
+            return False
         else:
             lgr.info('Validation Passed! (Removing Source).')
             shutil.rmtree(os.path.dirname(source))
+            return True
 
     @staticmethod
     def _get_default_requirement_files(source):
@@ -295,7 +299,7 @@ def create(source, pre, with_requirements, force, keep_wheels,
               help='Source URL, Path or Module name.')
 @click.option('--virtualenv', default=None,
               help='Virtualenv to install in.')
-@click.option('-r', '--with-requirements', required=False,
+@click.option('-r', '--requirements-file', required=False,
               help='A requirements file to install.')
 @click.option('-u', '--upgrade', required=False,
               help='Upgrades the module if it is already installed.')
@@ -315,7 +319,8 @@ def validate(source, verbose):
     """Validates an archive.
     """
     validator = Wheelr(source, verbose)
-    validator.validate()
+    if not validator.validate():
+        sys.exit(1)
 
 
 main.add_command(create)

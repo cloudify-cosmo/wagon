@@ -94,6 +94,10 @@ class TestUtils(testtools.TestCase):
         finally:
             shutil.rmtree('plugin')
 
+    # non-windows
+    def test_machine_platform(self):
+        self.assertEqual(utils.get_machine_platform(), 'linux_x86_64')
+
 
 class TestCreateBadSources(testtools.TestCase):
     def test_bad_source(self):
@@ -152,8 +156,9 @@ class TestCreate(testtools.TestCase):
         return m
 
     def test_create_plugin_package_from_pypi(self):
-        self.runner.invoke(
+        result = self.runner.invoke(
             wheelr.create, ['-scloudify-script-plugin==1.2', '-v', '-f'])
+        self.assertEqual(str(result), '<Result okay>')
         m = self._test()
         self.assertEqual(m['module_source'], 'cloudify-script-plugin==1.2')
 
@@ -161,8 +166,9 @@ class TestCreate(testtools.TestCase):
         self.tar_name = self.wheelr.set_tar_name(
             'cloudify-script-plugin', '1.2', 'linux_x86_64')
         self.platform = 'linux_x86_64'
-        self.runner.invoke(
+        result = self.runner.invoke(
             wheelr.create, ['-s{0}'.format(TEST_FILE), '-v', '-f', '-r.'])
+        self.assertEqual(str(result), '<Result okay>')
         m = self._test()
         self.assertEqual(m['module_source'], TEST_FILE)
 
@@ -215,7 +221,29 @@ class TestInstall(testtools.TestCase):
             shutil.rmtree('test_env')
 
     def test_install_module_from_local_tar(self):
-        self.installer = wheelr.Wheelr(self.tar_path, verbose=True)
-        self.installer.install(virtualenv='test_env')
+        result = self.runner.invoke(
+            wheelr.install,
+            ['-s{0}'.format(self.tar_path), '-v',
+             '--virtualenv=test_env', '-u'])
+        self.assertEqual(str(result), '<Result okay>')
         self.assertTrue(utils.check_installed(
             'cloudify-script-plugin', 'test_env'))
+
+
+class TestValidate(testtools.TestCase):
+
+    def setUp(self):
+        super(TestValidate, self).setUp()
+        self.runner = clicktest.CliRunner()
+        self.packager = wheelr.Wheelr(
+            'cloudify-script-plugin==1.2', verbose=True)
+        self.tar_path = self.packager.create(force=True)
+
+    def tearDown(self):
+        super(TestValidate, self).tearDown()
+        os.remove(self.tar_path)
+
+    def test_validate_package(self):
+        result = self.runner.invoke(
+            wheelr.validate, ['-s{0}'.format(self.tar_path), '-v'])
+        self.assertEqual(str(result), '<Result okay>')
