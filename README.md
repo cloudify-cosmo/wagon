@@ -40,7 +40,7 @@ wheelr install --help
 wheelr install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade
 # install a packaged module from a url into an existing virtualenv
 wheelr install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz --virtualenv my_venv -v
-
+```
 
 ## Naming and Versioning
 
