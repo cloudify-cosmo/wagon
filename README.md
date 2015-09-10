@@ -1,5 +1,11 @@
 # Wheelr
 
+
+* Master Branch [![Build Status](https://travis-ci.org/cloudify-cosmo/wheelr.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wheelr)
+* PyPI [![PyPI](http://img.shields.io/pypi/dm/wheelr.svg)](http://img.shields.io/pypi/dm/wheelr.svg)
+* Version [![PypI](http://img.shields.io/pypi/v/wheelr.svg)](http://img.shields.io/pypi/v/wheelr.svg)
+
+
 This tool creates tar.gz based Python Wheel archives for single modules and allows to install them.
 
 (NOTE: Currently, only tested on Linux).
