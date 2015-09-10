@@ -1,6 +1,7 @@
 import os
 import subprocess
 import logger
+import re
 import urllib
 import tarfile
 import logging
@@ -8,6 +9,15 @@ from threading import Thread
 import time
 import sys
 from contextlib import closing
+import platform
+
+
+IS_VIRTUALENV = hasattr(sys, 'real_prefix')
+
+PLATFORM = sys.platform
+IS_WIN = (PLATFORM == 'win32')
+IS_DARWIN = (PLATFORM == 'darwin')
+IS_LINUX = (PLATFORM == 'linux2')
 
 PROCESS_POLLING_INTERVAL = 0.1
 
@@ -34,7 +44,7 @@ class PipeReader(Thread):
 
 
 # TODO: implement using sh
-def run(cmd, suppress_errors=False):
+def run(cmd, suppress_errors=False, suppress_output=False):
     """Executes a command
     """
     lgr.debug('Executing: {0}...'.format(cmd))
@@ -42,8 +52,9 @@ def run(cmd, suppress_errors=False):
     proc = subprocess.Popen(cmd, shell=True, stdout=pipe, stderr=pipe)
 
     stderr_log_level = logging.NOTSET if suppress_errors else logging.ERROR
+    stdout_log_level = logging.NOTSET if suppress_errors else logging.DEBUG
 
-    stdout_thread = PipeReader(proc.stdout, proc, lgr, logging.DEBUG)
+    stdout_thread = PipeReader(proc.stdout, proc, lgr, stdout_log_level)
     stderr_thread = PipeReader(proc.stderr, proc, lgr, stderr_log_level)
 
     stdout_thread.start()
@@ -61,15 +72,16 @@ def run(cmd, suppress_errors=False):
     return proc
 
 
-def wheel(module, pre=False, requirements_file=False, wheels_dir='plugin'):
+def wheel(module, pre=False, requirement_files=False, wheels_dir='plugin'):
     lgr.info('Downloading Wheels for {0}...'.format(module))
     wheel_cmd = ['pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_dir))
     wheel_cmd.append('--find-links={0}'.format(wheels_dir))
     if pre:
         wheel_cmd.append('--pre')
-    if requirements_file:
-        wheel_cmd.extend(['-r', requirements_file])
+    if requirement_files:
+        for req_file in requirement_files:
+            wheel_cmd.extend(['-r', req_file])
     wheel_cmd.append(module)
     p = run(' '.join(wheel_cmd))
     if not p.returncode == 0:
@@ -77,6 +89,39 @@ def wheel(module, pre=False, requirements_file=False, wheels_dir='plugin'):
                   'Please verify that the module you are trying '
                   'to wheel is wheelable.'.format(module))
         sys.exit(1)
+
+
+def install_module(module, wheels_path, virtualenv_path=None,
+                   requirements_file=None, upgrade=False):
+    """This will install a Python module.
+
+    Can specify a specific version.
+    Can specify a prerelease.
+    Can specify a virtualenv to install in.
+    Can specify a list of paths or urls to requirement txt files.
+    Can specify a local wheels_path to use for offline installation.
+    Can request an upgrade.
+    """
+    lgr.info('Installing {0}...'.format(module))
+
+    pip_cmd = ['pip', 'install']
+    if virtualenv_path:
+        pip_cmd[0] = os.path.join(
+            _get_env_bin_path(virtualenv_path), pip_cmd[0])
+    if requirements_file:
+        pip_cmd.extend(['-r', requirements_file])
+    pip_cmd.append(module)
+    pip_cmd.extend(['--use-wheel', '--no-index', '--find-links', wheels_path])
+    pip_cmd.append('--pre')
+    if upgrade:
+        pip_cmd.append('--upgrade')
+    if IS_VIRTUALENV and not virtualenv_path:
+        lgr.info('Installing within current virtualenv: {0}...'.format(
+            IS_VIRTUALENV))
+    result = run(' '.join(pip_cmd))
+    if not result.returncode == 0:
+        lgr.error(result.aggr_stdout)
+        sys.exit('Could not install module: {0}.'.format(module))
 
 
 def get_downloaded_wheels(wheels_path):
@@ -138,3 +183,38 @@ def get_platform_for_set_of_wheels(wheels_dir):
 def get_python_version():
     version = sys.version_info
     return 'py{0}{1}'.format(version[0], version[1])
+
+
+def get_machine_platform():
+    id = '{0}_{1}'.format(platform.system().lower(), platform.machine())
+    lgr.info('Identified machine platform: {0}'.format(id))
+    return id
+
+
+def _get_env_bin_path(env_path):
+    """returns the bin path for a virtualenv
+    """
+    try:
+        import virtualenv
+        return virtualenv.path_locations(env_path)[3]
+    except ImportError:
+        # this is a fallback for a race condition in which you're trying
+        # to use the script and create a virtualenv from within
+        # a virtualenv in which virtualenv isn't installed and so
+        # is not importable.
+        return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')
+
+
+def check_installed(module, virtualenv):
+    """checks to see if a module is installed
+
+    :param string module: module to install. can be a url or a path.
+    :param string virtualenv: path of virtualenv to install in.
+    """
+    pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
+    p = run('{0} freeze'.format(pip_path), suppress_output=True)
+    if re.search(r'{0}'.format(module), p.aggr_stdout.lower()):
+        lgr.debug('Module {0} is installed in {1}'.format(module, virtualenv))
+        return True
+    lgr.debug('Module {0} is not installed in {1}'.format(module, virtualenv))
+    return False

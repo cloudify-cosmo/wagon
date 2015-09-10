@@ -1,7 +1,3 @@
-# get module path (pypi, github, local) from cli
-# wheel it to the destination directory
-# tar the wheel with the following name format: cloudify_#module_name#_#module_version#.tar.gz  # NOQA
-
 import logger
 import logging
 import os
@@ -15,15 +11,15 @@ import json
 import utils
 import codes
 
-
-DEFAULT_PLUGIN_PATH = 'plugin'
-DEFAULT_WHEELS_PATH = '{0}/wheels'.format(DEFAULT_PLUGIN_PATH)
+REQUIREMENT_FILE_NAMES = ['dev-requirements.txt', 'requirements.txt']
+METADATA_FILE_NAME = 'module.json'
+DEFAULT_WHEELS_PATH = 'wheels'
 TAR_NAME_FORMAT = '{0}-{1}-{2}-none-{3}.tar.gz'
 
 lgr = logger.init()
 
 
-class PluginPackager():
+class Wheelr():
     def __init__(self, source, verbose=False):
         if verbose:
             lgr.setLevel(logging.DEBUG)
@@ -31,19 +27,24 @@ class PluginPackager():
             lgr.setLevel(logging.INFO)
         self.source = source
 
-    def create(self, pre=False, requirements_file=None, force=False,
+    def create(self, pre=False, with_requirements=None, force=False,
                keep_wheels=False, tar_destination_directory='.'):
-        lgr.info('Creating plugin package for {0}...'.format(self.source))
+        lgr.info('Creating module package for {0}...'.format(self.source))
         source = self.get_source(self.source)
         module_name, module_version = \
             self.get_source_name_and_version(source)
 
-        self.handle_output_directory(DEFAULT_PLUGIN_PATH, force)
+        wheels_path = os.path.join(module_name, DEFAULT_WHEELS_PATH)
+        self.handle_output_directory(module_name, force)
 
-        utils.wheel(source, pre, requirements_file, DEFAULT_WHEELS_PATH)
-        wheels = utils.get_downloaded_wheels(DEFAULT_WHEELS_PATH)
-        platform = utils.get_platform_for_set_of_wheels(
-            DEFAULT_WHEELS_PATH)
+        if with_requirements == '.':
+            with_requirements = self._get_default_requirement_files(source)
+        elif with_requirements:
+            with_requirements = [with_requirements]
+
+        utils.wheel(source, pre, with_requirements, wheels_path)
+        wheels = utils.get_downloaded_wheels(wheels_path)
+        platform = utils.get_platform_for_set_of_wheels(wheels_path)
 
         tar_file = self.set_tar_name(module_name, module_version, platform)
         tar_path = os.path.join(tar_destination_directory, tar_file)
@@ -55,31 +56,50 @@ class PluginPackager():
                      wheels, indent=4, sort_keys=True)))
         self.generate_metadata_file(wheels, platform)
 
-        utils.tar(DEFAULT_PLUGIN_PATH, tar_path)
+        utils.tar(module_name, tar_path)
 
         if not keep_wheels:
             lgr.debug('Cleaning up...')
-            shutil.rmtree(DEFAULT_PLUGIN_PATH)
+            shutil.rmtree(module_name)
         lgr.info('Process complete!')
+        return tar_path
+
+    def install(self, virtualenv=None, requirements_file=None, upgrade=False):
+        source = self.get_source(self.source)
+        with open(os.path.join(source, 'module.json'), 'r') as f:
+            metadata = json.loads(f.read())
+        if metadata['supported_platform'] != 'any':
+            machine_platform = utils.get_machine_platform()
+            if machine_platform != metadata['supported_platform']:
+                lgr.error('Platform unsupported for module ({0}).'.format(
+                    machine_platform))
+                sys.exit(1)
+
+        wheels_path = os.path.join(source, DEFAULT_WHEELS_PATH)
+        utils.install_module(metadata['module_name'], wheels_path, virtualenv,
+                             requirements_file, upgrade)
+
+    @staticmethod
+    def _get_default_requirement_files(source):
+        if os.path.isdir(source):
+            return [os.path.join(source, f) for f in REQUIREMENT_FILE_NAMES
+                    if os.path.isfile(os.path.join(source, f))]
 
     def generate_metadata_file(self, wheels, platform):
-        """This generates a metadata file for the plugin.
-
-        The metadata will be used by Cloudify's plugin installer
-        to identify the plugin to install by its properties.
+        """This generates a metadata file for the module.
         """
         lgr.debug('Generating Metadata...')
         metadata = {
             'archive_name': self.tar,
-            'platform': platform,
-            'plugin_name': self.name,
-            'plugin_source': self.source,
-            'plugin_version': self.version,
+            'supported_platform': platform,
+            'module_name': self.name,
+            'module_source': self.source,
+            'module_version': self.version,
             'wheels': wheels
         }
         formatted_metadata = json.dumps(metadata, indent=4, sort_keys=True)
         lgr.debug('Metadata is: {0}'.format(formatted_metadata))
-        output_path = os.path.join(DEFAULT_PLUGIN_PATH, 'plugin.json')
+        output_path = os.path.join(self.name, METADATA_FILE_NAME)
         with open(output_path, 'w') as f:
             lgr.info('Writing metadata to file: {0}'.format(output_path))
             f.write(formatted_metadata)
@@ -91,7 +111,7 @@ class PluginPackager():
         as compatible as possible with the wheel naming convention
         described here:
         https://www.python.org/dev/peps/pep-0427/#file-name-convention,
-        as we've basically providing a "wheel" of our plugin.
+        as we've basically providing a "wheel" of our module.
         """
         self.python = utils.get_python_version()
         self.tar = TAR_NAME_FORMAT.format(
@@ -105,6 +125,11 @@ class PluginPackager():
         If the source is a url to a module's tar file,
         this will download the source and extract it to a temporary directory.
         """
+        def extract_source(source, destination):
+            utils.untar(source, destination)
+            return os.path.join(
+                destination, [d for d in os.walk(destination).next()[1]][0])
+
         lgr.debug('Retrieving source...')
         if '://' in source:
             split = source.split('://')
@@ -113,13 +138,14 @@ class PluginPackager():
                 tmpdir = tempfile.mkdtemp()
                 tmpfile = os.path.join(tmpdir, str(uuid.uuid4()))
                 utils.download_file(source, tmpfile)
-                utils.untar(tmpfile, tmpdir)
-                source = os.path.join(
-                    tmpdir, [d for d in os.walk(tmpdir).next()[1]][0])
+                source = extract_source(tmpfile, tmpdir)
             else:
                 lgr.error('Source URL type {0} is not supported'.format(
                     schema))
                 sys.exit(1)
+        elif os.path.isfile(source) and source.endswith('.tar.gz'):
+            tmpdir = tempfile.mkdtemp()
+            source = extract_source(source, tmpdir)
         elif os.path.isdir(source):
             source = os.path.expanduser(source)
         elif '==' in source:
@@ -131,7 +157,7 @@ class PluginPackager():
         return source
 
     def get_source_name_and_version(self, source):
-        """Retrieves the source plugin's name and version.
+        """Retrieves the source module's name and version.
 
         If the source is a path, the name and version will be retrieved
         by querying the setup.py file in the path.
@@ -160,10 +186,6 @@ class PluginPackager():
 
         removes the output file if required, else, notifies
         that it already exists.
-
-        :param string destination_tar: destination tar path
-        :param bool force: whether to force creation or not if
-         it already exists.
         """
         if os.path.isfile(destination_tar) and force:
             lgr.info('Removing previous agent package...')
@@ -179,7 +201,7 @@ class PluginPackager():
                 shutil.rmtree(wheels_path)
             else:
                 lgr.error('Directory {0} already exists. Please remove it and '
-                          'run this again.'.format(DEFAULT_WHEELS_PATH))
+                          'run this again.'.format(wheels_path))
                 sys.exit(1)
 
 
@@ -190,27 +212,21 @@ def main():
 
 @click.command()
 @click.option('-s', '--source', required=True,
-              help='Source URL, Path or Module name.',
-              envvar='CLOUDIFY_PLUGIN_SOURCE')
+              help='Source URL, Path or Module name.')
 @click.option('--pre', default=False, is_flag=True,
-              help='Whether to pack a prerelease of the plugin.',
-              envvar='CLOUDIFY_PLUGIN_PACK_PRE')
-@click.option('-r', '--requirements-file',
-              help='Whether to also pack wheels from a requirements file.',
-              envvar='CLOUDIFY_PLUGIN_REQUIREMENTS_FILE')
+              help='Whether to pack a prerelease of the module.')
+@click.option('-r', '--with-requirements', required=False,
+              help='Whether to also pack wheels from a requirements file.')
 @click.option('-f', '--force', default=False, is_flag=True,
-              help='Force overwriting existing output file.',
-              envvar='CLOUDIFY_PLUGIN_PACK_FORCE')
+              help='Force overwriting existing output file.')
 @click.option('--keep-wheels', default=False, is_flag=True,
-              help='Force overwriting existing output file.',
-              envvar='CLOUDIFY_PLUGIN_KEEP_WHEELS')
+              help='Force overwriting existing output file.')
 @click.option('-o', '--output-directory', default='.',
-              help='Output directory for the tar file.',
-              envvar='CLOUDIFY_PLUGIN_TAR_OUTPUT_DIR')
+              help='Output directory for the tar file.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
-def create(source, pre, requirements_file, force, keep_wheels,
+def create(source, pre, with_requirements, force, keep_wheels,
            output_directory, verbose):
-    """Creates a plugin package (tar.gz)
+    """Creates a Python module's wheel base archive (tar.gz)
 
     \b
     Example sources:
@@ -228,9 +244,43 @@ def create(source, pre, requirements_file, force, keep_wheels,
     """
     # TODO: Let the user provide supported Python versions.
     # TODO: Let the user provide supported Architectures.
-    packager = PluginPackager(source, verbose)
-    packager.create(pre, requirements_file, force, keep_wheels,
+    packager = Wheelr(source, verbose)
+    packager.create(pre, with_requirements, force, keep_wheels,
                     output_directory)
 
 
+@click.command()
+@click.option('-s', '--source', required=True,
+              help='Source URL, Path or Module name.')
+@click.option('--virtualenv', default=None,
+              help='Virtualenv to install in.')
+@click.option('-r', '--with-requirements', required=False,
+              help='A requirements file to install.')
+@click.option('-u', '--upgrade', required=False,
+              help='Upgrades the module if it is already installed.')
+@click.option('-v', '--verbose', default=False, is_flag=True)
+def install(source, virtualenv, requirements_file, upgrade, verbose):
+    """Creates a Python module's wheel base archive (tar.gz)
+
+    \b
+    Example sources:
+    - http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/
+    master.tar.gz
+    - ~/repos/cloudify-script-plugin
+    - cloudify-script-plugin==1.2.1
+
+    \b
+    Note:
+    - If source is URL, download and extract it and get module name and version
+     from setup.py.
+    - If source is a local path, get module name and version from setup.py.
+    - If source is module_name==module_version, use them as name and version.
+    """
+    # TODO: Let the user provide supported Python versions.
+    # TODO: Let the user provide supported Architectures.
+    installer = Wheelr(source, verbose)
+    installer.install(virtualenv, requirements_file, upgrade)
+
+
 main.add_command(create)
+main.add_command(install)

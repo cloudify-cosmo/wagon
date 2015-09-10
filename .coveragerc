@@ -1,3 +1,3 @@
 [run]
-omit = plugin_packager/six.py
-       plugin_packager/dictconfig.py
+omit = wheelr/six.py
+       wheelr/dictconfig.py
