@@ -1,53 +1,45 @@
 # Wheelr
 
-This tool creates Python Wheel Archives (Currently, only tested on Linux).
+This tool creates tar.gz based Python Wheel archives for single modules and allows to install them.
+
+(NOTE: Currently, only tested on Linux).
 
 Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz files and so we needed a tool to create such archives. Hence, Wheelr.
 
 ## Usage
 
+### Create Packages
+
 ```shell
 wheelr create --help
-
-Usage: wheelr create [OPTIONS]
-
-  Creates a Python module's wheel base archive (tar.gz).
-
-  Example sources:
-  - http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/master.tar.gz
-  - ~/repos/cloudify-script-plugin
-  - cloudify-script-plugin==1.2.1
-
-  - If source is URL, download and extract it and get module name and version
-  from setup.py.
-  - If source is a local path, get module name and version from
-  setup.py.
-  - If source is module_name==module_version, use them as name and
-  version.
-
-Options:
-  -s, --source TEXT             Source URL, Path or Module name.  [required]
-  --pre                         Whether to pack a prerelease of the plugin.
-  -r, --requirements-file TEXT  Whether to also pack wheels from a
-                                requirements file.
-  -f, --force                   Force overwriting existing output file.
-  --keep-wheels                 Force overwriting existing output file.
-  -o, --output-directory TEXT   Output directory for the tar file.
-  -v, --verbose
-  --help                        Show this message and exit.
 ```
 
-## Examples
+#### Examples
+
 ```shell
 # create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin)
-wheelr create -s cloudify-script-plugin==1.2 --keep-wheels
-# create an archive package by retrieving the source from a URL.
-wheelr create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz
+wheelr create -s cloudify-script-plugin==1.2 --keep-wheels -v
+# create an archive package by retrieving the source from a URL and creates wheels from requirement files found within the archive.
+wheelr create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r .
 # create an archive package by retrieving the source from a local path and output the tar.gz file to /tmp/<MODULE>.tar.gz (defaults to <cwd>/<MODULE>.tar.gz)
-wheelr create -s ~/repos/cloudify-script-plugin/ -o /tmp/
+wheelr create -s ~/modules/cloudify-script-plugin/ -o /tmp/
 ```
 
-The output package of all three commands should be `cloudify_script_plugin-1.2-py27-none-any.tar.gz` if running under Python 2.7.x.
+The output package of the three commands should be something like `cloudify_script_plugin-1.2-py27-none-any.tar.gz` if running under Python 2.7.x.
+
+### Install Packages
+
+```shell
+wheelr install --help
+```
+
+####
+```
+# install a packaged module from a local package tar file and upgrade if already installed
+wheelr install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade
+# install a packaged module from a url into an existing virtualenv
+wheelr install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz --virtualenv my_venv -v
+
 
 ## Naming and Versioning
 
@@ -65,10 +57,10 @@ A Metadata file is generated for the archive and looks somewhat like this:
 ```
 {
     "archive_name": "cloudify_script_plugin-1.2-py27-none-any.tar.gz",
-    "platform": "any",
-    "plugin_name": "cloudify-script-plugin",
-    "plugin_source": "cloudify-script-plugin==1.2",
-    "plugin_version": "1.2",
+    "supported_platform": "any",
+    "module_name": "cloudify-script-plugin",
+    "module_source": "cloudify-script-plugin==1.2",
+    "module_version": "1.2",
     "wheels": [
         "proxy_tools-0.1.0-py2-none-any.whl",
         "bottle-0.12.7-py2-none-any.whl",
@@ -83,7 +75,8 @@ A Metadata file is generated for the archive and looks somewhat like this:
 ```
 
 * The wheels to be installed reside in the tar.gz file under 'wheels/*.whl'.
-* The Metadata file resides in the tar.gz file under 'module.json'
+* The Metadata file resides in the tar.gz file under 'module.json'.
+* The installer uses the metadata file to check that the platform fits the machine the module is being installed on.
 
 ## Archive naming convention and Platform
 The tar.gz archive is named according to the Wheel naming convention described in [PEP0427](https://www.python.org/dev/peps/pep-0427/#file-name-convention) aside from two fields:
