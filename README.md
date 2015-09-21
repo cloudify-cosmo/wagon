@@ -1,5 +1,6 @@
-# Wheelr
+# Wheelr (Wheel aRchiver)
 
+John Archibald Wheeler (July 9, 1911 – April 13, 2008) was an American theoretical physicist. He was largely responsible for reviving interest in general relativity in the United States after World War II. Wheeler also worked with Niels Bohr in explaining the basic principles behind nuclear fission. Together with Gregory Breit, Wheeler developed the concept of Breit–Wheeler process. He is also known for popularizing the term "black hole", for coining the terms "neutron moderator", "quantum foam", "wormhole", and "it from bit", and for hypothesizing the "one-electron universe".
 
 * Master Branch [![Build Status](https://travis-ci.org/cloudify-cosmo/wheelr.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wheelr)
 * PyPI [![PyPI](http://img.shields.io/pypi/dm/wheelr.svg)](http://img.shields.io/pypi/dm/wheelr.svg)

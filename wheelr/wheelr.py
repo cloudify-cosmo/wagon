@@ -134,12 +134,18 @@ class Wheelr():
         """This generates a metadata file for the module.
         """
         lgr.debug('Generating Metadata...')
+        distro, version, release = utils.get_os_properties()
         metadata = {
             'archive_name': self.tar,
             'supported_platform': platform,
             'module_name': self.name,
             'module_source': self.source,
             'module_version': self.version,
+            'build_server_os_properties': {
+                'distribution': distro,
+                'distribution_version': version,
+                'distribution_release': release
+            },
             'wheels': wheels
         }
         formatted_metadata = json.dumps(metadata, indent=4, sort_keys=True)
@@ -182,8 +188,11 @@ class Wheelr():
             if schema in ['http', 'https']:
                 tmpdir = tempfile.mkdtemp()
                 tmpfile = os.path.join(tmpdir, str(uuid.uuid4()))
-                utils.download_file(source, tmpfile)
-                source = extract_source(tmpfile, tmpdir)
+                try:
+                    utils.download_file(source, tmpfile)
+                    source = extract_source(tmpfile, tmpdir)
+                finally:
+                    os.remove(tmpfile)
             else:
                 lgr.error('Source URL type {0} is not supported'.format(
                     schema))

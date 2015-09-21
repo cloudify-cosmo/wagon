@@ -142,10 +142,20 @@ class TestCreate(testtools.TestCase):
                 'cloudify-script-plugin',
                 wheelr.METADATA_FILE_NAME), 'r') as f:
             m = json.loads(f.read())
+
         self.assertEqual(m['module_version'], '1.2')
         self.assertEqual(m['module_name'], 'cloudify-script-plugin')
         self.assertEqual(m['supported_platform'], self.platform)
         self.assertTrue(len(m['wheels']) >= 8)
+
+        distro, version, release = utils.get_os_properties()
+        self.assertEqual(
+            m['build_server_os_properties']['distribution'], distro)
+        self.assertEqual(
+            m['build_server_os_properties']['distribution_version'], version)
+        self.assertEqual(
+            m['build_server_os_properties']['distribution_release'], release)
+
         self.assertEqual(
             m['archive_name'],
             'cloudify_script_plugin-1.2-{0}-none-{1}.tar.gz'.format(
@@ -163,9 +173,9 @@ class TestCreate(testtools.TestCase):
         self.assertEqual(m['module_source'], 'cloudify-script-plugin==1.2')
 
     def test_create_package_from_url_with_requirements(self):
+        self.platform = utils.get_machine_platform()
         self.tar_name = self.wheelr.set_tar_name(
-            'cloudify-script-plugin', '1.2', 'linux_x86_64')
-        self.platform = 'linux_x86_64'
+            'cloudify-script-plugin', '1.2', self.platform)
         result = self.runner.invoke(
             wheelr.create, ['-s{0}'.format(TEST_FILE), '-v', '-f', '-r.'])
         self.assertEqual(str(result), '<Result okay>')

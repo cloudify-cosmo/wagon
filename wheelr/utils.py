@@ -189,6 +189,10 @@ def get_machine_platform():
     return id
 
 
+def get_os_properties():
+    return platform.linux_distribution(full_distribution_name=False)
+
+
 def _get_env_bin_path(env_path):
     """returns the bin path for a virtualenv
     """

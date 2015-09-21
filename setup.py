@@ -12,7 +12,7 @@ def read(*parts):
 
 setup(
     name='wheelr',
-    version=0.1,
+    version='0.1.1',
     url='https://github.com/cloudify-cosmo/wheelr',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
