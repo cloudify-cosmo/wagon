@@ -19,7 +19,7 @@ TAR_NAME_FORMAT = '{0}-{1}-{2}-none-{3}.tar.gz'
 lgr = logger.init()
 
 
-class Wheelr():
+class Wagon():
     def __init__(self, source, verbose=False):
         if verbose:
             lgr.setLevel(logging.DEBUG)
@@ -28,7 +28,8 @@ class Wheelr():
         self.source = source
 
     def create(self, with_requirements=None, force=False,
-               keep_wheels=False, tar_destination_directory='.'):
+               keep_wheels=False, tar_destination_directory='.',
+               validate=False):
         lgr.info('Creating module package for {0}...'.format(self.source))
         source = self.get_source(self.source)
         module_name, module_version = \
@@ -61,6 +62,10 @@ class Wheelr():
         if not keep_wheels:
             lgr.debug('Cleaning up...')
             shutil.rmtree(module_name)
+
+        if validate:
+            self.source = tar_path
+            self.validate()
         lgr.info('Process complete!')
         return tar_path
 
@@ -113,6 +118,16 @@ class Wheelr():
             if not os.path.isfile(os.path.join(wheels_path, wheel)):
                 validation_errors.append('Missing wheel: {0}'.format(wheel))
 
+        lgr.debug('Testing module installation...')
+        tmpenv = tempfile.mkdtemp()
+        try:
+            utils.make_virtualenv(tmpenv)
+        except Exception as ex:
+            validation_errors.append(
+                'Installation Validation Error: {0}'.format(str(ex)))
+        finally:
+            shutil.rmtree(tmpenv)
+
         if validation_errors:
             lgr.info('Validation failed!')
             for error in validation_errors:
@@ -120,7 +135,7 @@ class Wheelr():
             lgr.info('Source can be found at: {0}'.format(source))
             return False
         else:
-            lgr.info('Validation Passed! (Removing Source).')
+            lgr.info('Validation Passed! (Cleaning up temporary files).')
             shutil.rmtree(os.path.dirname(source))
             return True
 
@@ -142,9 +157,9 @@ class Wheelr():
             'module_source': self.source,
             'module_version': self.version,
             'build_server_os_properties': {
-                'distribution': distro,
-                'distribution_version': version,
-                'distribution_release': release
+                'distribution': distro.lower(),
+                'distribution_version': version.lower(),
+                'distribution_release': release.lower()
             },
             'wheels': wheels
         }
@@ -242,7 +257,7 @@ class Wheelr():
         that it already exists.
         """
         if os.path.isfile(destination_tar) and force:
-            lgr.info('Removing previous agent package...')
+            lgr.info('Removing previous archive...')
             os.remove(destination_tar)
         if os.path.exists(destination_tar):
             lgr.error('Destination tar already exists: {0}. You can use '
@@ -272,12 +287,14 @@ def main():
 @click.option('-f', '--force', default=False, is_flag=True,
               help='Force overwriting existing output file.')
 @click.option('--keep-wheels', default=False, is_flag=True,
-              help='Force overwriting existing output file.')
+              help='Keep wheels path after creation.')
 @click.option('-o', '--output-directory', default='.',
               help='Output directory for the tar file.')
+@click.option('--validate', default=False, is_flag=True,
+              help='Runs a postcreation validation on the archive.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
 def create(source, with_requirements, force, keep_wheels,
-           output_directory, verbose):
+           output_directory, validate, verbose):
     """Creates a Python module's wheel base archive (tar.gz)
 
     \b
@@ -296,14 +313,14 @@ def create(source, with_requirements, force, keep_wheels,
     """
     # TODO: Let the user provide supported Python versions.
     # TODO: Let the user provide supported Architectures.
-    packager = Wheelr(source, verbose)
+    packager = Wagon(source, verbose)
     packager.create(with_requirements, force, keep_wheels,
-                    output_directory)
+                    output_directory, validate)
 
 
 @click.command()
 @click.option('-s', '--source', required=True,
-              help='Source URL, Path or Module name.')
+              help='Path or URL to source Wagon archive.')
 @click.option('--virtualenv', default=None,
               help='Virtualenv to install in.')
 @click.option('-r', '--requirements-file', required=False,
@@ -312,20 +329,20 @@ def create(source, with_requirements, force, keep_wheels,
               help='Upgrades the module if it is already installed.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
 def install(source, virtualenv, requirements_file, upgrade, verbose):
-    """Installs a Wheelr packaged archive.
+    """Installs a Wagon archive.
     """
-    installer = Wheelr(source, verbose)
+    installer = Wagon(source, verbose)
     installer.install(virtualenv, requirements_file, upgrade)
 
 
 @click.command()
 @click.option('-s', '--source', required=True,
-              help='Source URL, Path or Module name.')
+              help='Path or URL to source Wagon archive.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
 def validate(source, verbose):
     """Validates an archive.
     """
-    validator = Wheelr(source, verbose)
+    validator = Wagon(source, verbose)
     if not validator.validate():
         sys.exit(1)
 

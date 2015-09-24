@@ -21,7 +21,7 @@ LOGGER = {
             "class": "logging.handlers.RotatingFileHandler",
             "formatter": "file",
             "level": "DEBUG",
-            "filename": os.path.expanduser("~/.cfyap/cfyap.log"),
+            "filename": os.path.expanduser("~/.wagon/wagon.log"),
             "maxBytes": "5000000",
             "backupCount": "20"
         },
