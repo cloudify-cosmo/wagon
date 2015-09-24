@@ -1,41 +1,43 @@
-# Wheelr (Wheel aRchiver)
+# Wagon
 
-John Archibald Wheeler (July 9, 1911 – April 13, 2008) was an American theoretical physicist. He was largely responsible for reviving interest in general relativity in the United States after World War II. Wheeler also worked with Niels Bohr in explaining the basic principles behind nuclear fission. Together with Gregory Breit, Wheeler developed the concept of Breit–Wheeler process. He is also known for popularizing the term "black hole", for coining the terms "neutron moderator", "quantum foam", "wormhole", and "it from bit", and for hypothesizing the "one-electron universe".
+A wagon (also spelt waggon in British and Commonwealth English) is a heavy four-wheeled vehicle pulled by draught animals, used for transporting goods, commodities, agricultural materials, supplies, and sometimes people. Wagons are distinguished from carts, which have two wheels, and from lighter four-wheeled vehicles primarily for carrying people, such as carriages.
 
-* Master Branch [![Build Status](https://travis-ci.org/cloudify-cosmo/wheelr.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wheelr)
-* PyPI [![PyPI](http://img.shields.io/pypi/dm/wheelr.svg)](http://img.shields.io/pypi/dm/wheelr.svg)
-* Version [![PypI](http://img.shields.io/pypi/v/wheelr.svg)](http://img.shields.io/pypi/v/wheelr.svg)
+* Master Branch [![Build Status](https://travis-ci.org/cloudify-cosmo/wagon.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wagon)
+* PyPI [![PyPI](http://img.shields.io/pypi/dm/wagon.svg)](http://img.shields.io/pypi/dm/wagon.svg)
+* Version [![PypI](http://img.shields.io/pypi/v/wagon.svg)](http://img.shields.io/pypi/v/wagon.svg)
 
 
-This tool creates tar.gz based Python Wheel archives for single modules and allows to install them.
+Wagon creates tar.gz based archives containing sets of Python Wheels for a single module with its dependencies and allows to install them.
 
 (NOTE: Currently, only tested on Linux).
 
-Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz files and so we needed a tool to create such archives. Hence, Wheelr.
+Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz files and so we needed a tool to create such archives. Hence, Wagon.
+
 
 ## Installation
 
 ```shell
-pip install wheelr
+pip install wagon
 ```
+
 
 ## Usage
 
 ### Create Packages
 
 ```shell
-wheelr create --help
+wagon create --help
 ```
 
 #### Examples
 
 ```shell
 # create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin)
-wheelr create -s cloudify-script-plugin==1.2 --keep-wheels -v
+wagon create -s cloudify-script-plugin==1.2 --keep-wheels -v
 # create an archive package by retrieving the source from a URL and creates wheels from requirement files found within the archive.
-wheelr create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r .
+wagon create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r .
 # create an archive package by retrieving the source from a local path and output the tar.gz file to /tmp/<MODULE>.tar.gz (defaults to <cwd>/<MODULE>.tar.gz)
-wheelr create -s ~/modules/cloudify-script-plugin/ -o /tmp/
+wagon create -s ~/modules/cloudify-script-plugin/ -o /tmp/
 ```
 
 The output package of the three commands should be something like `cloudify_script_plugin-1.2-py27-none-any.tar.gz` if running under Python 2.7.x.
@@ -43,51 +45,63 @@ The output package of the three commands should be something like `cloudify_scri
 ### Install Packages
 
 ```shell
-wheelr install --help
+wagon install --help
 ```
 
 #### Examples
 
 ```shell
 # install a packaged module from a local package tar file and upgrade if already installed
-wheelr install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade
+wagon install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade
 # install a packaged module from a url into an existing virtualenv
-wheelr install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz --virtualenv my_venv -v
+wagon install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz --virtualenv my_venv -v
 ```
 
 ### Validate Packages
 
 ```sheel
-wheelr validate --help
+wagon validate --help
 ```
 
 #### Examples
 
 ```shell
-# validate that a package is a wheelr compatible package
-wheelr validate ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+# validate that a package is a wagon compatible package
+wagon validate -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+# validate from a url
+wagon validate -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz
 ```
+
 
 ## Naming and Versioning
 
 ### Source: PyPI
-When providing a PyPI source, it must be supplied as MODULE_NAME==MODULE_VERSION. Wheelr then applies the correct name and version to the archive according to the two parameters.
+When providing a PyPI source, it must be supplied as MODULE_NAME==MODULE_VERSION. wagon then applies the correct name and version to the archive according to the two parameters.
 
 ### Source: Else
 For local path and URL sources, the name and version are automatically extracted from the setup.py file.
 
 NOTE: This means that when supplying a local path, you must supply a path to the root of where your setup.py file resides.
 
+NOTE: If using a URL, it must be a URL to a tar.gz file structured like a GitHub tar.gz archive (e.g. https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/master.tar.gz)
+
+
 ## Metadata File and Wheels
+
 A Metadata file is generated for the archive and looks somewhat like this:
 
 ```
 {
     "archive_name": "cloudify_script_plugin-1.2-py27-none-any.tar.gz",
-    "supported_platform": "any",
+    "build_server_os_properties": {
+        "distribution": "ubuntu",
+        "distribution_release": "trusty",
+        "distribution_version": "14.04"
+    },
     "module_name": "cloudify-script-plugin",
     "module_source": "cloudify-script-plugin==1.2",
     "module_version": "1.2",
+    "supported_platform": "any",
     "wheels": [
         "proxy_tools-0.1.0-py2-none-any.whl",
         "bottle-0.12.7-py2-none-any.whl",
@@ -104,6 +118,8 @@ A Metadata file is generated for the archive and looks somewhat like this:
 * The wheels to be installed reside in the tar.gz file under 'wheels/*.whl'.
 * The Metadata file resides in the tar.gz file under 'module.json'.
 * The installer uses the metadata file to check that the platform fits the machine the module is being installed on.
+* The OS properties are specifically helpful to identify Linux distributions and their releases as compiled Wheels may vary between them.
+
 
 ## Archive naming convention and Platform
 The tar.gz archive is named according to the Wheel naming convention described in [PEP0427](https://www.python.org/dev/peps/pep-0427/#file-name-convention) aside from two fields:

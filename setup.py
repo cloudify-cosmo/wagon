@@ -11,20 +11,20 @@ def read(*parts):
 
 
 setup(
-    name='wheelr',
-    version='0.1.1',
-    url='https://github.com/cloudify-cosmo/wheelr',
+    name='wagon',
+    version='0.1.2',
+    url='https://github.com/cloudify-cosmo/wagon',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
     license='LICENSE',
     platforms='All',
-    description='Creates Python Wheel Archives.',
+    description='Creates Python Wheel based archives.',
     long_description=read('README.rst'),
-    packages=['wheelr'],
+    packages=['wagon'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'wheelr = wheelr.wheelr:main',
+            'wagon = wagon.wagon:main',
         ]
     },
     install_requires=[

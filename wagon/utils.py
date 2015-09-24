@@ -220,3 +220,14 @@ def check_installed(module, virtualenv):
         return True
     lgr.debug('Module {0} is not installed in {1}'.format(module, virtualenv))
     return False
+
+
+def make_virtualenv(virtualenv_dir, python_path='python'):
+    """This will create a virtualenv. If no `python_path` is supplied,
+    will assume that `python` is in path. This default assumption is provided
+    via the argument parser.
+    """
+    lgr.info('Creating Virtualenv {0}...'.format(virtualenv_dir))
+    result = run('virtualenv -p {0} {1}'.format(python_path, virtualenv_dir))
+    if not result.returncode == 0:
+        sys.exit('Could not create virtualenv: {0}'.format(virtualenv_dir))
