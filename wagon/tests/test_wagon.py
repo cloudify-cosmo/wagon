@@ -15,6 +15,7 @@
 
 import wagon.wagon as wagon
 import wagon.utils as utils
+import wagon.codes as codes
 
 import click.testing as clicktest
 from contextlib import closing
@@ -23,9 +24,10 @@ import testtools
 import os
 import json
 import shutil
+import tempfile
+import uuid
 
-BASE_DIR = 'cloudify'
-TEST_VENV = os.path.join(BASE_DIR, 'env')
+
 TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz'  # NOQA
 
 
@@ -78,8 +80,12 @@ class TestUtils(testtools.TestCase):
         os.remove('tar.file')
 
     def test_tar_no_permissions(self):
-        e = self.assertRaises(IOError, utils.tar, TEST_VENV, '/file')
-        self.assertIn("Permission denied: '/file'", str(e))
+        tmpdir = tempfile.mkdtemp()
+        try:
+            e = self.assertRaises(IOError, utils.tar, tmpdir, '/file')
+            self.assertIn("Permission denied: '/file'", str(e))
+        finally:
+            shutil.rmtree(tmpdir)
 
     def test_tar_missing_source(self):
         e = self.assertRaises(OSError, utils.tar, 'missing', 'file')
@@ -90,9 +96,9 @@ class TestUtils(testtools.TestCase):
         try:
             e = self.assertRaises(
                 SystemExit, utils.wheel, 'cloudify-script-plug==1.2')
-            self.assertEqual('1', str(e))
+            self.assertEqual(str(codes.errors['failed_to_wheel']), str(e))
         finally:
-            shutil.rmtree('plugin')
+            shutil.rmtree('module')
 
     # non-windows
     def test_machine_platform(self):
@@ -101,19 +107,19 @@ class TestUtils(testtools.TestCase):
 
 class TestCreateBadSources(testtools.TestCase):
     def test_bad_source(self):
-        packager = wagon.Wagon(source='cloudify', verbose=True)
+        packager = wagon.Wagon(source=str(uuid.uuid4()), verbose=True)
         e = self.assertRaises(SystemExit, packager.create)
-        self.assertIn('1', str(e))
+        self.assertIn(str(codes.errors['nonexistent_source_path']), str(e))
 
     def test_unsupported_url_schema(self):
         packager = wagon.Wagon(source='ftp://x', verbose=True)
         e = self.assertRaises(SystemExit, packager.create)
-        self.assertIn('1', str(e))
+        self.assertIn(str(codes.errors['unsupported_url_type']), str(e))
 
     def test_nonexisting_path(self):
         packager = wagon.Wagon(source='~/nonexisting_path', verbose=True)
         e = self.assertRaises(SystemExit, packager.create)
-        self.assertIn('1', str(e))
+        self.assertIn(str(codes.errors['nonexistent_source_path']), str(e))
 
 
 class TestCreate(testtools.TestCase):
@@ -121,23 +127,22 @@ class TestCreate(testtools.TestCase):
     def setUp(self):
         super(TestCreate, self).setUp()
         self.runner = clicktest.CliRunner()
-        self.wagon = wagon.Wagon(
-            'cloudify-script-plugin==1.2', verbose=True)
-        self.tar_name = self.wagon.set_tar_name(
-            'cloudify-script-plugin', '1.2', 'any')
-        self.pyver = utils.get_python_version()
-        self.platform = 'any'
+        self.wagon = wagon.Wagon('cloudify-script-plugin==1.2', verbose=True)
+        self.wagon.platform = 'any'
+        self.wagon.python_versions = [utils.get_python_version()]
+        self.archive_name = self.wagon.set_archive_name(
+            'cloudify-script-plugin', '1.2')
 
     def tearDown(self):
         super(TestCreate, self).tearDown()
-        if os.path.isfile(self.tar_name):
-            os.remove(self.tar_name)
+        if os.path.isfile(self.archive_name):
+            os.remove(self.archive_name)
         if os.path.isdir('cloudify-script-plugin'):
             shutil.rmtree('cloudify-script-plugin')
 
     def _test(self):
-        self.assertTrue(os.path.isfile(self.tar_name))
-        utils.untar(self.tar_name, '.')
+        self.assertTrue(os.path.isfile(self.archive_name))
+        utils.untar(self.archive_name, '.')
         with open(os.path.join(
                 'cloudify-script-plugin',
                 wagon.METADATA_FILE_NAME), 'r') as f:
@@ -145,73 +150,80 @@ class TestCreate(testtools.TestCase):
 
         self.assertEqual(m['module_version'], '1.2')
         self.assertEqual(m['module_name'], 'cloudify-script-plugin')
-        self.assertEqual(m['supported_platform'], self.platform)
+        self.assertEqual(m['supported_platform'], self.wagon.platform)
         self.assertTrue(len(m['wheels']) >= 8)
 
-        distro, version, release = utils.get_os_properties()
-        self.assertEqual(
-            m['build_server_os_properties']['distribution'], distro)
-        self.assertEqual(
-            m['build_server_os_properties']['distribution_version'], version)
-        self.assertEqual(
-            m['build_server_os_properties']['distribution_release'], release)
+        if utils.IS_LINUX and self.wagon.platform != 'any':
+            distro, version, release = utils.get_os_properties()
+            self.assertEqual(
+                m['build_server_os_properties']['distribution'],
+                distro.lower())
+            self.assertEqual(
+                m['build_server_os_properties']['distribution_version'],
+                version.lower())
+            self.assertEqual(
+                m['build_server_os_properties']['distribution_release'],
+                release.lower())
 
-        self.assertEqual(
-            m['archive_name'],
-            'cloudify_script_plugin-1.2-{0}-none-{1}.tar.gz'.format(
-                self.pyver, self.platform))
+        self.assertIn(
+            'cloudify_script_plugin-1.2-{0}-none-{1}'.format(
+                '.'.join(self.wagon.python_versions), self.wagon.platform),
+            m['archive_name'])
+
         self.assertTrue(os.path.isfile(os.path.join(
             'cloudify-script-plugin', wagon.DEFAULT_WHEELS_PATH,
             'cloudify_script_plugin-1.2-py2-none-any.whl')))
+
         return m
 
-    def test_create_plugin_package_from_pypi(self):
+    def test_create_archive_from_pypi(self):
+        # raise Exception(self.archive_name)
         result = self.runner.invoke(
             wagon.create, ['-scloudify-script-plugin==1.2', '-v', '-f'])
         self.assertEqual(str(result), '<Result okay>')
         m = self._test()
         self.assertEqual(m['module_source'], 'cloudify-script-plugin==1.2')
 
-    def test_create_package_from_url_with_requirements(self):
-        self.platform = utils.get_machine_platform()
-        self.tar_name = self.wagon.set_tar_name(
-            'cloudify-script-plugin', '1.2', self.platform)
+    def test_create_archive_from_url_with_requirements(self):
+        self.wagon.platform = utils.get_machine_platform()
+        self.archive_name = self.wagon.set_archive_name(
+            'cloudify-script-plugin', '1.2')
         result = self.runner.invoke(
             wagon.create, ['-s{0}'.format(TEST_FILE), '-v', '-f', '-r.'])
         self.assertEqual(str(result), '<Result okay>')
         m = self._test()
         self.assertEqual(m['module_source'], TEST_FILE)
 
-    def test_create_package_from_path(self):
+    def test_create_archive_from_path(self):
         source = self.wagon.get_source(TEST_FILE)
         self.runner.invoke(
             wagon.create, ['-s{0}'.format(source), '-v', '-f'])
         m = self._test()
         self.assertEqual(m['module_source'], source)
 
-    def test_create_package_tar_already_exists(self):
+    def test_create_archive_already_exists(self):
         self.wagon.create()
-        self.assertTrue(os.path.isfile(self.tar_name))
+        self.assertTrue(os.path.isfile(self.archive_name))
         e = self.assertRaises(SystemExit, self.wagon.create)
-        self.assertIn('9', str(e))
+        self.assertIn(str(codes.errors['archive_already_exists']), str(e))
 
-    def test_create_package_tar_already_exists_force(self):
+    def test_create_archive_already_exists_force(self):
         self.wagon.create()
-        self.assertTrue(os.path.isfile(self.tar_name))
+        self.assertTrue(os.path.isfile(self.archive_name))
         self.wagon.create(force=True)
-        self.assertTrue(os.path.isfile(self.tar_name))
+        self.assertTrue(os.path.isfile(self.archive_name))
 
-    def test_create_package_plugin_directory_already_exists(self):
+    def test_create_archive_directory_already_exists(self):
         self.wagon.create(keep_wheels=True)
         self.assertTrue(os.path.isdir('cloudify-script-plugin'))
         e = self.assertRaises(SystemExit, self.wagon.create)
-        self.assertIn('1', str(e))
+        self.assertIn(str(codes.errors['directory_already_exists']), str(e))
 
-    def test_create_package_plugin_directory_already_exists_force(self):
+    def test_create_archive_directory_already_exists_force(self):
         self.wagon.create(keep_wheels=True)
         self.assertTrue(os.path.isdir('cloudify-script-plugin'))
         self.wagon.create(force=True)
-        self.assertTrue(os.path.isfile(self.tar_name))
+        self.assertTrue(os.path.isfile(self.archive_name))
 
 
 class TestInstall(testtools.TestCase):
@@ -222,18 +234,18 @@ class TestInstall(testtools.TestCase):
         self.packager = wagon.Wagon(
             'cloudify-script-plugin==1.2', verbose=True)
         utils.run('virtualenv test_env')
-        self.tar_path = self.packager.create(force=True)
+        self.archive_path = self.packager.create(force=True)
 
     def tearDown(self):
         super(TestInstall, self).tearDown()
-        os.remove(self.tar_path)
+        os.remove(self.archive_path)
         if os.path.isdir('test_env'):
             shutil.rmtree('test_env')
 
-    def test_install_module_from_local_tar(self):
+    def test_install_module_from_local_archive(self):
         result = self.runner.invoke(
             wagon.install,
-            ['-s{0}'.format(self.tar_path), '-v',
+            ['-s{0}'.format(self.archive_path), '-v',
              '--virtualenv=test_env', '-u'])
         self.assertEqual(str(result), '<Result okay>')
         self.assertTrue(utils.check_installed(
@@ -247,13 +259,13 @@ class TestValidate(testtools.TestCase):
         self.runner = clicktest.CliRunner()
         self.packager = wagon.Wagon(
             'cloudify-script-plugin==1.2', verbose=True)
-        self.tar_path = self.packager.create(force=True)
+        self.archive_path = self.packager.create(force=True)
 
     def tearDown(self):
         super(TestValidate, self).tearDown()
-        os.remove(self.tar_path)
+        os.remove(self.archive_path)
 
     def test_validate_package(self):
         result = self.runner.invoke(
-            wagon.validate, ['-s{0}'.format(self.tar_path), '-v'])
+            wagon.validate, ['-s{0}'.format(self.archive_path), '-v'])
         self.assertEqual(str(result), '<Result okay>')
