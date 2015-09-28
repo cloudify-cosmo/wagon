@@ -12,7 +12,7 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='0.1.2',
+    version='0.2.0',
     url='https://github.com/cloudify-cosmo/wagon',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
@@ -28,7 +28,8 @@ setup(
         ]
     },
     install_requires=[
-        "wheel==0.24.0",
-        "click==4.0"
+        "wheel>=0.24.0",
+        "virtualenv>=12.1",
+        "click==4.0",
     ]
 )

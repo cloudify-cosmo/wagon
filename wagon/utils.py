@@ -1,6 +1,5 @@
 import os
 import subprocess
-import logger
 import re
 import urllib
 import tarfile
@@ -10,6 +9,9 @@ import time
 import sys
 from contextlib import closing
 import platform
+
+import codes
+import logger
 
 
 IS_VIRTUALENV = hasattr(sys, 'real_prefix')
@@ -72,7 +74,7 @@ def run(cmd, suppress_errors=False, suppress_output=False):
     return proc
 
 
-def wheel(module, requirement_files=False, wheels_dir='plugin'):
+def wheel(module, requirement_files=False, wheels_dir='module'):
     lgr.info('Downloading Wheels for {0}...'.format(module))
     wheel_cmd = ['pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_dir))
@@ -86,7 +88,7 @@ def wheel(module, requirement_files=False, wheels_dir='plugin'):
         lgr.error('Could not download wheels for: {0}. '
                   'Please verify that the module you are trying '
                   'to wheel is wheelable.'.format(module))
-        sys.exit(1)
+        sys.exit(codes.errors['failed_to_wheel'])
 
 
 def install_module(module, wheels_path, virtualenv_path=None,
@@ -110,6 +112,8 @@ def install_module(module, wheels_path, virtualenv_path=None,
         pip_cmd.extend(['-r', requirements_file])
     pip_cmd.append(module)
     pip_cmd.extend(['--use-wheel', '--no-index', '--find-links', wheels_path])
+    # pre allows installing both prereleases and regular releases depending
+    # on the wheels provided.
     pip_cmd.append('--pre')
     if upgrade:
         pip_cmd.append('--upgrade')
@@ -119,7 +123,8 @@ def install_module(module, wheels_path, virtualenv_path=None,
     result = run(' '.join(pip_cmd))
     if not result.returncode == 0:
         lgr.error(result.aggr_stdout)
-        sys.exit('Could not install module: {0}.'.format(module))
+        lgr.error('Could not install module: {0}.'.format(module))
+        sys.exit(codes.errors['failed_to_install_module'])
 
 
 def get_downloaded_wheels(wheels_path):
@@ -129,7 +134,7 @@ def get_downloaded_wheels(wheels_path):
 
 
 def download_file(url, destination):
-    lgr.info('Downloading {0} to {1}'.format(url, destination))
+    lgr.info('Downloading {0} to {1}...'.format(url, destination))
     final_url = urllib.urlopen(url).geturl()
     if final_url != url:
         lgr.debug('Redirected to {0}'.format(final_url))
@@ -138,7 +143,7 @@ def download_file(url, destination):
 
 
 def tar(source, destination):
-    lgr.info('Creating tar file: {0}'.format(destination))
+    lgr.info('Creating tar file: {0}...'.format(destination))
     with closing(tarfile.open(destination, "w:gz")) as tar:
         tar.add(source, arcname=os.path.basename(source))
 
@@ -155,7 +160,7 @@ def untar(archive, destination):
 def get_platform_from_wheel_name(wheel_name):
     """Extracts the platform of a wheel from its file name.
     """
-    lgr.debug('Getting platform from wheel: {0}'.format(wheel_name))
+    lgr.debug('Getting platform for wheel: {0}...'.format(wheel_name))
     filename, _ = os.path.splitext(os.path.basename(wheel_name))
     name_parts = filename.split('-')
     return name_parts[-1]
@@ -169,7 +174,7 @@ def get_platform_for_set_of_wheels(wheels_dir):
     which is not `any`, it will be used. If a platform other than
     `any` was not found, `any` will be assumed.
     """
-    lgr.debug('Getting platform wheels in: {0}.'.format(wheels_dir))
+    lgr.debug('Setting platform for wheels in: {0}...'.format(wheels_dir))
     for wheel in get_downloaded_wheels(wheels_dir):
         platform = get_platform_from_wheel_name(
             os.path.join(wheels_dir, wheel))
@@ -194,7 +199,7 @@ def get_os_properties():
 
 
 def _get_env_bin_path(env_path):
-    """returns the bin path for a virtualenv
+    """Returns the bin path for a virtualenv
     """
     try:
         import virtualenv
@@ -208,10 +213,7 @@ def _get_env_bin_path(env_path):
 
 
 def check_installed(module, virtualenv):
-    """checks to see if a module is installed
-
-    :param string module: module to install. can be a url or a path.
-    :param string virtualenv: path of virtualenv to install in.
+    """Checks to see if a module is installed within a virtualenv.
     """
     pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
     p = run('{0} freeze'.format(pip_path), suppress_output=True)
@@ -223,11 +225,10 @@ def check_installed(module, virtualenv):
 
 
 def make_virtualenv(virtualenv_dir, python_path='python'):
-    """This will create a virtualenv. If no `python_path` is supplied,
-    will assume that `python` is in path. This default assumption is provided
-    via the argument parser.
+    """This will create a virtualenv.
     """
     lgr.info('Creating Virtualenv {0}...'.format(virtualenv_dir))
     result = run('virtualenv -p {0} {1}'.format(python_path, virtualenv_dir))
     if not result.returncode == 0:
-        sys.exit('Could not create virtualenv: {0}'.format(virtualenv_dir))
+        lgr.error('Could not create virtualenv: {0}'.format(virtualenv_dir))
+        sys.exit(codes.errors['failed_to_create_virtualenv'])
