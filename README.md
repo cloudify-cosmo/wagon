@@ -51,7 +51,7 @@ wagon install --help
 # install a module from a local archive tar file and upgrade if already installed. Also, ignore the platform check which would force a module (whether it is or isn't compiled for a specific platform) to be installed.
 wagon install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade --ignore-platform
 # install a module from a url into an existing virtualenv.
-wagon install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz --virtualenv my_venv -v
+wagon install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz --virtualenv my_venv -v
 ```
 
 #### Installing Manually
@@ -59,7 +59,7 @@ wagon install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz -
 While wagon provides a generic way of installing wagon created archives, you might not want to use the installer as you might not wish to install wagon on your application servers. Installing the module manually via pip is as easy as running (for example):
 
 ```shell
-tar -xzvf http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+tar -xzvf http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
 pip install --no-index --find-links cloudify-script-plugin/wheels cloudify-script-plugin
 ```
 
@@ -81,9 +81,9 @@ Note that the `--validate` flag provided with the `create` function uses this sa
 
 ```shell
 # validate that an archive is a wagon compatible package
-wagon validate -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+wagon validate -s ~/tars/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
 # validate from a url
-wagon validate -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+wagon validate -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
 ```
 
 ## Naming and Versioning
@@ -157,9 +157,9 @@ Wheels which require compilation of C extensions and are compiled on Linux are n
 
 To overcome that (partially), if running Wagon on Linux and the module requires compilation, the metadata and archive name both provide the distribution and release of the OS that the archive was created on (via platform.linux_distribution()). Statistically speaking, this should provide the user with the information they need to know which OS the module can be installed on. Obviously, this is not true for cases where non-generic compilation methods are used on the creating OS but otherwise should work, and should specifically always work when both compilation environment and Python version are similar on the creating and installing OS - which, we generally recommend.
 
-What this partically means, is that in most cases, using the metadata to compare the distro, release and the Python version under which the module is installed would allow a user to use Wagon rather safely. Of course, Wagon provides no guarantee whatsoever as to whether this will actually work or not and users must test their archives.
+What this practically means, is that in most cases, using the metadata to compare the distro, release and the Python version under which the module is installed would allow a user to use Wagon rather safely. Of course, Wagon provides no guarantee whatsoever as to whether this will actually work or not and users must test their archives.
 
-That being said, Wagon is completely safe for creating and installing Pure Python module archives or, due to the nature of Wheels, modules compiled for OS X or Windows.
+That being said, Wagon is completely safe for creating and installing Pure Python module archives for any platform, and, due to the nature of Wheels, modules compiled for OS X or Windows.
 
 
 ## Testing
