@@ -43,12 +43,18 @@ Examples
 
 .. code:: shell
 
-    # create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin)
-    wagon create -s cloudify-script-plugin==1.2 --keep-wheels -v
+    # create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin) and exclude the cloudify-plugins-common and cloudify-rest-client modules from the archive.
+    wagon create -s cloudify-script-plugin==1.2 --keep-wheels -v --exclude cloudify-plugins-common --exclude cloudify-rest-client
     # create an archive by retrieving the source from a URL and creating wheels from requirement files found within the archive. Then, validation of the archive takes place.
     wagon create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r . --validate
     # create an archive by retrieving the source from a local path and output the tar.gz file to /tmp/<MODULE>.tar.gz (defaults to <cwd>/<MODULE>.tar.gz) and provides explicit Python versions supported by the module (which usually defaults to the first two digits of the Python version used to create the archive.)
     wagon create -s ~/modules/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26 --pyver 27
+
+Regarding exclusions, note that excluding modules can result in an
+archive being non-installable. The user will be warned about this but
+creation will succeed. Creation validation, though (i.e. using the
+``--validate`` flag), will fail and show an error incase the archive
+cannot be installed.
 
 Install Packages
 ~~~~~~~~~~~~~~~~
@@ -65,7 +71,7 @@ Examples
     # install a module from a local archive tar file and upgrade if already installed. Also, ignore the platform check which would force a module (whether it is or isn't compiled for a specific platform) to be installed.
     wagon install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade --ignore-platform
     # install a module from a url into an existing virtualenv.
-    wagon install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz --virtualenv my_venv -v
+    wagon install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz --virtualenv my_venv -v
 
 Installing Manually
 ^^^^^^^^^^^^^^^^^^^
@@ -77,7 +83,7 @@ pip is as easy as running (for example):
 
 .. code:: shell
 
-    tar -xzvf http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+    tar -xzvf http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
     pip install --no-index --find-links cloudify-script-plugin/wheels cloudify-script-plugin
 
 Validate Packages
@@ -104,9 +110,25 @@ Examples
 .. code:: shell
 
     # validate that an archive is a wagon compatible package
-    wagon validate -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+    wagon validate -s ~/tars/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
     # validate from a url
-    wagon validate -s http://me.com/cloudify_script_plugin-1.2-py27-none-any.tar.gz
+    wagon validate -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
+
+Show Metadata
+~~~~~~~~~~~~~
+
+.. code:: sheel
+
+    wagon showmeta --help
+
+Given a Wagon archive, this will print its metadata.
+
+Examples
+^^^^^^^^
+
+.. code:: shell
+
+    wagon showmeta -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
 
 Naming and Versioning
 ---------------------
@@ -171,8 +193,9 @@ this:
 -  The Metadata file resides in the tar.gz file under 'module.json'.
 -  The installer uses the metadata file to check that the platform fits
    the machine the module is being installed on.
--  OS Properties only appear when creating under Linux (see Linux
-   Distributions section.)
+-  OS Properties only appear when creating compiled Linux modules (see
+   Linux Distributions section). In case of a non-linux platform (e.g.
+   win32, any), null values will be supplied for OS properties.
 
 Archive naming convention and Platform
 --------------------------------------
@@ -223,15 +246,15 @@ otherwise should work, and should specifically always work when both
 compilation environment and Python version are similar on the creating
 and installing OS - which, we generally recommend.
 
-What this partically means, is that in most cases, using the metadata to
-compare the distro, release and the Python version under which the
+What this practically means, is that in most cases, using the metadata
+to compare the distro, release and the Python version under which the
 module is installed would allow a user to use Wagon rather safely. Of
 course, Wagon provides no guarantee whatsoever as to whether this will
 actually work or not and users must test their archives.
 
 That being said, Wagon is completely safe for creating and installing
-Pure Python module archives or, due to the nature of Wheels, modules
-compiled for OS X or Windows.
+Pure Python module archives for any platform, and, due to the nature of
+Wheels, modules compiled for OS X or Windows.
 
 Testing
 -------

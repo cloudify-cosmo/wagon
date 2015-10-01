@@ -31,13 +31,16 @@ wagon create --help
 #### Examples
 
 ```shell
-# create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin)
-wagon create -s cloudify-script-plugin==1.2 --keep-wheels -v
+# create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin) and exclude the cloudify-plugins-common and cloudify-rest-client modules from the archive.
+wagon create -s cloudify-script-plugin==1.2 --keep-wheels -v --exclude cloudify-plugins-common --exclude cloudify-rest-client
 # create an archive by retrieving the source from a URL and creating wheels from requirement files found within the archive. Then, validation of the archive takes place.
 wagon create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r . --validate
 # create an archive by retrieving the source from a local path and output the tar.gz file to /tmp/<MODULE>.tar.gz (defaults to <cwd>/<MODULE>.tar.gz) and provides explicit Python versions supported by the module (which usually defaults to the first two digits of the Python version used to create the archive.)
 wagon create -s ~/modules/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26 --pyver 27
 ```
+
+Regarding exclusions, note that excluding modules can result in an archive being non-installable. The user will be warned about this but creation will succeed. Creation validation, though (i.e. using the `--validate` flag), will fail and show an error incase the archive cannot be installed.
+
 
 ### Install Packages
 
@@ -86,6 +89,22 @@ wagon validate -s ~/tars/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.
 wagon validate -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
 ```
 
+
+### Show Metadata
+
+```sheel
+wagon showmeta --help
+```
+
+Given a Wagon archive, this will print its metadata.
+
+
+#### Examples
+
+```shell
+wagon showmeta -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
+```
+
 ## Naming and Versioning
 
 ### Source: PyPI
@@ -124,10 +143,12 @@ A Metadata file is generated for the archive and looks somewhat like this:
         "bottle-0.12.7-py2-none-any.whl",
         "networkx-1.8.1-py2-none-any.whl",
         "pika-0.9.13-py2-none-any.whl",
-        "cloudify_plugins_common-3.2.1-py2-none-any.whl",
         "requests-2.7.0-py2.py3-none-any.whl",
         "cloudify_rest_client-3.2.1-py2-none-any.whl",
         "cloudify_script_plugin-1.2-py2-none-any.whl"
+    ],
+    "excluded_wheels": [
+        "cloudify_plugins_common-3.2.1-py2-none-any.whl"
     ]
 }
 ```
@@ -135,7 +156,7 @@ A Metadata file is generated for the archive and looks somewhat like this:
 * The wheels to be installed reside in the tar.gz file under 'wheels/*.whl'.
 * The Metadata file resides in the tar.gz file under 'module.json'.
 * The installer uses the metadata file to check that the platform fits the machine the module is being installed on.
-* OS Properties only appear when creating under Linux (see Linux Distributions section.)
+* OS Properties only appear when creating compiled Linux modules (see Linux Distributions section). In case of a non-linux platform (e.g. win32, any), null values will be supplied for OS properties.
 
 
 ## Archive naming convention and Platform

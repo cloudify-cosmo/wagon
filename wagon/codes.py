@@ -8,5 +8,6 @@ errors = {
     'validation_failed': 206,
     'failed_to_wheel': 207,
     'could_not_install_module': 208,
-    'failed_to_create_virtualenv': 209
+    'failed_to_create_virtualenv': 209,
+    'cannot_exclude_main_module': 210
 }
