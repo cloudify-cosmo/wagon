@@ -74,11 +74,12 @@ def run(cmd, suppress_errors=False, suppress_output=False):
     return proc
 
 
-def wheel(module, requirement_files=False, wheels_dir='module'):
+def wheel(module, requirement_files=False, wheels_path='module',
+          excluded_modules=None):
     lgr.info('Downloading Wheels for {0}...'.format(module))
     wheel_cmd = ['pip', 'wheel']
-    wheel_cmd.append('--wheel-dir={0}'.format(wheels_dir))
-    wheel_cmd.append('--find-links={0}'.format(wheels_dir))
+    wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
+    wheel_cmd.append('--find-links={0}'.format(wheels_path))
     if requirement_files:
         for req_file in requirement_files:
             wheel_cmd.extend(['-r', req_file])
@@ -89,6 +90,25 @@ def wheel(module, requirement_files=False, wheels_dir='module'):
                   'Please verify that the module you are trying '
                   'to wheel is wheelable.'.format(module))
         sys.exit(codes.errors['failed_to_wheel'])
+    wheels = get_downloaded_wheels(wheels_path)
+    excluded_modules = excluded_modules or []
+    excluded_wheels = []
+    for module in excluded_modules:
+        wheel = get_wheel_for_module(wheels_path, module)
+        if wheel:
+            excluded_wheels.append(wheel)
+            wheels.remove(wheel)
+            os.remove(os.path.join(wheels_path, wheel))
+        else:
+            lgr.warn('Wheel not found for: {0}. Could not exclude.'.format(
+                module))
+    return wheels, excluded_wheels
+
+
+def get_wheel_for_module(wheels_path, module):
+    for wheel in os.listdir(wheels_path):
+        if wheel.startswith(module.replace('-', '_')):
+            return wheel
 
 
 def install_module(module, wheels_path, virtualenv_path=None,
@@ -143,7 +163,7 @@ def download_file(url, destination):
 
 
 def tar(source, destination):
-    lgr.info('Creating tar file: {0}...'.format(destination))
+    lgr.info('Creating archive: {0}...'.format(destination))
     with closing(tarfile.open(destination, "w:gz")) as tar:
         tar.add(source, arcname=os.path.basename(source))
 
@@ -166,7 +186,7 @@ def get_platform_from_wheel_name(wheel_name):
     return name_parts[-1]
 
 
-def get_platform_for_set_of_wheels(wheels_dir):
+def get_platform_for_set_of_wheels(wheels_path):
     """For any set of wheel files, extracts a single platform.
 
     Since a set of wheels created or downloaded on one machine can only
@@ -174,10 +194,10 @@ def get_platform_for_set_of_wheels(wheels_dir):
     which is not `any`, it will be used. If a platform other than
     `any` was not found, `any` will be assumed.
     """
-    lgr.debug('Setting platform for wheels in: {0}...'.format(wheels_dir))
-    for wheel in get_downloaded_wheels(wheels_dir):
+    lgr.debug('Setting platform for wheels in: {0}...'.format(wheels_path))
+    for wheel in get_downloaded_wheels(wheels_path):
         platform = get_platform_from_wheel_name(
-            os.path.join(wheels_dir, wheel))
+            os.path.join(wheels_path, wheel))
         if platform != 'any':
             return platform
     return 'any'
@@ -227,7 +247,7 @@ def check_installed(module, virtualenv):
 def make_virtualenv(virtualenv_dir, python_path='python'):
     """This will create a virtualenv.
     """
-    lgr.info('Creating Virtualenv {0}...'.format(virtualenv_dir))
+    lgr.debug('Creating Virtualenv {0}...'.format(virtualenv_dir))
     result = run('virtualenv -p {0} {1}'.format(python_path, virtualenv_dir))
     if not result.returncode == 0:
         lgr.error('Could not create virtualenv: {0}'.format(virtualenv_dir))

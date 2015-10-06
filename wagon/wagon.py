@@ -19,7 +19,25 @@ lgr = logger.init()
 
 
 class Wagon():
+    """Main handler class.
+
+    Provides the main four Wagon functions:
+    - create
+    - install
+    - validate
+    - get_metadata_from_archive
+    """
     def __init__(self, source, verbose=False):
+        """Source depends on the context in which
+        the class is instantiated.
+
+        When using `create`, source can be a path to a local setup.py
+        containing directory; a URL to a GitHub like module archive or a
+        name of a PyPI module in the format: MODULE_NAME==MODULE_VERSION.
+
+        When using `install` or `validate`, source can be either a path
+        to a local or a URL based Wagon archived tar.gz file.
+        """
         if verbose:
             lgr.setLevel(logging.DEBUG)
         else:
@@ -27,12 +45,43 @@ class Wagon():
         self.source = source
 
     def create(self, with_requirements=None, force=False,
-               keep_wheels=False, archive_destination_dir='.',
-               python_versions=None, validate=False):
+               keep_wheels=False, excluded_modules=None,
+               archive_destination_dir='.', python_versions=None,
+               validate=False):
+        """Creates a Wagon archive and returns its path.
+
+        This currently only creates tar.gz archives. The `install`
+        method assumes tar.gz when installing on Windows as well.
+
+        Module name and version are extracted from the setup.py file
+        of the `source` or from the MODULE_NAME==MODULE_VERSION if the source
+        is a PyPI module.
+
+        Excluded modules will be removed from the archive even if they are
+        required for installation and their wheel names will be appended
+        to the metadata for later analysis/validation.
+
+        Supported `python_versions` must be in the format e.g [33, 27, 2, 3]..
+
+        `force` will remove any excess dirs or archives before creation.
+
+        `with_requirements` can be either a link/local path to a
+        requirements.txt file or just `.`, in which case requirement files
+        will be automatically extracted from either the GitHub archive URL
+        or the local path provided provided in `source`.
+        """
         lgr.info('Creating module package for {0}...'.format(self.source))
         source = self.get_source(self.source)
         module_name, module_version = \
             self.get_source_name_and_version(source)
+
+        excluded_modules = excluded_modules or []
+        if excluded_modules:
+            lgr.warn('Note that excluding modules may make the archive '
+                     'non-installable.')
+        if module_name in excluded_modules:
+            lgr.error('You cannot exclude the module you are trying to wheel.')
+            sys.exit(codes.errors['cannot_exclude_main_module'])
 
         wheels_path = os.path.join(module_name, DEFAULT_WHEELS_PATH)
         self.handle_output_directory(module_name, force)
@@ -42,8 +91,8 @@ class Wagon():
         elif with_requirements:
             with_requirements = [with_requirements]
 
-        utils.wheel(source, with_requirements, wheels_path)
-        wheels = utils.get_downloaded_wheels(wheels_path)
+        wheels, excluded_wheels = utils.wheel(
+            source, with_requirements, wheels_path, excluded_modules)
         self.platform = utils.get_platform_for_set_of_wheels(wheels_path)
         if python_versions:
             self.python_versions = ['py{0}'.format(v) for v in python_versions]
@@ -54,11 +103,7 @@ class Wagon():
         archive_path = os.path.join(archive_destination_dir, archive_file)
 
         self.handle_output_file(archive_path, force)
-
-        lgr.info('The following wheels were downloaded '
-                 'or created:\n{0}'.format(json.dumps(
-                     wheels, indent=4, sort_keys=True)))
-        self.generate_metadata_file(wheels)
+        self.generate_metadata_file(wheels, excluded_wheels)
 
         utils.tar(module_name, archive_path)
 
@@ -74,6 +119,18 @@ class Wagon():
 
     def install(self, virtualenv=None, requirements_file=None, upgrade=False,
                 ignore_platform=False):
+        """Installs a Wagon archive.
+
+        This can install in a provided `virtualenv` or in the current
+        virtualenv in case one is currently active.
+
+        `upgrade` is merely pip's upgrade.
+
+        `ignore_platform` will allow to ignore the platform check, meaning
+        that if an archive was created for a specific platform (e.g. win32),
+        and the current platform is different, it will still attempt to
+        install it.
+        """
         lgr.info('Installing {0}'.format(self.source))
         source = self.get_source(self.source)
         with open(os.path.join(source, 'module.json'), 'r') as f:
@@ -93,6 +150,18 @@ class Wagon():
                              requirements_file, upgrade)
 
     def validate(self):
+        """Validates a Wagon archive. Return True if succeeds, False otherwise.
+        It also prints a list of all validation errors.
+
+        This will test that some of the metadata is solid, that
+        the required wheels are present within the archives and that
+        the module is installable.
+
+        Note that if the metadata file is corrupted, validation
+        of the required wheels will be corrupted as well, since validation
+        checks that the required wheels exist vs. the list of wheels
+        supplied in the `wheels` key.
+        """
         lgr.info('Validating {0}'.format(self.source))
         source = self.get_source(self.source)
         with open(os.path.join(source, 'module.json'), 'r') as f:
@@ -126,9 +195,15 @@ class Wagon():
                 validation_errors.append('Missing wheel: {0}'.format(wheel))
 
         lgr.debug('Testing module installation...')
+        excluded_wheels = metadata.get('excluded_wheels')
+        if excluded_wheels:
+            for wheel in excluded_wheels:
+                lgr.warn('Wheel {0} is excluded from the archive and is '
+                         'possibly required for installation.'.format(wheel))
         tmpenv = tempfile.mkdtemp()
         try:
             utils.make_virtualenv(tmpenv)
+            self.install(tmpenv)
         except Exception as ex:
             validation_errors.append(
                 'Installation Validation Error: {0}'.format(str(ex)))
@@ -146,13 +221,25 @@ class Wagon():
             shutil.rmtree(os.path.dirname(source))
             return True
 
+    def get_metadata_from_archive(self):
+        """Merely returns the metadata from the provided archive.
+
+        This is used by the `showmeta` cli command to output the metadata.
+        """
+        lgr.debug('Retrieving Metadata for: {0}'.format(self.source))
+        source = self.get_source(self.source)
+        with open(os.path.join(source, 'module.json'), 'r') as f:
+            metadata = json.loads(f.read())
+        shutil.rmtree(source)
+        return metadata
+
     @staticmethod
     def _get_default_requirement_files(source):
         if os.path.isdir(source):
             return [os.path.join(source, f) for f in REQUIREMENT_FILE_NAMES
                     if os.path.isfile(os.path.join(source, f))]
 
-    def generate_metadata_file(self, wheels):
+    def generate_metadata_file(self, wheels, excluded_wheels):
         """This generates a metadata file for the module.
         """
         lgr.debug('Generating Metadata...')
@@ -160,10 +247,16 @@ class Wagon():
             'archive_name': self.archive,
             'supported_platform': self.platform,
             'supported_python_versions': self.python_versions,
+            'build_server_os_properties': {
+                'distribution:': None,
+                'distribution_version': None,
+                'distribution_release': None,
+            },
             'module_name': self.name,
             'module_source': self.source,
             'module_version': self.version,
-            'wheels': wheels
+            'wheels': wheels,
+            'excluded_wheels': excluded_wheels
         }
         if utils.IS_LINUX and self.platform != 'any':
             distro, version, release = utils.get_os_properties()
@@ -178,7 +271,7 @@ class Wagon():
         lgr.debug('Metadata is: {0}'.format(formatted_metadata))
         output_path = os.path.join(self.name, METADATA_FILE_NAME)
         with open(output_path, 'w') as f:
-            lgr.info('Writing metadata to file: {0}'.format(output_path))
+            lgr.debug('Writing metadata to file: {0}'.format(output_path))
             f.write(formatted_metadata)
 
     def set_archive_name(self, module_name, module_version):
@@ -309,15 +402,18 @@ def main():
               help='Force overwriting existing output file.')
 @click.option('--keep-wheels', default=False, is_flag=True,
               help='Keep wheels path after creation.')
+@click.option('-x', '--exclude', default=None, multiple=True,
+              help='Specific modules to exclude from the archive. '
+                   'This argument can be provided multiple times.')
 @click.option('-o', '--output-directory', default='.',
               help='Output directory for the archive.')
 @click.option('--pyver', default=None, multiple=True,
-              help='Explicit Python versions supported (e.g. py2, py3).'
+              help='Explicit Python versions supported (e.g. py2, py3). '
                    'This argument can be provided multiple times.')
 @click.option('--validate', default=False, is_flag=True,
               help='Runs a postcreation validation on the archive.')
 @click.option('-v', '--verbose', default=False, is_flag=True)
-def create(source, with_requirements, force, keep_wheels,
+def create(source, with_requirements, force, keep_wheels, exclude,
            output_directory, pyver, validate, verbose):
     """Creates a Python module's wheel base archive.
 
@@ -339,7 +435,7 @@ def create(source, with_requirements, force, keep_wheels,
     # TODO: Let the user provide supported Architectures.
     packager = Wagon(source, verbose)
     packager.create(
-        with_requirements, force, keep_wheels, output_directory,
+        with_requirements, force, keep_wheels, exclude, output_directory,
         pyver, validate)
 
 
@@ -378,6 +474,19 @@ def validate(source, verbose):
         sys.exit('validation_failed')
 
 
+@click.command()
+@click.option('-s', '--source', required=True,
+              help='Path or URL to source Wagon archive.')
+@click.option('-v', '--verbose', default=False, is_flag=True)
+def showmeta(source, verbose):
+    """Prints out the metadata for an archive.
+    """
+    getter = Wagon(source, verbose)
+    metadata = getter.get_metadata_from_archive()
+    print(json.dumps(metadata, indent=4, sort_keys=True))
+
+
 main.add_command(create)
 main.add_command(install)
 main.add_command(validate)
+main.add_command(showmeta)

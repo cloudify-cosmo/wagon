@@ -1,6 +1,8 @@
-[33m8012f99[m[33m ([1;36mHEAD[m[33m, [1;31morigin/refine-meta-properties[m[33m, [1;32mrefine-meta-properties[m[33m)[m test fixes
-[33mf5097ce[m many optimizations. support for user provided python versions and more
-[33m5fd3336[m[33m ([1;33mtag: 0.1.2[m[33m, [1;31morigin/master[m[33m, [1;31morigin/HEAD[m[33m, [1;32mmaster[m[33m)[m Merge pull request #4 from cloudify-cosmo/add-installation-validation
+[33ma42e364[m[33m ([1;36mHEAD[m[33m, [1;31morigin/CFY-3709-add-module-exclusion[m[33m, [1;32mCFY-3709-add-module-exclusion[m[33m)[m CFY-3709 added module exclusion, fixed a bug in validation and added showmeta cli func
+[33mc083124[m[33m ([1;31morigin/master[m[33m, [1;31morigin/HEAD[m[33m, [1;32mmaster[m[33m)[m Update README.md
+[33m6391892[m Merge pull request #5 from cloudify-cosmo/refine-meta-properties
+[33mf9f5691[m[33m ([1;31morigin/refine-meta-properties[m[33m, [1;32mrefine-meta-properties[m[33m)[m Added support for user provided python versions, ignoring the supported platform check and linux specific handling.
+[33m5fd3336[m[33m ([1;33mtag: 0.2.0[m[33m, [1;33mtag: 0.1.2[m[33m)[m Merge pull request #4 from cloudify-cosmo/add-installation-validation
 [33m673b72e[m moved from wheelr to wagon and added installation and creation validation
 [33me2bf0b3[m added more metadata info
 [33m35f3b2d[m docs update
