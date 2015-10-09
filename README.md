@@ -41,6 +41,8 @@ wagon create -s ~/modules/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26
 
 Regarding exclusions, note that excluding modules can result in an archive being non-installable. The user will be warned about this but creation will succeed. Creation validation, though (i.e. using the `--validate` flag), will fail and show an error incase the archive cannot be installed.
 
+Also note that Wagon doesn't currently provide a way for packaging modules that are in editable mode.
+So, for instance, providing a dev-requirements file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #MODULE#, due to being editable". We might allow processing editable provided dependencies in the future.
 
 ### Install Packages
 
@@ -56,6 +58,9 @@ wagon install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrad
 # install a module from a url into an existing virtualenv.
 wagon install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz --virtualenv my_venv -v
 ```
+
+Note that `--pre` is appended to the installation command to enable installation of prerelease versions.
+
 
 #### Installing Manually
 
