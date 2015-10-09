@@ -139,16 +139,20 @@ A Metadata file is generated for the archive and looks somewhat like this:
         "py27"
     ],
     "wheels": [
-        "proxy_tools-0.1.0-py2-none-any.whl",
-        "bottle-0.12.7-py2-none-any.whl",
-        "networkx-1.8.1-py2-none-any.whl",
-        "pika-0.9.13-py2-none-any.whl",
-        "requests-2.7.0-py2.py3-none-any.whl",
-        "cloudify_rest_client-3.2.1-py2-none-any.whl",
+        "proxy_tools-0.1.0-py2-none-any.whl", 
+        "pyzmq-14.7.0-cp27-none-linux_x86_64.whl", 
+        "bottle-0.12.7-py2-none-any.whl", 
+        "networkx-1.8.1-py2-none-any.whl", 
+        "requests-2.5.1-py2.py3-none-any.whl", 
+        "PyYAML-3.10-cp27-none-linux_x86_64.whl", 
+        "pika-0.9.13-py2-none-any.whl", 
+        "jsonschema-2.3.0-py2.py3-none-any.whl", 
+        "cloudify_dsl_parser-3.2-py2-none-any.whl",
+        "cloudify_rest_client-3.2-py2-none-any.whl",
         "cloudify_script_plugin-1.2-py2-none-any.whl"
     ],
     "excluded_wheels": [
-        "cloudify_plugins_common-3.2.1-py2-none-any.whl"
+        "cloudify_plugins_common-3.2-py2-none-any.whl"
     ]
 }
 ```
@@ -167,6 +171,7 @@ Example Output Archive: `cloudify_fabric_plugin-1.2.1-py27-none-any-none-none.ta
 
 * `{python tag}`: The Python version is set by the Python running the packaging process. That means that while a module might run on both py27 and py33 (for example), since the packaging process took place using Python 2.7, only py27 will be appended to the name. A user can also explicitly provide the supported Python versions for the module via the `pyver` flag.
 * `{platform tag}`: The platform (e.g. `linux_x86_64`, `win32`) is set each specific wheel. To know which platform the module with its dependencies can be installed on, all wheels are checked. If a specific wheel has a platform property other than `any`, that platform will be used as the platform of the package. Of course, we assume that there can't be wheels downloaded or created on a specific machine platform that belongs to two different platforms.
+* `{abi tag}`: Note that the ABI tag is currently ignored and will always be `none`. This might be changed in the future to support providing an ABI tag.
 * For Linux (see below), two additional tags are added: `{distribution tag}` and `{release tag}`. Note that these tags are NOT a part of the PEP.
 
 
