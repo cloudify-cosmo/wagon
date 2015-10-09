@@ -124,7 +124,7 @@ A Metadata file is generated for the archive and looks somewhat like this:
 
 ```
 {
-    "archive_name": "cloudify_script_plugin-1.2-py27-none-any-ubuntu-trusty.tar.gz",
+    "archive_name": "cloudify_script_plugin-1.2-py27-none-linux_x86_64-ubuntu-trusty.tar.gz",
     "build_server_os_properties": {
         "distribution": "ubuntu",
         "distribution_release": "trusty",
