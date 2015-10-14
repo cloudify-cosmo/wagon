@@ -74,46 +74,46 @@ def run(cmd, suppress_errors=False, suppress_output=False):
     return proc
 
 
-def wheel(module, requirement_files=False, wheels_path='module',
-          excluded_modules=None):
-    lgr.info('Downloading Wheels for {0}...'.format(module))
+def wheel(package, requirement_files=False, wheels_path='package',
+          excluded_packages=None):
+    lgr.info('Downloading Wheels for {0}...'.format(package))
     wheel_cmd = ['pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
     if requirement_files:
         for req_file in requirement_files:
             wheel_cmd.extend(['-r', req_file])
-    wheel_cmd.append(module)
+    wheel_cmd.append(package)
     p = run(' '.join(wheel_cmd))
     if not p.returncode == 0:
         lgr.error('Could not download wheels for: {0}. '
-                  'Please verify that the module you are trying '
-                  'to wheel is wheelable.'.format(module))
+                  'Please verify that the package you are trying '
+                  'to wheel is wheelable.'.format(package))
         sys.exit(codes.errors['failed_to_wheel'])
     wheels = get_downloaded_wheels(wheels_path)
-    excluded_modules = excluded_modules or []
+    excluded_packages = excluded_packages or []
     excluded_wheels = []
-    for module in excluded_modules:
-        wheel = get_wheel_for_module(wheels_path, module)
+    for package in excluded_packages:
+        wheel = get_wheel_for_package(wheels_path, package)
         if wheel:
             excluded_wheels.append(wheel)
             wheels.remove(wheel)
             os.remove(os.path.join(wheels_path, wheel))
         else:
             lgr.warn('Wheel not found for: {0}. Could not exclude.'.format(
-                module))
+                package))
     return wheels, excluded_wheels
 
 
-def get_wheel_for_module(wheels_path, module):
+def get_wheel_for_package(wheels_path, package):
     for wheel in os.listdir(wheels_path):
-        if wheel.startswith(module.replace('-', '_')):
+        if wheel.startswith(package.replace('-', '_')):
             return wheel
 
 
-def install_module(module, wheels_path, virtualenv_path=None,
-                   requirements_file=None, upgrade=False):
-    """This will install a Python module.
+def install_package(package, wheels_path, virtualenv_path=None,
+                    requirements_file=None, upgrade=False):
+    """This will install a Python package.
 
     Can specify a specific version.
     Can specify a prerelease.
@@ -122,7 +122,7 @@ def install_module(module, wheels_path, virtualenv_path=None,
     Can specify a local wheels_path to use for offline installation.
     Can request an upgrade.
     """
-    lgr.info('Installing {0}...'.format(module))
+    lgr.info('Installing {0}...'.format(package))
 
     pip_cmd = ['pip', 'install']
     if virtualenv_path:
@@ -130,7 +130,7 @@ def install_module(module, wheels_path, virtualenv_path=None,
             _get_env_bin_path(virtualenv_path), pip_cmd[0])
     if requirements_file:
         pip_cmd.extend(['-r', requirements_file])
-    pip_cmd.append(module)
+    pip_cmd.append(package)
     pip_cmd.extend(['--use-wheel', '--no-index', '--find-links', wheels_path])
     # pre allows installing both prereleases and regular releases depending
     # on the wheels provided.
@@ -143,8 +143,8 @@ def install_module(module, wheels_path, virtualenv_path=None,
     result = run(' '.join(pip_cmd))
     if not result.returncode == 0:
         lgr.error(result.aggr_stdout)
-        lgr.error('Could not install module: {0}.'.format(module))
-        sys.exit(codes.errors['failed_to_install_module'])
+        lgr.error('Could not install package: {0}.'.format(package))
+        sys.exit(codes.errors['failed_to_install_package'])
 
 
 def get_downloaded_wheels(wheels_path):
@@ -232,15 +232,17 @@ def _get_env_bin_path(env_path):
         return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')
 
 
-def check_installed(module, virtualenv):
-    """Checks to see if a module is installed within a virtualenv.
+def check_installed(package, virtualenv):
+    """Checks to see if a package is installed within a virtualenv.
     """
     pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
     p = run('{0} freeze'.format(pip_path), suppress_output=True)
-    if re.search(r'{0}'.format(module), p.aggr_stdout.lower()):
-        lgr.debug('Module {0} is installed in {1}'.format(module, virtualenv))
+    if re.search(r'{0}'.format(package), p.aggr_stdout.lower()):
+        lgr.debug('Package {0} is installed in {1}'.format(
+            package, virtualenv))
         return True
-    lgr.debug('Module {0} is not installed in {1}'.format(module, virtualenv))
+    lgr.debug('Package {0} is not installed in {1}'.format(
+        package, virtualenv))
     return False
 
 
