@@ -1,7 +1,5 @@
-- wagon/wagon.py:290:    #  TODO: maybe we don't want to be that explicit and allow using >=
-- wagon/wagon.py:291:    #  TODO: or just a module name...
-- wagon/wagon.py:366:    #  TODO: Let the user provide supported Python versions.
-- wagon/wagon.py:367:    #  TODO: Let the user provide supported Architectures.
-- wagon/logger.py:60:    #  TODO: (IMPRV) only perform file related actions if file handler is
-- wagon/logger.py:61:    #  TODO: (IMPRV) defined.
+- wagon/wagon.py:360:    #  TODO: maybe we don't want to be that explicit and allow using >=
+- wagon/wagon.py:361:    #  TODO: or just a package name...
+- wagon/wagon.py:436:    #  TODO: Let the user provide supported Python versions.
+- wagon/wagon.py:437:    #  TODO: Let the user provide supported Architectures.
 - wagon/utils.py:48:    #  TODO: implement using sh

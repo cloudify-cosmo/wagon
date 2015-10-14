@@ -29,9 +29,9 @@ import uuid
 
 
 TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz'  # NOQA
-TEST_MODULE_NAME = 'cloudify-script-plugin'
-TEST_MODULE_VERSION = '1.2'
-TEST_MODULE = '{0}=={1}'.format(TEST_MODULE_NAME, TEST_MODULE_VERSION)
+TEST_PACKAGE_NAME = 'cloudify-script-plugin'
+TEST_PACKAGE_VERSION = '1.2'
+TEST_PACKAGE = '{0}=={1}'.format(TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
 
 
 def _invoke_click(func, args_dict):
@@ -108,13 +108,13 @@ class TestUtils(testtools.TestCase):
         self.assertIn("No such file or directory: 'missing'", str(e))
         os.remove('file')
 
-    def test_wheel_nonexisting_module(self):
+    def test_wheel_nonexisting_package(self):
         try:
             e = self.assertRaises(
                 SystemExit, utils.wheel, 'cloudify-script-plug==1.3')
             self.assertEqual(str(codes.errors['failed_to_wheel']), str(e))
         finally:
-            shutil.rmtree('module')
+            shutil.rmtree('package')
 
     # non-windows
     def test_machine_platform(self):
@@ -143,31 +143,31 @@ class TestCreate(testtools.TestCase):
     def setUp(self):
         super(TestCreate, self).setUp()
         self.runner = clicktest.CliRunner()
-        self.wagon = wagon.Wagon(TEST_MODULE, verbose=True)
+        self.wagon = wagon.Wagon(TEST_PACKAGE, verbose=True)
         self.wagon.platform = 'any'
         self.wagon.python_versions = [utils.get_python_version()]
         self.archive_name = self.wagon.set_archive_name(
-            TEST_MODULE_NAME, TEST_MODULE_VERSION)
+            TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
 
     def tearDown(self):
         super(TestCreate, self).tearDown()
         if os.path.isfile(self.archive_name):
             os.remove(self.archive_name)
-        if os.path.isdir(TEST_MODULE_NAME):
-            shutil.rmtree(TEST_MODULE_NAME)
+        if os.path.isdir(TEST_PACKAGE_NAME):
+            shutil.rmtree(TEST_PACKAGE_NAME)
 
     def _test(self):
         self.assertTrue(os.path.isfile(self.archive_name))
         utils.untar(self.archive_name, '.')
         with open(os.path.join(
-                TEST_MODULE_NAME,
+                TEST_PACKAGE_NAME,
                 wagon.METADATA_FILE_NAME), 'r') as f:
             m = json.loads(f.read())
 
-        self.assertEqual(m['module_version'], TEST_MODULE_VERSION)
-        self.assertEqual(m['module_name'], TEST_MODULE_NAME)
+        self.assertEqual(m['package_version'], TEST_PACKAGE_VERSION)
+        self.assertEqual(m['package_name'], TEST_PACKAGE_NAME)
         self.assertEqual(m['supported_platform'], self.wagon.platform)
-        if hasattr(self, 'excluded_module'):
+        if hasattr(self, 'excluded_package'):
             self.assertTrue(len(m['wheels']) >= 7)
         else:
             self.assertTrue(len(m['wheels']) >= 8)
@@ -186,35 +186,35 @@ class TestCreate(testtools.TestCase):
 
         self.assertIn(
             '{0}-{1}-{2}-none-{3}'.format(
-                TEST_MODULE_NAME.replace('-', '_'),
-                TEST_MODULE_VERSION,
+                TEST_PACKAGE_NAME.replace('-', '_'),
+                TEST_PACKAGE_VERSION,
                 '.'.join(self.wagon.python_versions),
                 self.wagon.platform),
             m['archive_name'])
 
         self.assertTrue(os.path.isfile(os.path.join(
-            TEST_MODULE_NAME, wagon.DEFAULT_WHEELS_PATH,
+            TEST_PACKAGE_NAME, wagon.DEFAULT_WHEELS_PATH,
             '{0}-{1}-py2-none-any.whl'.format(
-                TEST_MODULE_NAME.replace('-', '_'),
-                TEST_MODULE_VERSION,))))
+                TEST_PACKAGE_NAME.replace('-', '_'),
+                TEST_PACKAGE_VERSION,))))
 
         return m
 
     def test_create_archive_from_pypi(self):
         params = {
-            '-s': TEST_MODULE,
+            '-s': TEST_PACKAGE,
             '-v': None,
             '-f': None
         }
         result = _invoke_click('create', params)
         self.assertEqual(str(result), '<Result okay>')
         m = self._test()
-        self.assertEqual(m['module_source'], TEST_MODULE)
+        self.assertEqual(m['package_source'], TEST_PACKAGE)
 
     def test_create_archive_from_url_with_requirements(self):
         self.wagon.platform = utils.get_machine_platform()
         self.archive_name = self.wagon.set_archive_name(
-            TEST_MODULE_NAME, TEST_MODULE_VERSION)
+            TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
         params = {
             '-s': TEST_FILE,
             '-v': None,
@@ -224,7 +224,7 @@ class TestCreate(testtools.TestCase):
         result = _invoke_click('create', params)
         self.assertEqual(str(result), '<Result okay>')
         m = self._test()
-        self.assertEqual(m['module_source'], TEST_FILE)
+        self.assertEqual(m['package_source'], TEST_FILE)
 
     def test_create_archive_from_path_and_validate(self):
         source = self.wagon.get_source(TEST_FILE)
@@ -236,15 +236,15 @@ class TestCreate(testtools.TestCase):
         }
         _invoke_click('create', params)
         m = self._test()
-        self.assertEqual(m['module_source'], source)
+        self.assertEqual(m['package_source'], source)
 
     def test_create_archive_with_exclusion(self):
-        self.excluded_module = 'cloudify-plugins-common'
+        self.excluded_package = 'cloudify-plugins-common'
         params = {
-            '-s': TEST_MODULE,
+            '-s': TEST_PACKAGE,
             '-v': None,
             '-f': None,
-            '-x': self.excluded_module
+            '-x': self.excluded_package
         }
         result = _invoke_click('create', params)
         self.assertEqual(str(result), '<Result okay>')
@@ -252,12 +252,12 @@ class TestCreate(testtools.TestCase):
         self.assertEqual(len(m['excluded_wheels']), 1)
 
     def test_create_archive_with_missing_exclusion(self):
-        self.missing_excluded_module = 'cloudify-plugins-common2'
+        self.missing_excluded_package = 'cloudify-plugins-common2'
         params = {
-            '-s': TEST_MODULE,
+            '-s': TEST_PACKAGE,
             '-v': None,
             '-f': None,
-            '-x': self.missing_excluded_module
+            '-x': self.missing_excluded_package
         }
         result = _invoke_click('create', params)
         self.assertEqual(str(result), '<Result okay>')
@@ -278,20 +278,21 @@ class TestCreate(testtools.TestCase):
 
     def test_create_archive_directory_already_exists(self):
         self.wagon.create(keep_wheels=True)
-        self.assertTrue(os.path.isdir(TEST_MODULE_NAME))
+        self.assertTrue(os.path.isdir(TEST_PACKAGE_NAME))
         e = self.assertRaises(SystemExit, self.wagon.create)
         self.assertIn(str(codes.errors['directory_already_exists']), str(e))
 
     def test_create_archive_directory_already_exists_force(self):
         self.wagon.create(keep_wheels=True)
-        self.assertTrue(os.path.isdir(TEST_MODULE_NAME))
+        self.assertTrue(os.path.isdir(TEST_PACKAGE_NAME))
         self.wagon.create(force=True)
         self.assertTrue(os.path.isfile(self.archive_name))
 
-    def test_create_while_excluding_the_main_module(self):
+    def test_create_while_excluding_the_main_package(self):
         e = self.assertRaises(
-            SystemExit, self.wagon.create, excluded_modules=[TEST_MODULE_NAME])
-        self.assertIn(str(codes.errors['cannot_exclude_main_module']), str(e))
+            SystemExit, self.wagon.create,
+            excluded_packages=[TEST_PACKAGE_NAME])
+        self.assertIn(str(codes.errors['cannot_exclude_main_package']), str(e))
 
 
 class TestInstall(testtools.TestCase):
@@ -299,7 +300,7 @@ class TestInstall(testtools.TestCase):
     def setUp(self):
         super(TestInstall, self).setUp()
         self.runner = clicktest.CliRunner()
-        self.packager = wagon.Wagon(TEST_MODULE, verbose=True)
+        self.packager = wagon.Wagon(TEST_PACKAGE, verbose=True)
         utils.run('virtualenv test_env')
         self.archive_path = self.packager.create(force=True)
 
@@ -309,7 +310,7 @@ class TestInstall(testtools.TestCase):
         if os.path.isdir('test_env'):
             shutil.rmtree('test_env')
 
-    def test_install_module_from_local_archive(self):
+    def test_install_package_from_local_archive(self):
         params = {
             '-s': self.archive_path,
             '-v': None,
@@ -317,7 +318,7 @@ class TestInstall(testtools.TestCase):
             '-u': None
         }
         _invoke_click('install', params)
-        self.assertTrue(utils.check_installed(TEST_MODULE_NAME, 'test_env'))
+        self.assertTrue(utils.check_installed(TEST_PACKAGE_NAME, 'test_env'))
 
 
 class TestValidate(testtools.TestCase):
@@ -325,11 +326,11 @@ class TestValidate(testtools.TestCase):
     def setUp(self):
         super(TestValidate, self).setUp()
         self.runner = clicktest.CliRunner()
-        self.packager = wagon.Wagon(TEST_MODULE, verbose=True)
+        self.packager = wagon.Wagon(TEST_PACKAGE, verbose=True)
         self.archive_path = self.packager.create(force=True)
         utils.untar(self.archive_path, '.')
         with open(os.path.join(
-                TEST_MODULE_NAME,
+                TEST_PACKAGE_NAME,
                 wagon.METADATA_FILE_NAME), 'r') as f:
             self.m = json.loads(f.read())
 
@@ -338,8 +339,8 @@ class TestValidate(testtools.TestCase):
         os.remove(self.archive_path)
         if os.path.isfile(self.archive_path):
             os.remove(self.archive_path)
-        if os.path.isdir(TEST_MODULE_NAME):
-            shutil.rmtree(TEST_MODULE_NAME)
+        if os.path.isdir(TEST_PACKAGE_NAME):
+            shutil.rmtree(TEST_PACKAGE_NAME)
 
     def test_validate_package(self):
         params = {
@@ -352,7 +353,6 @@ class TestValidate(testtools.TestCase):
     def test_get_metadata_for_archive(self):
         params = {
             '-s': self.archive_path,
-            '-v': None
         }
         result = _invoke_click('showmeta', params)
         self.assertDictEqual(json.loads(result.output), self.m)
