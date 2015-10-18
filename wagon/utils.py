@@ -81,8 +81,14 @@ def wheel(package, requirement_files=False, wheels_path='package',
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
     if requirement_files:
+        wheel_cmd_with_reqs = wheel_cmd
         for req_file in requirement_files:
-            wheel_cmd.extend(['-r', req_file])
+            wheel_cmd_with_reqs.extend(['-r', req_file])
+        p = run(' '.join(wheel_cmd_with_reqs))
+        if not p.returncode == 0:
+            lgr.error('Could not download wheels for: {0}. '
+                      'Please verify that the file you are trying '
+                      'to wheel is wheelable.'.format(req_file))
     wheel_cmd.append(package)
     p = run(' '.join(wheel_cmd))
     if not p.returncode == 0:
