@@ -47,7 +47,7 @@ class Wagon():
     def create(self, with_requirements=None, force=False,
                keep_wheels=False, excluded_packages=None,
                archive_destination_dir='.', python_versions=None,
-               validate=False):
+               validate=False, wheel_args=None):
         """Creates a Wagon archive and returns its path.
 
         This currently only creates tar.gz archives. The `install`
@@ -93,7 +93,8 @@ class Wagon():
             with_requirements = [with_requirements]
 
         wheels, excluded_wheels = utils.wheel(
-            source, with_requirements, wheels_path, excluded_packages)
+            source, with_requirements, wheels_path, excluded_packages,
+            wheel_args)
         self.platform = utils.get_platform_for_set_of_wheels(wheels_path)
         if python_versions:
             self.python_versions = ['py{0}'.format(v) for v in python_versions]
@@ -119,7 +120,7 @@ class Wagon():
         return archive_path
 
     def install(self, virtualenv=None, requirements_file=None, upgrade=False,
-                ignore_platform=False):
+                ignore_platform=False, install_args=None):
         """Installs a Wagon archive.
 
         This can install in a provided `virtualenv` or in the current
@@ -149,7 +150,7 @@ class Wagon():
         wheels_path = os.path.join(source, DEFAULT_WHEELS_PATH)
         utils.install_package(
             metadata['package_name'], wheels_path, virtualenv,
-            requirements_file, upgrade)
+            requirements_file, upgrade, install_args)
 
     def validate(self):
         """Validates a Wagon archive. Return True if succeeds, False otherwise.
@@ -414,9 +415,12 @@ def main():
                    'This argument can be provided multiple times.')
 @click.option('--validate', default=False, is_flag=True,
               help='Runs a postcreation validation on the archive.')
+@click.option('-a', '--wheel-args', required=False,
+              help='Allows to pass additional arguments to `pip wheel`. '
+                   '(e.g. --no-cache-dir -c constains.txt')
 @click.option('-v', '--verbose', default=False, is_flag=True)
 def create(source, with_requirements, force, keep_wheels, exclude,
-           output_directory, pyver, validate, verbose):
+           output_directory, pyver, validate, wheel_args, verbose):
     """Creates a Python package's wheel base archive.
 
     \b
@@ -439,7 +443,7 @@ def create(source, with_requirements, force, keep_wheels, exclude,
     packager = Wagon(source, verbose)
     packager.create(
         with_requirements, force, keep_wheels, exclude, output_directory,
-        pyver, validate)
+        pyver, validate, wheel_args)
 
 
 @click.command()
@@ -453,14 +457,18 @@ def create(source, with_requirements, force, keep_wheels, exclude,
               help='Upgrades the package if it is already installed.')
 @click.option('--ignore-platform', required=False, is_flag=True,
               help='Ignores supported platform check.')
+@click.option('-a', '--install-args', required=False,
+              help='Allows to pass additional arguments to `pip install`. '
+                   '(e.g. -i my_pypi_index --retries 5')
 @click.option('-v', '--verbose', default=False, is_flag=True)
 def install(source, virtualenv, requirements_file, upgrade,
-            ignore_platform, verbose):
+            ignore_platform, install_args, verbose):
     """Installs a Wagon archive.
     """
     logger.configure()
     installer = Wagon(source, verbose)
-    installer.install(virtualenv, requirements_file, upgrade, ignore_platform)
+    installer.install(
+        virtualenv, requirements_file, upgrade, ignore_platform, install_args)
 
 
 @click.command()

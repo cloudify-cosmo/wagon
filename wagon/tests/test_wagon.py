@@ -211,6 +211,22 @@ class TestCreate(testtools.TestCase):
         m = self._test()
         self.assertEqual(m['package_source'], TEST_PACKAGE)
 
+    def test_create_archive_from_pypi_with_additional_wheel_args(self):
+        fd, reqs_file_path = tempfile.mkstemp()
+        os.write(fd, 'virtualenv==13.1.2')
+        params = {
+            '-s': TEST_PACKAGE,
+            '-v': None,
+            '-f': None,
+            '-a': '-r {0}'.format(reqs_file_path)
+        }
+        result = _invoke_click('create', params)
+        self.assertEqual(str(result), '<Result okay>')
+        m = self._test()
+        self.assertEqual(m['package_source'], TEST_PACKAGE)
+        self.assertIn('virtualenv-13.1.2-py2.py3-none-any.whl', m['wheels'])
+        os.close(fd)
+
     def test_create_archive_from_url_with_requirements(self):
         self.wagon.platform = utils.get_machine_platform()
         self.archive_name = self.wagon.set_archive_name(

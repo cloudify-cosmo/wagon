@@ -37,6 +37,8 @@ wagon create -s cloudify-script-plugin==1.2 --keep-wheels -v --exclude cloudify-
 wagon create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r . --validate
 # create an archive by retrieving the source from a local path and output the tar.gz file to /tmp/<PACKAGE>.tar.gz (defaults to <cwd>/<PACKAGE>.tar.gz) and provides explicit Python versions supported by the package (which usually defaults to the first two digits of the Python version used to create the archive.)
 wagon create -s ~/packages/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26 --pyver 27
+# pass additional args to `pip wheel` (NOTE that conflicting arguments are not handled by wagon.)
+wagon create -s cloudify-script-plugin==1.2 -a '--retries 5'
 ```
 
 Regarding exclusions, note that excluding packages can result in an archive being non-installable. The user will be warned about this but creation will succeed. Creation validation, though (i.e. using the `--validate` flag), will fail and show an error incase the archive cannot be installed.
@@ -57,6 +59,8 @@ wagon install --help
 wagon install -s ~/tars/cloudify_script_plugin-1.2-py27-none-any.tar.gz --upgrade --ignore-platform
 # install a package from a url into an existing virtualenv.
 wagon install -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz --virtualenv my_venv -v
+# pass additional args to `pip install` (NOTE that conflicting arguments are not handled by wagon.)
+wagon create -s cloudify-script-plugin==1.2 -a '--no-cache-dir'
 ```
 
 Note that `--pre` is appended to the installation command to enable installation of prerelease versions.
