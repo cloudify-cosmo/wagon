@@ -75,7 +75,9 @@ def run(cmd, suppress_errors=False, suppress_output=False):
 
 
 def wheel(package, requirement_files=False, wheels_path='package',
-          excluded_packages=None):
+          excluded_packages=None, wheel_args=None):
+    # wheel_args = wheel_args or []
+
     lgr.info('Downloading Wheels for {0}...'.format(package))
     wheel_cmd = ['pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
@@ -89,6 +91,8 @@ def wheel(package, requirement_files=False, wheels_path='package',
             lgr.error('Could not download wheels for: {0}. '
                       'Please verify that the file you are trying '
                       'to wheel is wheelable.'.format(req_file))
+    if wheel_args:
+        wheel_cmd.append(wheel_args)
     wheel_cmd.append(package)
     p = run(' '.join(wheel_cmd))
     if not p.returncode == 0:
@@ -118,7 +122,8 @@ def get_wheel_for_package(wheels_path, package):
 
 
 def install_package(package, wheels_path, virtualenv_path=None,
-                    requirements_file=None, upgrade=False):
+                    requirements_file=None, upgrade=False,
+                    install_args=None):
     """This will install a Python package.
 
     Can specify a specific version.
@@ -128,6 +133,8 @@ def install_package(package, wheels_path, virtualenv_path=None,
     Can specify a local wheels_path to use for offline installation.
     Can request an upgrade.
     """
+    # install_args = install_args or []
+
     lgr.info('Installing {0}...'.format(package))
 
     pip_cmd = ['pip', 'install']
@@ -136,6 +143,8 @@ def install_package(package, wheels_path, virtualenv_path=None,
             _get_env_bin_path(virtualenv_path), pip_cmd[0])
     if requirements_file:
         pip_cmd.extend(['-r', requirements_file])
+    if install_args:
+        pip_cmd.append(install_args)
     pip_cmd.append(package)
     pip_cmd.extend(['--use-wheel', '--no-index', '--find-links', wheels_path])
     # pre allows installing both prereleases and regular releases depending

@@ -1,4 +1,8 @@
-[33m21f000c[m[33m ([1;36mHEAD[m[33m, [1;33mtag: 0.2.1[m[33m, [1;31morigin/master[m[33m, [1;31morigin/HEAD[m[33m, [1;32mmaster[m[33m, [1;32mlogger-fix[m[33m)[m Update README.md
+[33mf67b4bf[m[33m ([1;36mHEAD[m[33m, [1;33mtag: 0.2.3[m[33m, [1;31morigin/master[m[33m, [1;31morigin/HEAD[m[33m, [1;32mmaster[m[33m, [1;32mallow-passing-arbitrary-pip-arguments[m[33m)[m Merge pull request #9 from cloudify-cosmo/fix-requirement-files-not-being-dealt-with-correctly
+[33m8d87e55[m[33m ([1;31morigin/fix-requirement-files-not-being-dealt-with-correctly[m[33m, [1;32mfix-requirement-files-not-being-dealt-with-correctly[m[33m)[m fixed failure when trying to wheel a package that has dependencies in a requirements file
+[33m5e92335[m[33m ([1;33mtag: 0.2.2[m[33m)[m Merge pull request #7 from cloudify-cosmo/logger-fix
+[33m7d60140[m[33m ([1;31morigin/logger-fix[m[33m, [1;32mlogger-fix[m[33m)[m changed module to package and now no longer overriding user's logger
+[33m21f000c[m[33m ([1;33mtag: 0.2.1[m[33m)[m Update README.md
 [33me8b78eb[m Update README.md
 [33m0a8a55d[m Update README.md
 [33m95b384b[m Merge pull request #6 from cloudify-cosmo/CFY-3709-add-module-exclusion
