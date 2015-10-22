@@ -1,5 +1,0 @@
-- wagon/wagon.py:361:    #  TODO: maybe we don't want to be that explicit and allow using >=
-- wagon/wagon.py:362:    #  TODO: or just a package name...
-- wagon/wagon.py:440:    #  TODO: Let the user provide supported Python versions.
-- wagon/wagon.py:441:    #  TODO: Let the user provide supported Architectures.
-- wagon/utils.py:48:    #  TODO: implement using sh

@@ -12,7 +12,7 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='0.2.4',
+    version='0.2.5',
     url='https://github.com/cloudify-cosmo/wagon',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',

@@ -10,6 +10,8 @@ import sys
 from contextlib import closing
 import platform
 
+from wheel import pep425tags as wheel_tags
+
 import codes
 import logger
 
@@ -17,7 +19,7 @@ import logger
 IS_VIRTUALENV = hasattr(sys, 'real_prefix')
 
 PLATFORM = sys.platform
-IS_WIN = (PLATFORM == 'win32')
+IS_WIN = (os.name == 'nt')
 IS_DARWIN = (PLATFORM == 'darwin')
 IS_LINUX = (PLATFORM == 'linux2')
 
@@ -223,10 +225,8 @@ def get_python_version():
     return 'py{0}{1}'.format(version[0], version[1])
 
 
-def get_machine_platform():
-    id = '{0}_{1}'.format(platform.system().lower(), platform.machine())
-    lgr.info('Identified machine platform: {0}'.format(id))
-    return id
+def get_platform():
+    return wheel_tags.get_platform()
 
 
 def get_os_properties():
@@ -261,11 +261,11 @@ def check_installed(package, virtualenv):
     return False
 
 
-def make_virtualenv(virtualenv_dir, python_path='python'):
+def make_virtualenv(virtualenv_dir):
     """This will create a virtualenv.
     """
     lgr.debug('Creating Virtualenv {0}...'.format(virtualenv_dir))
-    result = run('virtualenv -p {0} {1}'.format(python_path, virtualenv_dir))
+    result = run('virtualenv {0}'.format(virtualenv_dir))
     if not result.returncode == 0:
         lgr.error('Could not create virtualenv: {0}'.format(virtualenv_dir))
         sys.exit(codes.errors['failed_to_create_virtualenv'])
