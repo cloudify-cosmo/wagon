@@ -10,6 +10,8 @@ import sys
 from contextlib import closing
 import platform
 
+from wheel import pep425tags as wheel_tags
+
 import codes
 import logger
 
@@ -223,18 +225,8 @@ def get_python_version():
     return 'py{0}{1}'.format(version[0], version[1])
 
 
-def get_machine_platform():
-    system = platform.system().lower()
-    machine = platform.machine().lower()
-    id = 'unidentified'
-    if system and machine:
-        id = '{0}_{1}'.format(system, machine)
-    elif system:
-        id = system
-    elif machine:
-        id = machine
-    lgr.info('Identified machine platform: {0}'.format(id))
-    return id
+def get_platform():
+    return wheel_tags.get_platform()
 
 
 def get_os_properties():

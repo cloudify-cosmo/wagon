@@ -141,7 +141,7 @@ class Wagon():
         if not ignore_platform and supported_platform != 'any':
             lgr.debug('Validating Platform {0} is supported...'.format(
                 supported_platform))
-            machine_platform = utils.get_machine_platform()
+            machine_platform = utils.get_platform()
             if machine_platform != supported_platform:
                 lgr.error('Platform unsupported for package ({0}).'.format(
                     machine_platform))

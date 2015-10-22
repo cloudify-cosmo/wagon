@@ -130,9 +130,9 @@ class TestUtils(testtools.TestCase):
 
     def test_machine_platform(self):
         if utils.IS_WIN:
-            self.assertIn('win', utils.get_machine_platform().lower())
+            self.assertIn('win32', utils.get_platform())
         else:
-            self.assertEqual(utils.get_machine_platform(), 'linux_x86_64')
+            self.assertEqual(utils.get_platform(), 'linux_x86_64')
 
 
 class TestCreateBadSources(testtools.TestCase):
@@ -171,7 +171,7 @@ class TestCreate(testtools.TestCase):
             shutil.rmtree(TEST_PACKAGE_NAME)
 
     def _test(self):
-        # self.assertTrue(os.path.isfile(self.archive_name))
+        self.assertTrue(os.path.isfile(self.archive_name))
         utils.untar(self.archive_name, '.')
         with open(os.path.join(
                 TEST_PACKAGE_NAME,
@@ -245,7 +245,7 @@ class TestCreate(testtools.TestCase):
         if utils.IS_WIN:
             self.wagon.platform = 'win32'
         else:
-            self.wagon.platform = utils.get_machine_platform()
+            self.wagon.platform = utils.get_platform()
         self.archive_name = self.wagon.set_archive_name(
             TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
         params = {
