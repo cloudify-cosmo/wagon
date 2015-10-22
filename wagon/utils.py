@@ -17,7 +17,7 @@ import logger
 IS_VIRTUALENV = hasattr(sys, 'real_prefix')
 
 PLATFORM = sys.platform
-IS_WIN = (PLATFORM == 'win32')
+IS_WIN = (os.name == 'nt')
 IS_DARWIN = (PLATFORM == 'darwin')
 IS_LINUX = (PLATFORM == 'linux2')
 
@@ -224,7 +224,15 @@ def get_python_version():
 
 
 def get_machine_platform():
-    id = '{0}_{1}'.format(platform.system().lower(), platform.machine())
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    id = 'unidentified'
+    if system and machine:
+        id = '{0}_{1}'.format(system, machine)
+    elif system:
+        id = system
+    elif machine:
+        id = machine
     lgr.info('Identified machine platform: {0}'.format(id))
     return id
 
@@ -261,11 +269,11 @@ def check_installed(package, virtualenv):
     return False
 
 
-def make_virtualenv(virtualenv_dir, python_path='python'):
+def make_virtualenv(virtualenv_dir):
     """This will create a virtualenv.
     """
     lgr.debug('Creating Virtualenv {0}...'.format(virtualenv_dir))
-    result = run('virtualenv -p {0} {1}'.format(python_path, virtualenv_dir))
+    result = run('virtualenv {0}'.format(virtualenv_dir))
     if not result.returncode == 0:
         lgr.error('Could not create virtualenv: {0}'.format(virtualenv_dir))
         sys.exit(codes.errors['failed_to_create_virtualenv'])

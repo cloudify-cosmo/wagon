@@ -355,9 +355,9 @@ class Wagon():
             lgr.debug('setup.py file found. Retrieving name and version...')
             setuppy_path = os.path.join(source, 'setup.py')
             self.name = utils.run('python {0} --name'.format(
-                setuppy_path)).aggr_stdout.strip('\n')
+                setuppy_path)).aggr_stdout.rstrip('\r\n')
             self.version = utils.run('python {0} --version'.format(
-                setuppy_path)).aggr_stdout.strip('\n')
+                setuppy_path)).aggr_stdout.rstrip('\r\n')
         # TODO: maybe we don't want to be that explicit and allow using >=
         # TODO: or just a package name...
         elif '==' in source:
@@ -384,7 +384,9 @@ class Wagon():
     def handle_output_directory(self, wheels_path, force):
         if os.path.isdir(wheels_path):
             if force:
-                shutil.rmtree(wheels_path)
+                # Ignore errors is currently a workaround for shutil failing
+                # on Windows when the directory is not empty.
+                shutil.rmtree(wheels_path, ignore_errors=True)
             else:
                 lgr.error('Directory {0} already exists. Please remove it and '
                           'run this again.'.format(wheels_path))

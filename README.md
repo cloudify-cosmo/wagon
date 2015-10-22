@@ -12,7 +12,8 @@ or.. it is just a set of (Python) Wheels.
 Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz archives and so we needed a tool to create such entities; hence, Wagon.
 
 * Wagon currently supports Python 2.6.x and Python 2.7.x.
-* Wagon is currently only tested on Linux but might work on other platforms.
+* Wagon is currently tested on both Linux and Windows (via Travis and AppVeyor).
+* To be able to create Wagons of Wheels which include C extensions, you must have the [C++ Compiler for Python](http://www.microsoft.com/en-us/download/details.aspx?id=44266) installed.
 
 
 ## Installation
@@ -216,4 +217,3 @@ tox
 
 * Support Python 3.x
 * Provide the most statistically robust way of identification and installation of Linux compiled Wheels.
-* Test on Windows (AppVeyor to come...)
