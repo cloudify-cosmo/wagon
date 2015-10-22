@@ -1,3 +1,18 @@
+########
+# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    * See the License for the specific language governing permissions and
+#    * limitations under the License.
+
 import os
 import subprocess
 import re
@@ -9,13 +24,16 @@ import time
 import sys
 from contextlib import closing
 import platform
+import tempfile
+import json
+import shutil
 
 from wheel import pep425tags as wheel_tags
 
-import codes
-import logger
+from . import logger, codes
 
 
+DEFAULT_INDEX_SOURCE_URL = 'https://pypi.python.org/pypi/{0}/json'
 IS_VIRTUALENV = hasattr(sys, 'real_prefix')
 
 PLATFORM = sys.platform
@@ -77,13 +95,13 @@ def run(cmd, suppress_errors=False, suppress_output=False):
 
 
 def wheel(package, requirement_files=False, wheels_path='package',
-          excluded_packages=None, wheel_args=None):
-    # wheel_args = wheel_args or []
-
+          excluded_packages=None, wheel_args=None, no_deps=False):
     lgr.info('Downloading Wheels for {0}...'.format(package))
     wheel_cmd = ['pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
+    if no_deps:
+        wheel_cmd.append('--no-deps')
     if requirement_files:
         wheel_cmd_with_reqs = wheel_cmd
         for req_file in requirement_files:
@@ -93,6 +111,7 @@ def wheel(package, requirement_files=False, wheels_path='package',
             lgr.error('Could not download wheels for: {0}. '
                       'Please verify that the file you are trying '
                       'to wheel is wheelable.'.format(req_file))
+            sys.exit(codes.errors['failed_to_wheel'])
     if wheel_args:
         wheel_cmd.append(wheel_args)
     wheel_cmd.append(package)
@@ -194,13 +213,15 @@ def untar(archive, destination):
         tar.extractall(path=destination, members=files)
 
 
+def get_wheel_tags(wheel_name):
+    filename, _ = os.path.splitext(os.path.basename(wheel_name))
+    return filename.split('-')
+
+
 def get_platform_from_wheel_name(wheel_name):
     """Extracts the platform of a wheel from its file name.
     """
-    lgr.debug('Getting platform for wheel: {0}...'.format(wheel_name))
-    filename, _ = os.path.splitext(os.path.basename(wheel_name))
-    name_parts = filename.split('-')
-    return name_parts[-1]
+    return get_wheel_tags(wheel_name)[-1]
 
 
 def get_platform_for_set_of_wheels(wheels_path):
@@ -211,7 +232,6 @@ def get_platform_for_set_of_wheels(wheels_path):
     which is not `any`, it will be used. If a platform other than
     `any` was not found, `any` will be assumed.
     """
-    lgr.debug('Setting platform for wheels in: {0}...'.format(wheels_path))
     for wheel in get_downloaded_wheels(wheels_path):
         platform = get_platform_from_wheel_name(
             os.path.join(wheels_path, wheel))
@@ -235,15 +255,16 @@ def get_os_properties():
 
 def _get_env_bin_path(env_path):
     """Returns the bin path for a virtualenv
+
+    This provides a fallback for a race condition in which you're trying
+    to use the script and create a virtualenv from within
+    a virtualenv in which virtualenv isn't installed and so
+    is not importable.
     """
     try:
         import virtualenv
         return virtualenv.path_locations(env_path)[3]
     except ImportError:
-        # this is a fallback for a race condition in which you're trying
-        # to use the script and create a virtualenv from within
-        # a virtualenv in which virtualenv isn't installed and so
-        # is not importable.
         return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')
 
 
@@ -269,3 +290,30 @@ def make_virtualenv(virtualenv_dir):
     if not result.returncode == 0:
         lgr.error('Could not create virtualenv: {0}'.format(virtualenv_dir))
         sys.exit(codes.errors['failed_to_create_virtualenv'])
+
+
+def get_package_version_from_pypi(source):
+    pypi_url = DEFAULT_INDEX_SOURCE_URL.format(source)
+    lgr.debug('Getting metadata for {0} from {1}...'.format(
+        source, pypi_url))
+    try:
+        package_data = json.loads(urllib.urlopen(pypi_url).read())
+    except Exception as ex:
+        lgr.error('Failed to retrieve package info from index'
+                  ' ({0})'.format(str(ex)))
+        sys.exit(codes.errors['failed_to_retrieve_index_info'])
+    return package_data['info']['version']
+
+
+def get_package_version_from_wheel_name(source):
+    tmpdir = tempfile.mkdtemp()
+    try:
+        wheels, _ = wheel(source, wheels_path=tmpdir, no_deps=True)
+        wheel_version = get_wheel_tags(wheels[0])[1]
+        return wheel_version
+    except Exception as ex:
+        lgr.error('Failed to retrieve package version from '
+                  'wheel file ({0}).'.format(str(ex)))
+        sys.exit(codes.errors['failed_retrieve_version_from_wheel'])
+    finally:
+        shutil.rmtree(tmpdir)

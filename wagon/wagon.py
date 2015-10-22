@@ -1,3 +1,18 @@
+########
+# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    * See the License for the specific language governing permissions and
+#    * limitations under the License.
+
 import logging
 import os
 import sys
@@ -7,9 +22,8 @@ import json
 
 import click
 
-import logger
-import utils
-import codes
+from . import logger, utils, codes
+
 
 REQUIREMENT_FILE_NAMES = ['dev-requirements.txt', 'requirements.txt']
 METADATA_FILE_NAME = 'package.json'
@@ -32,8 +46,9 @@ class Wagon():
         the class is instantiated.
 
         When using `create`, source can be a path to a local setup.py
-        containing directory; a URL to a GitHub like package archive or a
-        name of a PyPI package in the format: PACKAGE_NAME==PACKAGE_VERSION.
+        containing directory; a URL to a GitHub like package archive, a
+        name of a PyPI package in the format: PACKAGE_NAME==PACKAGE_VERSION
+        or a versionless PyPI PACKAGE_NAME.
 
         When using `install` or `validate`, source can be either a path
         to a local or a URL based Wagon archived tar.gz file.
@@ -87,18 +102,19 @@ class Wagon():
         wheels_path = os.path.join(package_name, DEFAULT_WHEELS_PATH)
         self.handle_output_directory(package_name, force)
 
-        if with_requirements == '.':
+        if with_requirements:
             with_requirements = self._get_default_requirement_files(source)
-        elif with_requirements:
-            with_requirements = [with_requirements]
 
         try:
             wheels, excluded_wheels = utils.wheel(
                 source, with_requirements, wheels_path, excluded_packages,
                 wheel_args)
         finally:
-            shutil.rmtree(source, ignore_errors=True)
+            if self.remove_source_after_process:
+                shutil.rmtree(source, ignore_errors=True)
+
         self.platform = utils.get_platform_for_set_of_wheels(wheels_path)
+        lgr.debug('Platform is: {0}'.format(self.platform))
         if python_versions:
             self.python_versions = ['py{0}'.format(v) for v in python_versions]
         else:
@@ -138,7 +154,7 @@ class Wagon():
         """
         lgr.info('Installing {0}'.format(self.source))
         source = self.get_source(self.source)
-        with open(os.path.join(source, 'package.json'), 'r') as f:
+        with open(os.path.join(source, METADATA_FILE_NAME), 'r') as f:
             metadata = json.loads(f.read())
         supported_platform = metadata['supported_platform']
         if not ignore_platform and supported_platform != 'any':
@@ -170,7 +186,7 @@ class Wagon():
         """
         lgr.info('Validating {0}'.format(self.source))
         source = self.get_source(self.source)
-        with open(os.path.join(source, 'package.json'), 'r') as f:
+        with open(os.path.join(source, METADATA_FILE_NAME), 'r') as f:
             metadata = json.loads(f.read())
         wheels_path = os.path.join(source, DEFAULT_WHEELS_PATH)
         validation_errors = []
@@ -234,7 +250,7 @@ class Wagon():
         """
         lgr.debug('Retrieving Metadata for: {0}'.format(self.source))
         source = self.get_source(self.source)
-        with open(os.path.join(source, 'package.json'), 'r') as f:
+        with open(os.path.join(source, METADATA_FILE_NAME), 'r') as f:
             metadata = json.loads(f.read())
         shutil.rmtree(source)
         return metadata
@@ -310,11 +326,18 @@ class Wagon():
 
         If the source is a url to a package's tar file,
         this will download the source and extract it to a temporary directory.
+
+        If the source is neither a url nor a local path, and is not provided
+        as PACKAGE_NAME==PACKAGE_VERSION, the provided source string
+        will be regarded as the source, which, by default, will assume
+        that the string is a name of a package in PyPI.
         """
         def extract_source(source, destination):
             utils.untar(source, destination)
             return os.path.join(
                 destination, [d for d in os.walk(destination).next()[1]][0])
+
+        self.remove_source_after_process = False
 
         lgr.debug('Retrieving source...')
         if '://' in source:
@@ -325,6 +348,7 @@ class Wagon():
                 fd, tmpfile = tempfile.mkstemp()
                 os.close(fd)
                 try:
+                    self.remove_source_after_process = True
                     utils.download_file(source, tmpfile)
                     source = extract_source(tmpfile, tmpdir)
                 finally:
@@ -334,15 +358,11 @@ class Wagon():
                     schema))
                 sys.exit(codes.errors['unsupported_url_type'])
         elif os.path.isfile(source):
+            self.remove_source_after_process = True
             tmpdir = tempfile.mkdtemp()
             source = extract_source(source, tmpdir)
         elif os.path.isdir(source):
             source = os.path.expanduser(source)
-        elif '==' in source:
-            pass
-        else:
-            lgr.error('Path to source {0} does not exist.'.format(source))
-            sys.exit(codes.errors['nonexistent_source_path'])
         lgr.debug('Source is: {0}'.format(source))
         return source
 
@@ -352,8 +372,11 @@ class Wagon():
         If the source is a path, the name and version will be retrieved
         by querying the setup.py file in the path.
 
-        If the source is of format PACKAGE==VERSION, they will be used as
+        If the source is PACKAGE_NAME==PACKAGE_VERSION, they will be used as
         the name and version.
+
+        If the source is PACKAGE_NAME, the version will be extracted from
+        the wheel of the latest version.
         """
         if os.path.isfile(os.path.join(source, 'setup.py')):
             lgr.debug('setup.py file found. Retrieving name and version...')
@@ -363,10 +386,11 @@ class Wagon():
             self.version = utils.run('python {0} --version'.format(
                 setuppy_path)).aggr_stdout.rstrip('\r\n')
         # TODO: maybe we don't want to be that explicit and allow using >=
-        # TODO: or just a package name...
         elif '==' in source:
-            lgr.debug('Retrieving name and version...')
             self.name, self.version = source.split('==')
+        else:
+            self.name = source
+            self.version = utils.get_package_version_from_wheel_name(source)
         lgr.info('Package name: {0}'.format(self.name))
         lgr.info('Package version: {0}'.format(self.version))
         return self.name, self.version
@@ -405,7 +429,7 @@ def main():
 @click.command()
 @click.option('-s', '--source', required=True,
               help='Source URL, Path or Package name.')
-@click.option('-r', '--with-requirements', required=False,
+@click.option('-r', '--with-requirements', required=False, is_flag=True,
               help='Whether to also pack wheels from a requirements file.')
 @click.option('-f', '--force', default=False, is_flag=True,
               help='Force overwriting existing output file.')
@@ -435,13 +459,17 @@ def create(source, with_requirements, force, keep_wheels, exclude,
     master.tar.gz
     - ~/repos/cloudify-script-plugin
     - cloudify-script-plugin==1.2.1
+    - cloudify-script-plugin
 
     \b
     Note:
     - If source is URL, download and extract it and get its name and version
      from setup.py.
     - If source is a local path, get package name and version from setup.py.
-    - If source is package_name==package_version, use them as name and version.
+    - If source is `package_name==package_version`,
+     use them as name and version.
+    - If source is `package_name`, get the latest version from PyPI
+     (even if prerelease).
     """
     # TODO: Let the user provide supported Python versions.
     # TODO: Let the user provide supported Architectures.
