@@ -1,13 +1,13 @@
-import logger
 import logging
 import os
 import sys
 import shutil
-import click
-import uuid
 import tempfile
 import json
 
+import click
+
+import logger
 import utils
 import codes
 
@@ -44,10 +44,10 @@ class Wagon():
             lgr.setLevel(logging.INFO)
         self.source = source
 
-    def create(self, with_requirements=None, force=False,
+    def create(self, with_requirements='', force=False,
                keep_wheels=False, excluded_packages=None,
                archive_destination_dir='.', python_versions=None,
-               validate=False, wheel_args=None):
+               validate=False, wheel_args=''):
         """Creates a Wagon archive and returns its path.
 
         This currently only creates tar.gz archives. The `install`
@@ -92,9 +92,12 @@ class Wagon():
         elif with_requirements:
             with_requirements = [with_requirements]
 
-        wheels, excluded_wheels = utils.wheel(
-            source, with_requirements, wheels_path, excluded_packages,
-            wheel_args)
+        try:
+            wheels, excluded_wheels = utils.wheel(
+                source, with_requirements, wheels_path, excluded_packages,
+                wheel_args)
+        finally:
+            shutil.rmtree(source, ignore_errors=True)
         self.platform = utils.get_platform_for_set_of_wheels(wheels_path)
         if python_versions:
             self.python_versions = ['py{0}'.format(v) for v in python_versions]
@@ -111,7 +114,7 @@ class Wagon():
 
         if not keep_wheels:
             lgr.debug('Cleaning up...')
-            shutil.rmtree(package_name)
+            shutil.rmtree(package_name, ignore_errors=True)
 
         if validate:
             self.source = archive_path
@@ -119,8 +122,8 @@ class Wagon():
         lgr.info('Process complete!')
         return archive_path
 
-    def install(self, virtualenv=None, requirements_file=None, upgrade=False,
-                ignore_platform=False, install_args=None):
+    def install(self, virtualenv='', requirements_file='', upgrade=False,
+                ignore_platform=False, install_args=''):
         """Installs a Wagon archive.
 
         This can install in a provided `virtualenv` or in the current
@@ -319,7 +322,8 @@ class Wagon():
             schema = split[0]
             if schema in ['http', 'https']:
                 tmpdir = tempfile.mkdtemp()
-                tmpfile = os.path.join(tmpdir, str(uuid.uuid4()))
+                fd, tmpfile = tempfile.mkstemp()
+                os.close(fd)
                 try:
                     utils.download_file(source, tmpfile)
                     source = extract_source(tmpfile, tmpdir)
@@ -329,7 +333,7 @@ class Wagon():
                 lgr.error('Source URL type {0} is not supported'.format(
                     schema))
                 sys.exit(codes.errors['unsupported_url_type'])
-        elif os.path.isfile(source) and source.endswith('.tar.gz'):
+        elif os.path.isfile(source):
             tmpdir = tempfile.mkdtemp()
             source = extract_source(source, tmpdir)
         elif os.path.isdir(source):

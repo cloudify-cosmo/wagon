@@ -1,19 +1,19 @@
 # Wagon
 
+[![Build Status](https://travis-ci.org/cloudify-cosmo/wagon.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wagon)
+[![PyPI](http://img.shields.io/pypi/dm/wagon.svg)](http://img.shields.io/pypi/dm/wagon.svg)
+[![PypI](http://img.shields.io/pypi/v/wagon.svg)](http://img.shields.io/pypi/v/wagon.svg)
+
+
 A wagon (also spelt waggon in British and Commonwealth English) is a heavy four-wheeled vehicle pulled by draught animals, used for transporting goods, commodities, agricultural materials, supplies, and sometimes people. Wagons are distinguished from carts, which have two wheels, and from lighter four-wheeled vehicles primarily for carrying people, such as carriages.
 
 or.. it is just a set of (Python) Wheels.
-
-* Master Branch [![Build Status](https://travis-ci.org/cloudify-cosmo/wagon.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wagon)
-* PyPI [![PyPI](http://img.shields.io/pypi/dm/wagon.svg)](http://img.shields.io/pypi/dm/wagon.svg)
-* Version [![PypI](http://img.shields.io/pypi/v/wagon.svg)](http://img.shields.io/pypi/v/wagon.svg)
-
 
 Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz archives and so we needed a tool to create such entities; hence, Wagon.
 
 * Wagon currently supports Python 2.6.x and Python 2.7.x.
 * Wagon is currently tested on both Linux and Windows (via Travis and AppVeyor).
-* To be able to create Wagons of Wheels which include C extensions, you must have the [C++ Compiler for Python](http://www.microsoft.com/en-us/download/details.aspx?id=44266) installed.
+* To be able to create Wagons of packages which include C extensions on Windows, you must have the [C++ Compiler for Python](http://www.microsoft.com/en-us/download/details.aspx?id=44266) installed.
 
 
 ## Installation
@@ -44,10 +44,10 @@ wagon create -s ~/packages/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 2
 wagon create -s cloudify-script-plugin==1.2 -a '--retries 5'
 ```
 
-Regarding exclusions, note that excluding packages can result in an archive being non-installable. The user will be warned about this but creation will succeed. Creation validation, though (i.e. using the `--validate` flag), will fail and show an error incase the archive cannot be installed.
-
-Also note that Wagon doesn't currently provide a way for packaging packages that are in editable mode.
-So, for instance, providing a dev-requirements file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #PACKAGE#, due to being editable". We might allow processing editable provided dependencies in the future.
+* Excluding packages can result in an archive being non-installable. The user will be warned about this but creation will succeed. Creation validation, though (i.e. using the `--validate` flag), will fail and show an error incase the archive cannot be installed.
+* Wagon doesn't currently provide a way for packaging packages that are in editable mode.
+So, for instance, providing a requirements file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #PACKAGE#, due to being editable". We might allow processing editable provided dependencies in the future.
+* Currently, when using the `-r .` option, Wagon looks for both `dev-requirements.txt` and `requirements.txt` files under the archive or local path. This is obviously not ideal and may be changed in the future.
 
 ### Install Packages
 
@@ -182,7 +182,7 @@ The archive is named according to the Wheel naming convention described in [PEP0
 Example Output Archive: `cloudify_fabric_plugin-1.2.1-py27-none-any-none-none.tar.gz`
 
 * `{python tag}`: The Python version is set by the Python running the packaging process. That means that while a package might run on both py27 and py33 (for example), since the packaging process took place using Python 2.7, only py27 will be appended to the name. A user can also explicitly provide the supported Python versions for the package via the `pyver` flag.
-* `{platform tag}`: The platform (e.g. `linux_x86_64`, `win32`) is set each specific wheel. To know which platform the package with its dependencies can be installed on, all wheels are checked. If a specific wheel has a platform property other than `any`, that platform will be used as the platform of the package. Of course, we assume that there can't be wheels downloaded or created on a specific machine platform that belongs to two different platforms.
+* `{platform tag}`: Normally, the platform (e.g. `linux_x86_64`, `win32`) is set for each specific wheel. To know which platform the package with its dependencies can be installed on, all wheels are checked. If a specific wheel has a platform property other than `any`, that platform will be used as the platform of the package. Of course, we assume that there can't be wheels downloaded or created on a specific machine platform that belongs to two different platforms.
 * `{abi tag}`: Note that the ABI tag is currently ignored and will always be `none`. This might be changed in the future to support providing an ABI tag.
 * For Linux (see below), two additional tags are added: `{distribution tag}` and `{release tag}`. Note that these tags are NOT a part of the PEP.
 
@@ -198,6 +198,72 @@ To overcome that (partially), if running Wagon on Linux and the package requires
 What this practically means, is that in most cases, using the metadata to compare the distro, release and the Python version under which the package is installed would allow a user to use Wagon rather safely. Of course, Wagon provides no guarantee whatsoever as to whether this will actually work or not and users must test their archives.
 
 That being said, Wagon is completely safe for creating and installing Pure Python package archives for any platform, and, due to the nature of Wheels, packages compiled for OS X or Windows.
+
+
+## Python API
+
+Wagon provides an easy to use API:
+
+### Create
+
+```python
+
+from wagon import wagon
+
+source = 'flask==0.10.1'
+w = wagon.Wagon(source=source):
+
+# excluded_packages and python_versions are lists.
+# with_requirements can either be one of '.' or a path to
+# a pip installable requirements path.
+archive_path = w.create(with_requirements='', force=False,
+         keep_wheels=False, excluded_packages=None,
+         archive_destination_dir='.', python_versions=None,
+         validate=False, wheel_args='')
+```
+
+### Install
+
+```python
+
+from wagon import wagon
+
+source = 'http://my-wagons.com/flask-0.10.1-py27-none-linux_x86_64-Ubuntu-trusty.tar.gz'
+w = wagon.Wagon(source=source):
+
+w.install(virtualenv='', requirements_file='', upgrade=False,
+          ignore_platform=False, install_args='')
+```
+
+### Validate
+
+```python
+
+from wagon import wagon
+
+source = 'http://my-wagons.com/flask-0.10.1-py27-none-linux_x86_64-Ubuntu-trusty.tar.gz'
+w = wagon.Wagon(source=source):
+
+result = w.validate()  # True if validation successful, else False
+```
+
+### Showmeta
+
+```python
+
+from wagon import wagon
+
+source = 'http://my-wagons.com/flask-0.10.1-py27-none-linux_x86_64-Ubuntu-trusty.tar.gz'
+w = wagon.Wagon(source=source):
+
+metadata = w.get_metadata_from_archive()
+print metadata
+```
+
+
+## Additional Info
+
+* Log files are stored under ~/.wagon
 
 
 ## Testing

@@ -232,7 +232,8 @@ class TestCreate(testtools.TestCase):
             '-s': TEST_PACKAGE,
             '-v': None,
             '-f': None,
-            '-a': '-r {0}'.format(reqs_file_path)
+            '-a': '-r {0}'.format(reqs_file_path),
+            '--keep-wheels': None
         }
         result = _invoke_click('create', params)
         self.assertEqual(str(result), '<Result okay>')
