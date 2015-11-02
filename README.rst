@@ -49,7 +49,9 @@ Examples
 
 .. code:: shell
 
-    # create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin) and exclude the cloudify-plugins-common and cloudify-rest-client packages from the archive.
+    # create an archive by retrieving the latest non-prerelease version from PyPI.
+    wagon create -s flask
+    # create an archive by retrieving the package from PyPI and keep the downloaded wheels (kept under <cwd>/plugin) and exclude the cloudify-plugins-common and cloudify-rest-client packages from the archive.
     wagon create -s cloudify-script-plugin==1.2 --keep-wheels -v --exclude cloudify-plugins-common --exclude cloudify-rest-client
     # create an archive by retrieving the source from a URL and creating wheels from requirement files found within the archive. Then, validation of the archive takes place.
     wagon create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r . --validate
@@ -160,9 +162,11 @@ Naming and Versioning
 Source: PyPI
 ~~~~~~~~~~~~
 
-When providing a PyPI source, it must be supplied as
-PACKAGE\_NAME==PACKAGE\_VERSION. wagon then applies the correct name and
-version to the archive according to the two parameters.
+When providing a PyPI source, it can either be supplied as
+PACKAGE\_NAME==PACKAGE\_VERSION after which wagon then applies the
+correct name and version to the archive according to the two parameters;
+or PACKAGE\_NAME, after which the PACKAGE\_VERSION will be extracted
+from the downloaded wheel.
 
 Source: Else
 ~~~~~~~~~~~~

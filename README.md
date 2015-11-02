@@ -34,20 +34,34 @@ wagon create --help
 #### Examples
 
 ```shell
-# create an archive by retrieving the source from PyPI and keep the downloaded wheels (kept under <cwd>/plugin) and exclude the cloudify-plugins-common and cloudify-rest-client packages from the archive.
+# create an archive by retrieving the latest non-prerelease version from PyPI.
+wagon create -s flask
+# create an archive by retrieving the package from PyPI and keep the downloaded wheels (kept under <cwd>/plugin) and exclude the cloudify-plugins-common and cloudify-rest-client packages from the archive.
 wagon create -s cloudify-script-plugin==1.2 --keep-wheels -v --exclude cloudify-plugins-common --exclude cloudify-rest-client
 # create an archive by retrieving the source from a URL and creating wheels from requirement files found within the archive. Then, validation of the archive takes place.
-wagon create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r . --validate
+wagon create -s http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r --validate
 # create an archive by retrieving the source from a local path and output the tar.gz file to /tmp/<PACKAGE>.tar.gz (defaults to <cwd>/<PACKAGE>.tar.gz) and provides explicit Python versions supported by the package (which usually defaults to the first two digits of the Python version used to create the archive.)
 wagon create -s ~/packages/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26 --pyver 27
 # pass additional args to `pip wheel` (NOTE that conflicting arguments are not handled by wagon.)
 wagon create -s cloudify-script-plugin==1.2 -a '--retries 5'
 ```
 
-* Excluding packages can result in an archive being non-installable. The user will be warned about this but creation will succeed. Creation validation, though (i.e. using the `--validate` flag), will fail and show an error incase the archive cannot be installed.
-* Wagon doesn't currently provide a way for packaging packages that are in editable mode.
-So, for instance, providing a requirements file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #PACKAGE#, due to being editable". We might allow processing editable provided dependencies in the future.
-* Currently, when using the `-r .` option, Wagon looks for both `dev-requirements.txt` and `requirements.txt` files under the archive or local path. This is obviously not ideal and may be changed in the future.
+#### Internal Requirement Files
+
+Sometimes, your package archive or local path contain [requirement files](http://pip.readthedocs.org/en/stable/user_guide/#requirements-files). Wagon will look for `requirements.txt` and `dev-requirements.txt` files residing in the same directory the `setup.py` file resides and wheel them as well if the `-r` flag is supplied.
+
+In case you don't want to include both requirement files, you can explicitly specify requirement files using the `-a` flag passing `-r` as additional pip arguments to the `pip wheel` function.
+
+#### Exclusions
+
+Note that excluding packages can result in an archive being non-installable. The user will be warned about this but creation will succeed. Creation validation, though (i.e. using the `--validate` flag), will fail and show an error incase the archive cannot be installed.
+
+#### Editable Mode
+
+Wagon doesn't currently provide a way for packaging packages that are in editable mode.
+So, for instance, providing a dev-requirements file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #PACKAGE#, due to being editable". We might allow processing editable provided dependencies in the future.
+
+
 
 ### Install Packages
 
@@ -67,7 +81,6 @@ wagon create -s cloudify-script-plugin==1.2 -a '--no-cache-dir'
 ```
 
 Note that `--pre` is appended to the installation command to enable installation of prerelease versions.
-
 
 #### Installing Manually
 
@@ -91,7 +104,6 @@ This shallow validation should, at the very least, allow a user to be sure that 
 
 Note that the `--validate` flag provided with the `create` function uses this same validation method.
 
-
 #### Examples
 
 ```shell
@@ -110,17 +122,18 @@ wagon showmeta --help
 
 Given a Wagon archive, this will print its metadata.
 
-
 #### Examples
 
 ```shell
 wagon showmeta -s http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.tar.gz
 ```
 
+
+
 ## Naming and Versioning
 
 ### Source: PyPI
-When providing a PyPI source, it must be supplied as PACKAGE_NAME==PACKAGE_VERSION. wagon then applies the correct name and version to the archive according to the two parameters.
+When providing a PyPI source, it can either be supplied as PACKAGE_NAME==PACKAGE_VERSION after which wagon then applies the correct name and version to the archive according to the two parameters; or PACKAGE_NAME, after which the PACKAGE_VERSION will be extracted from the downloaded wheel.
 
 ### Source: Else
 For local path and URL sources, the name and version are automatically extracted from the setup.py file.

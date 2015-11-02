@@ -13,10 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import wagon.wagon as wagon
-import wagon.utils as utils
-import wagon.codes as codes
-
 import click.testing as clicktest
 from contextlib import closing
 import tarfile
@@ -25,7 +21,10 @@ import os
 import json
 import shutil
 import tempfile
-import uuid
+
+import wagon.wagon as wagon
+import wagon.utils as utils
+import wagon.codes as codes
 
 
 TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz'  # NOQA
@@ -59,8 +58,6 @@ class TestUtils(testtools.TestCase):
 
     def test_download_file(self):
         utils.download_file(TEST_FILE, 'file')
-        if not os.path.isfile('file'):
-            raise Exception('file not downloaded')
         os.remove('file')
 
     def test_download_file_missing(self):
@@ -129,27 +126,35 @@ class TestUtils(testtools.TestCase):
             shutil.rmtree('package')
 
     def test_machine_platform(self):
-        if utils.IS_WIN:
-            self.assertIn('win32', utils.get_platform())
-        else:
-            self.assertEqual(utils.get_platform(), 'linux_x86_64')
+        self.assertIn(
+            'win32' if utils.IS_WIN else 'linux_x86_64', utils.get_platform())
+
+    def test_get_version_from_pypi_bad_source(self):
+        e = self.assertRaises(
+            SystemExit, utils.get_package_version_from_pypi,
+            'NONEXISTING_PACKAGE')
+        self.assertEqual(
+            str(codes.errors['failed_to_retrieve_index_info']), str(e))
+
+    def test_check_package_not_installed(self):
+        utils.make_virtualenv('test_env')
+        try:
+            result = utils.check_installed(TEST_PACKAGE_NAME, 'test_env')
+            self.assertFalse(result)
+        finally:
+            shutil.rmtree('test_env')
+
+    def test_install_package_failed(self):
+        e = self.assertRaises(SystemExit, utils.install_package, 'x', 'y')
+        self.assertEqual(
+            str(codes.errors['failed_to_install_package']), str(e))
 
 
 class TestCreateBadSources(testtools.TestCase):
-    def test_bad_source(self):
-        packager = wagon.Wagon(source=str(uuid.uuid4()), verbose=True)
-        e = self.assertRaises(SystemExit, packager.create)
-        self.assertIn(str(codes.errors['nonexistent_source_path']), str(e))
-
     def test_unsupported_url_schema(self):
         packager = wagon.Wagon(source='ftp://x', verbose=True)
         e = self.assertRaises(SystemExit, packager.create)
         self.assertIn(str(codes.errors['unsupported_url_type']), str(e))
-
-    def test_nonexisting_path(self):
-        packager = wagon.Wagon(source='~/nonexisting_path', verbose=True)
-        e = self.assertRaises(SystemExit, packager.create)
-        self.assertIn(str(codes.errors['nonexistent_source_path']), str(e))
 
 
 class TestCreate(testtools.TestCase):
@@ -160,26 +165,28 @@ class TestCreate(testtools.TestCase):
         self.wagon = wagon.Wagon(TEST_PACKAGE, verbose=True)
         self.wagon.platform = 'any'
         self.wagon.python_versions = [utils.get_python_version()]
+        self.package_version = TEST_PACKAGE_VERSION
+        self.package_name = TEST_PACKAGE_NAME
         self.archive_name = self.wagon.set_archive_name(
-            TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
+            self.package_name, self.package_version)
 
     def tearDown(self):
         super(TestCreate, self).tearDown()
         if os.path.isfile(self.archive_name):
             os.remove(self.archive_name)
-        if os.path.isdir(TEST_PACKAGE_NAME):
-            shutil.rmtree(TEST_PACKAGE_NAME)
+        if os.path.isdir(self.package_name):
+            shutil.rmtree(self.package_name)
 
     def _test(self):
-        self.assertTrue(os.path.isfile(self.archive_name))
+        self.assertIn(self.archive_name, os.listdir('.'))
         utils.untar(self.archive_name, '.')
         with open(os.path.join(
-                TEST_PACKAGE_NAME,
+                self.package_name,
                 wagon.METADATA_FILE_NAME), 'r') as f:
             m = json.loads(f.read())
 
-        self.assertEqual(m['package_version'], TEST_PACKAGE_VERSION)
-        self.assertEqual(m['package_name'], TEST_PACKAGE_NAME)
+        self.assertEqual(m['package_version'], self.package_version)
+        self.assertEqual(m['package_name'], self.package_name)
         self.assertEqual(m['supported_platform'], self.wagon.platform)
         if hasattr(self, 'excluded_package'):
             self.assertTrue(len(m['wheels']) >= 7)
@@ -200,21 +207,21 @@ class TestCreate(testtools.TestCase):
 
         self.assertIn(
             '{0}-{1}-{2}-none-{3}'.format(
-                TEST_PACKAGE_NAME.replace('-', '_'),
-                TEST_PACKAGE_VERSION,
+                self.package_name.replace('-', '_'),
+                self.package_version,
                 '.'.join(self.wagon.python_versions),
                 self.wagon.platform),
             m['archive_name'])
 
         self.assertTrue(os.path.isfile(os.path.join(
-            TEST_PACKAGE_NAME, wagon.DEFAULT_WHEELS_PATH,
+            self.package_name, wagon.DEFAULT_WHEELS_PATH,
             '{0}-{1}-py2-none-any.whl'.format(
-                TEST_PACKAGE_NAME.replace('-', '_'),
-                TEST_PACKAGE_VERSION,))))
+                self.package_name.replace('-', '_'),
+                self.package_version))))
 
         return m
 
-    def test_create_archive_from_pypi(self):
+    def test_create_archive_from_pypi_with_version(self):
         params = {
             '-s': TEST_PACKAGE,
             '-v': None,
@@ -242,18 +249,31 @@ class TestCreate(testtools.TestCase):
         self.assertIn('virtualenv-13.1.2-py2.py3-none-any.whl', m['wheels'])
         os.close(fd)
 
+    def test_create_archive_from_pypi_latest(self):
+        package = 'wheel'
+        params = {
+            '-s': package,
+            '-v': None,
+            '-f': None,
+            '--validate': None
+        }
+        pypi_version = utils.get_package_version_from_pypi(package)
+        self.archive_name = self.wagon.set_archive_name(package, pypi_version)
+        result = _invoke_click('create', params)
+        self.assertEqual(str(result), '<Result okay>')
+        self.wagon.source = self.archive_name
+        metadata = self.wagon.get_metadata_from_archive()
+        self.assertEqual(pypi_version, metadata['package_version'])
+
     def test_create_archive_from_url_with_requirements(self):
-        if utils.IS_WIN:
-            self.wagon.platform = 'win32'
-        else:
-            self.wagon.platform = utils.get_platform()
+        self.wagon.platform = 'win32' if utils.IS_WIN else utils.get_platform()
         self.archive_name = self.wagon.set_archive_name(
             TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
         params = {
             '-s': TEST_FILE,
             '-v': None,
             '-f': None,
-            '-r': '.'
+            '-r': None
         }
         result = _invoke_click('create', params)
         self.assertEqual(str(result), '<Result okay>')
@@ -349,7 +369,8 @@ class TestInstall(testtools.TestCase):
             '-s': self.archive_path,
             '-v': None,
             '--virtualenv=': 'test_env',
-            '-u': None
+            '-u': None,
+            '-a': '--retries 2'
         }
         _invoke_click('install', params)
         self.assertTrue(utils.check_installed(TEST_PACKAGE_NAME, 'test_env'))
@@ -370,7 +391,6 @@ class TestValidate(testtools.TestCase):
 
     def tearDown(self):
         super(TestValidate, self).tearDown()
-        os.remove(self.archive_path)
         if os.path.isfile(self.archive_path):
             os.remove(self.archive_path)
         if os.path.isdir(TEST_PACKAGE_NAME):
