@@ -18,6 +18,7 @@ import subprocess
 import re
 import urllib
 import tarfile
+import zipfile
 import logging
 from threading import Thread
 import time
@@ -198,8 +199,22 @@ def download_file(url, destination):
     f.retrieve(final_url, destination)
 
 
+def zip(source, destination):
+    lgr.info('Creating zip archive: {0}...'.format(destination))
+    with closing(zipfile.ZipFile(destination, 'w')) as zip:
+        for root, dirs, files in os.walk(source):
+            for f in files:
+                zip.write(os.path.join(root, f))
+
+
+def unzip(archive, destination):
+    lgr.debug('Extracting zip {0} to {1}...'.format(archive, destination))
+    with closing(zipfile.ZipFile(archive, "r")) as zip:
+        zip.extractall(destination)
+
+
 def tar(source, destination):
-    lgr.info('Creating archive: {0}...'.format(destination))
+    lgr.info('Creating tar.gz archive: {0}...'.format(destination))
     with closing(tarfile.open(destination, "w:gz")) as tar:
         tar.add(source, arcname=os.path.basename(source))
 
@@ -207,7 +222,7 @@ def tar(source, destination):
 def untar(archive, destination):
     """Extracts files from an archive to a destination folder.
     """
-    lgr.debug('Extracting {0} to {1}...'.format(archive, destination))
+    lgr.debug('Extracting tar.gz {0} to {1}...'.format(archive, destination))
     with closing(tarfile.open(name=archive)) as tar:
         files = [f for f in tar.getmembers()]
         tar.extractall(path=destination, members=files)
