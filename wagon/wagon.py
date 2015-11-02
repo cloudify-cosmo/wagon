@@ -62,7 +62,7 @@ class Wagon():
     def create(self, with_requirements='', force=False,
                keep_wheels=False, excluded_packages=None,
                archive_destination_dir='.', python_versions=None,
-               validate=False, wheel_args=''):
+               validate=False, wheel_args='', format='tar.gz'):
         """Creates a Wagon archive and returns its path.
 
         This currently only creates tar.gz archives. The `install`
@@ -126,7 +126,13 @@ class Wagon():
         self.handle_output_file(archive_path, force)
         self.generate_metadata_file(wheels, excluded_wheels)
 
-        utils.tar(package_name, archive_path)
+        if format == 'tar.gz':
+            utils.tar(package_name, archive_path)
+        elif format == 'zip':
+            utils.zip(package_name, archive_path)
+        else:
+            sys.exit('Unsupported archive format to create '
+                     '(Must be one of [zip, tar.gz]).')
 
         if not keep_wheels:
             lgr.debug('Cleaning up...')
@@ -318,7 +324,7 @@ class Wagon():
             if release:
                 archive[6] = release
 
-        self.archive = '{0}.tar.gz'.format('-'.join(archive))
+        self.archive = '{0}.wgn'.format('-'.join(archive))
         return self.archive
 
     def get_source(self, source):
@@ -333,9 +339,17 @@ class Wagon():
         that the string is a name of a package in PyPI.
         """
         def extract_source(source, destination):
-            utils.untar(source, destination)
-            return os.path.join(
+            try:
+                utils.untar(source, destination)
+            except:
+                utils.unzip(source, destination)
+            source = os.path.join(
                 destination, [d for d in os.walk(destination).next()[1]][0])
+            if not os.path.join(source, 'setup.py'):
+                sys.exit('Source does not seem to be a Python package. '
+                         'A source archive must contain a single parent '
+                         'directory containing a setup.py file.')
+            return source
 
         self.remove_source_after_process = False
 
@@ -431,6 +445,9 @@ def main():
               help='Source URL, Path or Package name.')
 @click.option('-r', '--with-requirements', required=False, is_flag=True,
               help='Whether to also pack wheels from a requirements file.')
+@click.option('-t', '--format', required=False, default='tar.gz',
+              type=click.Choice(['tar.gz', 'zip']),
+              help='Which file format to generate.')
 @click.option('-f', '--force', default=False, is_flag=True,
               help='Force overwriting existing output file.')
 @click.option('--keep-wheels', default=False, is_flag=True,
@@ -449,7 +466,7 @@ def main():
               help='Allows to pass additional arguments to `pip wheel`. '
                    '(e.g. --no-cache-dir -c constains.txt')
 @click.option('-v', '--verbose', default=False, is_flag=True)
-def create(source, with_requirements, force, keep_wheels, exclude,
+def create(source, with_requirements, format, force, keep_wheels, exclude,
            output_directory, pyver, validate, wheel_args, verbose):
     """Creates a Python package's wheel base archive.
 
@@ -477,7 +494,7 @@ def create(source, with_requirements, force, keep_wheels, exclude,
     packager = Wagon(source, verbose)
     packager.create(
         with_requirements, force, keep_wheels, exclude, output_directory,
-        pyver, validate, wheel_args)
+        pyver, validate, wheel_args, format)
 
 
 @click.command()

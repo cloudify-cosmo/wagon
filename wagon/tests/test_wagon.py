@@ -28,6 +28,7 @@ import wagon.codes as codes
 
 
 TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz'  # NOQA
+TEST_ZIP = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.zip'  # NOQA
 TEST_PACKAGE_NAME = 'cloudify-script-plugin'
 TEST_PACKAGE_VERSION = '1.2'
 TEST_PACKAGE = '{0}=={1}'.format(TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
@@ -178,8 +179,12 @@ class TestCreate(testtools.TestCase):
             shutil.rmtree(self.package_name)
 
     def _test(self):
-        self.assertIn(self.archive_name, os.listdir('.'))
-        utils.untar(self.archive_name, '.')
+        # self.assertIn(self.archive_name, os.listdir('.'))
+        self.assertTrue(os.path.isfile(self.archive_name))
+        try:
+            utils.untar(self.archive_name, '.')
+        except:
+            utils.unzip(self.archive_name, '.')
         with open(os.path.join(
                 self.package_name,
                 wagon.METADATA_FILE_NAME), 'r') as f:
@@ -228,9 +233,23 @@ class TestCreate(testtools.TestCase):
             '-f': None
         }
         result = _invoke_click('create', params)
-        self.assertEqual(str(result), '<Result okay>')
+        self.assertIn('Process complete!', str(result.output))
         m = self._test()
         self.assertEqual(m['package_source'], TEST_PACKAGE)
+
+    def test_create_zip_from_pypi(self):
+        self.archive_name = self.wagon.set_archive_name(
+            TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
+        params = {
+            '-s': TEST_ZIP,
+            '-v': None,
+            '-f': None,
+            '-t': 'zip'
+        }
+        result = _invoke_click('create', params)
+        self.assertIn('Process complete!', str(result.output))
+        m = self._test()
+        self.assertEqual(m['package_source'], TEST_ZIP)
 
     def test_create_archive_from_pypi_with_additional_wheel_args(self):
         fd, reqs_file_path = tempfile.mkstemp()
@@ -243,7 +262,7 @@ class TestCreate(testtools.TestCase):
             '--keep-wheels': None
         }
         result = _invoke_click('create', params)
-        self.assertEqual(str(result), '<Result okay>')
+        self.assertIn('Process complete!', str(result.output))
         m = self._test()
         self.assertEqual(m['package_source'], TEST_PACKAGE)
         self.assertIn('virtualenv-13.1.2-py2.py3-none-any.whl', m['wheels'])
@@ -276,7 +295,7 @@ class TestCreate(testtools.TestCase):
             '-r': None
         }
         result = _invoke_click('create', params)
-        self.assertEqual(str(result), '<Result okay>')
+        self.assertIn('Process complete!', str(result.output))
         m = self._test()
         self.assertEqual(m['package_source'], TEST_FILE)
 
@@ -301,7 +320,7 @@ class TestCreate(testtools.TestCase):
             '-x': self.excluded_package
         }
         result = _invoke_click('create', params)
-        self.assertEqual(str(result), '<Result okay>')
+        self.assertIn('Process complete!', str(result.output))
         m = self._test()
         self.assertEqual(len(m['excluded_wheels']), 1)
 
@@ -314,7 +333,7 @@ class TestCreate(testtools.TestCase):
             '-x': self.missing_excluded_package
         }
         result = _invoke_click('create', params)
-        self.assertEqual(str(result), '<Result okay>')
+        self.assertIn('Process complete!', str(result.output))
         m = self._test()
         self.assertEqual(len(m['excluded_wheels']), 0)
 
