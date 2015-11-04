@@ -27,6 +27,9 @@ Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.pytho
 
 ```shell
 pip install wagon
+
+# latest development version
+pip install http://github.com/cloudify-cosmo/wagon/archive/master.tar.gz
 ```
 
 
