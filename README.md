@@ -1,6 +1,7 @@
 # Wagon
 
 [![Build Status](https://travis-ci.org/cloudify-cosmo/wagon.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wagon)
+[![Build status](https://ci.appveyor.com/api/projects/status/xf1hp1bekf3qhtr8/branch/master?svg=true)](https://ci.appveyor.com/project/Cloudify/wagon/branch/master)
 [![PyPI](http://img.shields.io/pypi/dm/wagon.svg)](http://img.shields.io/pypi/dm/wagon.svg)
 [![PypI](http://img.shields.io/pypi/v/wagon.svg)](http://img.shields.io/pypi/v/wagon.svg)
 
