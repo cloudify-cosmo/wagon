@@ -1,6 +1,6 @@
 dependencies:
   post:
-    - pyenv local 2.7.9 3.6.8
+    - pyenv local 2.7.9 2.6.8
   override:
     - pip install tox
 
