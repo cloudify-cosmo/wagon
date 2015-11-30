@@ -12,3 +12,4 @@ test:
         parallel: true
     - tox -e py26:
         parallel: true
+#
