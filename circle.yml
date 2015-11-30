@@ -6,10 +6,10 @@ dependencies:
 
 test:
   override:
-    - tox -e flake8
+    - case $CIRCLE_NODE_INDEX in 0) tox -e py27 ;; 1) tox -e py26 ;; tox -e flake8
 #        parallel: true
-    - tox -e py27
+#    - tox -e py27
 #        parallel: true
-    - tox -e py26
+#    - tox -e py26
 #        parallel: true
 
