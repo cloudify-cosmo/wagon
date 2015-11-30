@@ -7,9 +7,9 @@ dependencies:
 test:
   override:
     - tox -e flake8:
-        parallel: true
+#        parallel: true
     - tox -e py27:
-        parallel: true
+#        parallel: true
     - tox -e py26:
-        parallel: true
-#
+#        parallel: true
+
