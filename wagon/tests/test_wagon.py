@@ -31,6 +31,7 @@ TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.
 TEST_ZIP = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.zip'  # NOQA
 TEST_PACKAGE_NAME = 'cloudify-script-plugin'
 TEST_PACKAGE_VERSION = '1.2'
+TEST_PACKAGE_PLATFORM = 'linux_x86_64'
 TEST_PACKAGE = '{0}=={1}'.format(TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
 
 
@@ -164,7 +165,7 @@ class TestCreate(testtools.TestCase):
         super(TestCreate, self).setUp()
         self.runner = clicktest.CliRunner()
         self.wagon = wagon.Wagon(TEST_PACKAGE, verbose=True)
-        self.wagon.platform = 'any'
+        self.wagon.platform = TEST_PACKAGE_PLATFORM
         self.wagon.python_versions = [utils.get_python_version()]
         self.package_version = TEST_PACKAGE_VERSION
         self.package_name = TEST_PACKAGE_NAME
@@ -181,6 +182,7 @@ class TestCreate(testtools.TestCase):
     def _test(self):
         # self.assertIn(self.archive_name, os.listdir('.'))
         self.assertTrue(os.path.isfile(self.archive_name))
+        # raise Exception(self.archive_name)
         try:
             utils.untar(self.archive_name, '.')
         except:
@@ -276,12 +278,14 @@ class TestCreate(testtools.TestCase):
             '-f': None,
             '--validate': None
         }
+        self.wagon.platform = 'any'
         pypi_version = utils.get_package_version_from_pypi(package)
         self.archive_name = self.wagon.set_archive_name(package, pypi_version)
         result = _invoke_click('create', params)
         self.assertEqual(str(result), '<Result okay>')
         self.wagon.source = self.archive_name
         metadata = self.wagon.get_metadata_from_archive()
+        self.wagon.platform = 'linux_x86_64'
         self.assertEqual(pypi_version, metadata['package_version'])
 
     def test_create_archive_from_url_with_requirements(self):
