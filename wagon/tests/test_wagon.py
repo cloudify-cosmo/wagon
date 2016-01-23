@@ -165,7 +165,10 @@ class TestCreate(testtools.TestCase):
         super(TestCreate, self).setUp()
         self.runner = clicktest.CliRunner()
         self.wagon = wagon.Wagon(TEST_PACKAGE, verbose=True)
-        self.wagon.platform = TEST_PACKAGE_PLATFORM
+        if utils.IS_WIN:
+            self.wagon.platform = 'win32'
+        else:
+            self.wagon.platform = 'linux_x86_64'
         self.wagon.python_versions = [utils.get_python_version()]
         self.package_version = TEST_PACKAGE_VERSION
         self.package_name = TEST_PACKAGE_NAME
@@ -180,9 +183,7 @@ class TestCreate(testtools.TestCase):
             shutil.rmtree(self.package_name)
 
     def _test(self):
-        # self.assertIn(self.archive_name, os.listdir('.'))
         self.assertTrue(os.path.isfile(self.archive_name))
-        # raise Exception(self.archive_name)
         try:
             utils.untar(self.archive_name, '.')
         except:
