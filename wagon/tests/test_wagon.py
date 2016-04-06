@@ -290,6 +290,10 @@ class TestCreate(testtools.TestCase):
         self.assertEqual(pypi_version, metadata['package_version'])
 
     def test_create_archive_from_url_with_requirements(self):
+        if utils.IS_WIN:
+            self.skipTest('Due to a certificate related problem with AppVeyor '
+                          'we currently have to ignore this test on Windows.')
+        # once appveyor's problem is fixed, this will be used.
         self.wagon.platform = 'win32' if utils.IS_WIN else utils.get_platform()
         self.archive_name = self.wagon.set_archive_name(
             TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
