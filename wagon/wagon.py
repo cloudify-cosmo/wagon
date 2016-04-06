@@ -277,8 +277,7 @@ class Wagon():
             'supported_python_versions': self.python_versions,
             'build_server_os_properties': {
                 'distribution:': None,
-                'distribution_version': None,
-                'distribution_release': None,
+                'distribution_version': None
             },
             'package_name': self.name,
             'package_version': self.version,
@@ -287,12 +286,11 @@ class Wagon():
             'excluded_wheels': excluded_wheels
         }
         if utils.IS_LINUX and self.platform != 'any':
-            distro, version, release = utils.get_os_properties()
+            distro, version = utils.get_os_properties()
             metadata.update(
                 {'build_server_os_properties': {
                     'distribution': distro.lower(),
-                    'distribution_version': version.lower(),
-                    'distribution_release': release.lower()
+                    'distribution_version': version.lower()
                 }})
 
         formatted_metadata = json.dumps(metadata, indent=4, sort_keys=True)
@@ -318,11 +316,11 @@ class Wagon():
                    self.platform, 'none', 'none']
 
         if utils.IS_LINUX and self.platform != 'any':
-            distro, _, release = utils.get_os_properties()
+            distro, version, = utils.get_os_properties()
             if distro:
                 archive[5] = distro
-            if release:
-                archive[6] = release
+            if version:
+                archive[6] = version
 
         self.archive = '{0}.wgn'.format('-'.join(archive))
         return self.archive

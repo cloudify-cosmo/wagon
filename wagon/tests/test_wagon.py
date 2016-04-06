@@ -202,16 +202,13 @@ class TestCreate(testtools.TestCase):
             self.assertTrue(len(m['wheels']) >= 8)
 
         if utils.IS_LINUX and self.wagon.platform != 'any':
-            distro, version, release = utils.get_os_properties()
+            distro, version = utils.get_os_properties()
             self.assertEqual(
                 m['build_server_os_properties']['distribution'],
                 distro.lower())
             self.assertEqual(
                 m['build_server_os_properties']['distribution_version'],
                 version.lower())
-            self.assertEqual(
-                m['build_server_os_properties']['distribution_release'],
-                release.lower())
 
         self.assertIn(
             '{0}-{1}-{2}-none-{3}'.format(

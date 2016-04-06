@@ -13,9 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from setuptools import setup
 import os
 import codecs
+from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -46,5 +46,6 @@ setup(
         "wheel>=0.24.0",
         "virtualenv>=12.1",
         "click==4.0",
+        "distro==0.6.0"
     ]
 )
