@@ -205,10 +205,16 @@ The archive is named according to the Wheel naming convention described in [PEP0
 
 Example Output Archive: `cloudify_fabric_plugin-1.2.1-py27-none-any-none-none.wgn`
 
+
 * `{python tag}`: The Python version is set by the Python running the packaging process. That means that while a package might run on both py27 and py33 (for example), since the packaging process took place using Python 2.7, only py27 will be appended to the name. A user can also explicitly provide the supported Python versions for the package via the `pyver` flag.
 * `{platform tag}`: Normally, the platform (e.g. `linux_x86_64`, `win32`) is set for each specific wheel. To know which platform the package with its dependencies can be installed on, all wheels are checked. If a specific wheel has a platform property other than `any`, that platform will be used as the platform of the package. Of course, we assume that there can't be wheels downloaded or created on a specific machine platform that belongs to two different platforms.
 * `{abi tag}`: Note that the ABI tag is currently ignored and will always be `none`. This might be changed in the future to support providing an ABI tag.
 * For Linux (see below), two additional tags are added: `{distribution tag}` and `{release tag}`. Note that these tags are NOT a part of the PEP.
+
+
+Important Note!
+
+When the `{platform tag}` is `linux_x86_64`, the `distribution` and `release` tags might still be none. This is due to the fact that the implementation of identifying the distribution and release is not robust enough. In this situation, it might be impossible to know which distribution the wagon can be installed on. Thankfully, the most common distributions (RHEL, Centos, Ubuntu, Debian) are easily identified.
 
 
 ## Linux Support for compiled wheels
