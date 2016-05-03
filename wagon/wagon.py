@@ -41,6 +41,7 @@ class Wagon():
     - validate
     - get_metadata_from_archive
     """
+
     def __init__(self, source, verbose=False):
         """Source depends on the context in which
         the class is instantiated.
@@ -53,10 +54,7 @@ class Wagon():
         When using `install` or `validate`, source can be either a path
         to a local or a URL based Wagon archived tar.gz file.
         """
-        if verbose:
-            lgr.setLevel(logging.DEBUG)
-        else:
-            lgr.setLevel(logging.INFO)
+        lgr.setLevel(logging.DEBUG if verbose else logging.INFO)
         self.source = source
 
     def create(self, with_requirements='', force=False,
@@ -100,7 +98,7 @@ class Wagon():
             sys.exit(codes.errors['cannot_exclude_main_package'])
 
         wheels_path = os.path.join(package_name, DEFAULT_WHEELS_PATH)
-        self.handle_output_directory(package_name, force)
+        self._handle_working_directory(package_name, force)
 
         if with_requirements:
             with_requirements = self._get_default_requirement_files(source)
@@ -115,24 +113,17 @@ class Wagon():
 
         self.platform = utils.get_platform_for_set_of_wheels(wheels_path)
         lgr.debug('Platform is: {0}'.format(self.platform))
-        if python_versions:
-            self.python_versions = ['py{0}'.format(v) for v in python_versions]
-        else:
-            self.python_versions = [utils.get_python_version()]
+        self.python_versions = self._set_python_versions(python_versions)
 
-        archive_file = self.set_archive_name(package_name, package_version)
+        if not os.path.isdir(archive_destination_dir):
+            os.makedirs(archive_destination_dir)
+        archive_file = self._set_archive_name(package_name, package_version)
         archive_path = os.path.join(archive_destination_dir, archive_file)
 
-        self.handle_output_file(archive_path, force)
-        self.generate_metadata_file(wheels, excluded_wheels)
+        self._handle_output_file(archive_path, force)
+        self._generate_metadata_file(wheels, excluded_wheels)
 
-        if format == 'tar.gz':
-            utils.tar(package_name, archive_path)
-        elif format == 'zip':
-            utils.zip(package_name, archive_path)
-        else:
-            sys.exit('Unsupported archive format to create '
-                     '(Must be one of [zip, tar.gz]).')
+        self._archive(format, package_name, archive_path)
 
         if not keep_wheels:
             lgr.debug('Cleaning up...')
@@ -143,6 +134,23 @@ class Wagon():
             self.validate()
         lgr.info('Process complete!')
         return archive_path
+
+    @staticmethod
+    def _set_python_versions(python_versions):
+        if python_versions:
+            return ['py{0}'.format(v) for v in python_versions]
+        else:
+            return [utils.get_python_version()]
+
+    @staticmethod
+    def _archive(format, package_name, archive_path):
+        if format == 'tar.gz':
+            utils.tar(package_name, archive_path)
+        elif format == 'zip':
+            utils.zip(package_name, archive_path)
+        else:
+            sys.exit('Unsupported archive format to create '
+                     '(Must be one of [zip, tar.gz]).')
 
     def install(self, virtualenv='', requirements_file='', upgrade=False,
                 ignore_platform=False, install_args=''):
@@ -267,7 +275,7 @@ class Wagon():
             return [os.path.join(source, f) for f in REQUIREMENT_FILE_NAMES
                     if os.path.isfile(os.path.join(source, f))]
 
-    def generate_metadata_file(self, wheels, excluded_wheels):
+    def _generate_metadata_file(self, wheels, excluded_wheels):
         """This generates a metadata file for the package.
         """
         lgr.debug('Generating Metadata...')
@@ -302,7 +310,7 @@ class Wagon():
             lgr.debug('Writing metadata to file: {0}'.format(output_path))
             f.write(formatted_metadata)
 
-    def set_archive_name(self, package_name, package_version):
+    def _set_archive_name(self, package_name, package_version):
         """Sets the format of the output archive file.
 
         We should aspire for the name of the archive to be
@@ -409,8 +417,8 @@ class Wagon():
         lgr.info('Package version: {0}'.format(self.version))
         return self.name, self.version
 
-    def handle_output_file(self, archive, force):
-        """Handles the output tar.
+    def _handle_output_file(self, archive, force):
+        """Handles the output file.
 
         removes the output file if required, else, notifies
         that it already exists.
@@ -423,7 +431,7 @@ class Wagon():
                       'the -f flag to overwrite.'.format(archive))
             sys.exit(codes.errors['archive_already_exists'])
 
-    def handle_output_directory(self, wheels_path, force):
+    def _handle_working_directory(self, wheels_path, force):
         if os.path.isdir(wheels_path):
             if force:
                 # Ignore errors is currently a workaround for shutil failing
@@ -468,7 +476,7 @@ def main():
 @click.option('-v', '--verbose', default=False, is_flag=True)
 def create(source, with_requirements, format, force, keep_wheels, exclude,
            output_directory, pyver, validate, wheel_args, verbose):
-    """Creates a Python package's wheel base archive.
+    r"""Creates a Python package's wheel base archive.
 
     \b
     Example sources:

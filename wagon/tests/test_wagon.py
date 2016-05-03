@@ -172,7 +172,7 @@ class TestCreate(testtools.TestCase):
         self.wagon.python_versions = [utils.get_python_version()]
         self.package_version = TEST_PACKAGE_VERSION
         self.package_name = TEST_PACKAGE_NAME
-        self.archive_name = self.wagon.set_archive_name(
+        self.archive_name = self.wagon._set_archive_name(
             self.package_name, self.package_version)
 
     def tearDown(self):
@@ -241,7 +241,7 @@ class TestCreate(testtools.TestCase):
         self.assertEqual(m['package_source'], TEST_PACKAGE)
 
     def test_create_zip_from_pypi(self):
-        self.archive_name = self.wagon.set_archive_name(
+        self.archive_name = self.wagon._set_archive_name(
             TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
         params = {
             '-s': TEST_ZIP,
@@ -281,7 +281,7 @@ class TestCreate(testtools.TestCase):
         }
         self.wagon.platform = 'any'
         pypi_version = utils.get_package_version_from_pypi(package)
-        self.archive_name = self.wagon.set_archive_name(package, pypi_version)
+        self.archive_name = self.wagon._set_archive_name(package, pypi_version)
         result = _invoke_click('create', params)
         self.assertEqual(str(result), '<Result okay>')
         self.wagon.source = self.archive_name
@@ -295,7 +295,7 @@ class TestCreate(testtools.TestCase):
                           'we currently have to ignore this test on Windows.')
         # once appveyor's problem is fixed, this will be used.
         self.wagon.platform = 'win32' if utils.IS_WIN else utils.get_platform()
-        self.archive_name = self.wagon.set_archive_name(
+        self.archive_name = self.wagon._set_archive_name(
             TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
         params = {
             '-s': TEST_FILE,
