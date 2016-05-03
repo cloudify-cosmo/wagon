@@ -86,7 +86,7 @@ class Wagon():
         lgr.info('Creating archive for {0}...'.format(self.source))
         source = self.get_source(self.source)
         package_name, package_version = \
-            self.get_source_name_and_version(source)
+            self._get_source_name_and_version(source)
 
         excluded_packages = excluded_packages or []
         if excluded_packages:
@@ -98,7 +98,6 @@ class Wagon():
             sys.exit(codes.errors['cannot_exclude_main_package'])
 
         wheels_path = os.path.join(package_name, DEFAULT_WHEELS_PATH)
-        self._handle_working_directory(package_name, force)
 
         if with_requirements:
             with_requirements = self._get_default_requirement_files(source)
@@ -107,23 +106,27 @@ class Wagon():
             wheels, excluded_wheels = utils.wheel(
                 source, with_requirements, wheels_path, excluded_packages,
                 wheel_args)
+
+            self.platform = utils.get_platform_for_set_of_wheels(wheels_path)
+            lgr.debug('Platform is: {0}'.format(self.platform))
+            self.python_versions = self._set_python_versions(python_versions)
+
+            if not os.path.isdir(archive_destination_dir):
+                os.makedirs(archive_destination_dir)
+            archive_file = self._set_archive_name(
+                package_name, package_version)
+            archive_path = os.path.join(archive_destination_dir, archive_file)
+
+            self._handle_output_file(archive_path, force)
+            self._generate_metadata_file(wheels, excluded_wheels)
+
+            self._archive(format, package_name, archive_path)
+        except Exception as ex:
+            lgr.error('Failed to create wagon ({0})'.format(ex))
+            shutil.rmtree(package_name, ignore_errors=True)
         finally:
             if self.remove_source_after_process:
                 shutil.rmtree(source, ignore_errors=True)
-
-        self.platform = utils.get_platform_for_set_of_wheels(wheels_path)
-        lgr.debug('Platform is: {0}'.format(self.platform))
-        self.python_versions = self._set_python_versions(python_versions)
-
-        if not os.path.isdir(archive_destination_dir):
-            os.makedirs(archive_destination_dir)
-        archive_file = self._set_archive_name(package_name, package_version)
-        archive_path = os.path.join(archive_destination_dir, archive_file)
-
-        self._handle_output_file(archive_path, force)
-        self._generate_metadata_file(wheels, excluded_wheels)
-
-        self._archive(format, package_name, archive_path)
 
         if not keep_wheels:
             lgr.debug('Cleaning up...')
@@ -388,7 +391,7 @@ class Wagon():
         lgr.debug('Source is: {0}'.format(source))
         return source
 
-    def get_source_name_and_version(self, source):
+    def _get_source_name_and_version(self, source):
         """Retrieves the source package's name and version.
 
         If the source is a path, the name and version will be retrieved
@@ -430,17 +433,6 @@ class Wagon():
             lgr.error('Destination archive already exists: {0}. You can use '
                       'the -f flag to overwrite.'.format(archive))
             sys.exit(codes.errors['archive_already_exists'])
-
-    def _handle_working_directory(self, wheels_path, force):
-        if os.path.isdir(wheels_path):
-            if force:
-                # Ignore errors is currently a workaround for shutil failing
-                # on Windows when the directory is not empty.
-                shutil.rmtree(wheels_path, ignore_errors=True)
-            else:
-                lgr.error('Directory {0} already exists. Please remove it and '
-                          'run this again.'.format(wheels_path))
-                sys.exit(codes.errors['directory_already_exists'])
 
 
 @click.group()

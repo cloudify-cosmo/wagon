@@ -358,12 +358,6 @@ class TestCreate(testtools.TestCase):
         self.wagon.create(force=True)
         self.assertTrue(os.path.isfile(self.archive_name))
 
-    def test_create_archive_directory_already_exists(self):
-        self.wagon.create(keep_wheels=True)
-        self.assertTrue(os.path.isdir(TEST_PACKAGE_NAME))
-        e = self.assertRaises(SystemExit, self.wagon.create)
-        self.assertIn(str(codes.errors['directory_already_exists']), str(e))
-
     def test_create_archive_directory_already_exists_force(self):
         self.wagon.create(keep_wheels=True)
         self.assertTrue(os.path.isdir(TEST_PACKAGE_NAME))
