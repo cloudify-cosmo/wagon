@@ -24,10 +24,14 @@ from threading import Thread
 import time
 import sys
 from contextlib import closing
-import platform
 import tempfile
 import json
 import shutil
+
+try:
+    import distro
+except:
+    pass
 
 from wheel import pep425tags as wheel_tags
 
@@ -40,7 +44,7 @@ IS_VIRTUALENV = hasattr(sys, 'real_prefix')
 PLATFORM = sys.platform
 IS_WIN = (os.name == 'nt')
 IS_DARWIN = (PLATFORM == 'darwin')
-IS_LINUX = (PLATFORM == 'linux2')
+IS_LINUX = PLATFORM.startswith('linux')
 
 PROCESS_POLLING_INTERVAL = 0.1
 
@@ -265,7 +269,7 @@ def get_platform():
 
 
 def get_os_properties():
-    return platform.linux_distribution(full_distribution_name=False)
+    return distro.id(), distro.major_version()
 
 
 def _get_env_bin_path(env_path):
