@@ -13,14 +13,15 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import click.testing as clicktest
-from contextlib import closing
-import tarfile
-import testtools
 import os
 import json
 import shutil
+import tarfile
 import tempfile
+from contextlib import closing
+
+import testtools
+import click.testing as clicktest
 
 import wagon.wagon as wagon
 import wagon.utils as utils
@@ -51,12 +52,12 @@ def _invoke_click(func, args_dict):
 class TestUtils(testtools.TestCase):
 
     def test_run(self):
-        p = utils.run('uname')
-        self.assertEqual(0, p.returncode)
+        proc = utils.run('uname')
+        self.assertEqual(0, proc.returncode)
 
     def test_run_bad_command(self):
-        p = utils.run('suname')
-        self.assertEqual(1 if utils.IS_WIN else 127, p.returncode)
+        proc = utils.run('suname')
+        self.assertEqual(1 if utils.IS_WIN else 127, proc.returncode)
 
     def test_download_file(self):
         utils.download_file(TEST_FILE, 'file')
@@ -163,7 +164,6 @@ class TestCreate(testtools.TestCase):
 
     def setUp(self):
         super(TestCreate, self).setUp()
-        self.runner = clicktest.CliRunner()
         self.wagon = wagon.Wagon(TEST_PACKAGE, verbose=True)
         if utils.IS_WIN:
             self.wagon.platform = 'win32'
@@ -381,7 +381,6 @@ class TestInstall(testtools.TestCase):
 
     def setUp(self):
         super(TestInstall, self).setUp()
-        self.runner = clicktest.CliRunner()
         self.packager = wagon.Wagon(TEST_PACKAGE, verbose=True)
         utils.run('virtualenv test_env')
         self.archive_path = self.packager.create(force=True)
@@ -408,7 +407,6 @@ class TestValidate(testtools.TestCase):
 
     def setUp(self):
         super(TestValidate, self).setUp()
-        self.runner = clicktest.CliRunner()
         self.packager = wagon.Wagon(TEST_PACKAGE, verbose=True)
         self.archive_path = self.packager.create(force=True)
         utils.untar(self.archive_path, '.')
