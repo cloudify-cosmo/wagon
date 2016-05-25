@@ -98,7 +98,7 @@ def run(cmd, suppress_errors=False, suppress_output=False):
 def wheel(package, requirement_files=False, wheels_path='package',
           excluded_packages=None, wheel_args=None, no_deps=False):
     lgr.info('Downloading Wheels for {0}...'.format(package))
-    wheel_cmd = ['pip', 'wheel']
+    wheel_cmd = [sys.executable, '-m', 'pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
     if no_deps:
@@ -158,9 +158,9 @@ def install_package(package, wheels_path, virtualenv_path=None,
     # install_args = install_args or []
 
     lgr.info('Installing {0}...'.format(package))
-
-    pip_cmd = ['pip', 'install']
+    pip_cmd = [sys.executable, '-m', 'pip', 'install']
     if virtualenv_path:
+        pip_cmd = ['pip', 'install']
         pip_cmd[0] = os.path.join(
             _get_env_bin_path(virtualenv_path), pip_cmd[0])
     if requirements_file:
@@ -286,7 +286,10 @@ def _get_env_bin_path(env_path):
 def check_installed(package, virtualenv):
     """Checks to see if a package is installed within a virtualenv.
     """
-    pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
+    if virtualenv:
+        pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
+    else:
+        pip_path = os.path.join('{0} -m pip'.format(sys.executable))
     p = run('{0} freeze'.format(pip_path), suppress_output=True)
     if re.search(r'{0}'.format(package), p.aggr_stdout.lower()):
         lgr.debug('Package {0} is installed in {1}'.format(
