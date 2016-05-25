@@ -53,5 +53,6 @@ coverage.xml
 docs/_build/
 
 *.iml
+.idea/*
 
 *COMMIT_MSG

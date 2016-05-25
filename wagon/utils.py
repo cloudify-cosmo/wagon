@@ -98,7 +98,7 @@ def run(cmd, suppress_errors=False, suppress_output=False):
 def wheel(package, requirement_files=False, wheels_path='package',
           excluded_packages=None, wheel_args=None, no_deps=False):
     lgr.info('Downloading Wheels for {0}...'.format(package))
-    wheel_cmd = ['pip', 'wheel']
+    wheel_cmd = [sys.executable, '-m', 'pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
     if no_deps:
@@ -159,7 +159,7 @@ def install_package(package, wheels_path, virtualenv_path=None,
 
     lgr.info('Installing {0}...'.format(package))
 
-    pip_cmd = ['pip', 'install']
+    pip_cmd = [sys.executable, '-m', 'pip', 'install']
     if virtualenv_path:
         pip_cmd[0] = os.path.join(
             _get_env_bin_path(virtualenv_path), pip_cmd[0])
