@@ -286,7 +286,10 @@ def _get_env_bin_path(env_path):
 def check_installed(package, virtualenv):
     """Checks to see if a package is installed within a virtualenv.
     """
-    pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
+    if virtualenv:
+        pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
+    else:
+        pip_path = os.path.join('{0} -m pip'.format(sys.executable))
     p = run('{0} freeze'.format(pip_path), suppress_output=True)
     if re.search(r'{0}'.format(package), p.aggr_stdout.lower()):
         lgr.debug('Package {0} is installed in {1}'.format(
