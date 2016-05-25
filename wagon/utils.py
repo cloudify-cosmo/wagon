@@ -177,8 +177,6 @@ def install_package(package, wheels_path, virtualenv_path=None,
     if IS_VIRTUALENV and not virtualenv_path:
         lgr.info('Installing within current virtualenv: {0}...'.format(
             IS_VIRTUALENV))
-    lgr.info('pip command:')
-    lgr.info(pip_cmd)
     result = run(' '.join(pip_cmd))
     if not result.returncode == 0:
         lgr.error(result.aggr_stdout)
@@ -288,9 +286,7 @@ def _get_env_bin_path(env_path):
 def check_installed(package, virtualenv):
     """Checks to see if a package is installed within a virtualenv.
     """
-    pip_path = os.path.join(sys.executable, 'python -m pip')
-    lgr.info('pip command:')
-    lgr.info(pip_path)
+    pip_path = os.path.join(sys.executable, '-m pip')
     p = run('{0} freeze'.format(pip_path), suppress_output=True)
     if re.search(r'{0}'.format(package), p.aggr_stdout.lower()):
         lgr.debug('Package {0} is installed in {1}'.format(
