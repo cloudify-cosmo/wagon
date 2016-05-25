@@ -287,7 +287,7 @@ def check_installed(package, virtualenv):
     """Checks to see if a package is installed within a virtualenv.
     """
     pip_path = os.path.join(sys.executable, '-m', 'pip')
-    p = run('{0} freeze'.format(pip_path), suppress_output=False)
+    p = run('{0} freeze'.format(pip_path), suppress_output=True)
     if re.search(r'{0}'.format(package), p.aggr_stdout.lower()):
         lgr.debug('Package {0} is installed in {1}'.format(
             package, virtualenv))
