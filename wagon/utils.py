@@ -158,9 +158,9 @@ def install_package(package, wheels_path, virtualenv_path=None,
     # install_args = install_args or []
 
     lgr.info('Installing {0}...'.format(package))
-
     pip_cmd = [sys.executable, '-m', 'pip', 'install']
     if virtualenv_path:
+        pip_cmd = ['pip', 'install']
         pip_cmd[0] = os.path.join(
             _get_env_bin_path(virtualenv_path), pip_cmd[0])
     if requirements_file:
