@@ -97,8 +97,9 @@ class Wagon():
                       'you are trying to wheel.')
             sys.exit(codes.errors['cannot_exclude_main_package'])
 
-        wheels_path = os.path.join(package_name, DEFAULT_WHEELS_PATH)
-        self._handle_working_directory(package_name, force)
+        tempdir = tempfile.mkdtemp()
+        self.workdir = os.path.join(tempdir, package_name)
+        wheels_path = os.path.join(self.workdir, DEFAULT_WHEELS_PATH)
 
         if with_requirements:
             with_requirements = self._get_default_requirement_files(source)
@@ -123,11 +124,10 @@ class Wagon():
         self._handle_output_file(archive_path, force)
         self._generate_metadata_file(wheels, excluded_wheels)
 
-        self._archive(format, package_name, archive_path)
-
+        self._archive(format, self.workdir, archive_path)
         if not keep_wheels:
             lgr.debug('Cleaning up...')
-            shutil.rmtree(package_name, ignore_errors=True)
+            shutil.rmtree(self.workdir, ignore_errors=True)
 
         if validate:
             self.source = archive_path
@@ -142,12 +142,11 @@ class Wagon():
         else:
             return [utils.get_python_version()]
 
-    @staticmethod
-    def _archive(format, package_name, archive_path):
+    def _archive(self, format, source_path, archive_path):
         if format == 'tar.gz':
-            utils.tar(package_name, archive_path)
+            utils.tar(source_path, archive_path)
         elif format == 'zip':
-            utils.zip(package_name, archive_path)
+            utils.zip(self.workdir, archive_path)
         else:
             sys.exit('Unsupported archive format to create '
                      '(Must be one of [zip, tar.gz]).')
@@ -305,7 +304,7 @@ class Wagon():
 
         formatted_metadata = json.dumps(metadata, indent=4, sort_keys=True)
         lgr.debug('Metadata is: {0}'.format(formatted_metadata))
-        output_path = os.path.join(self.name, METADATA_FILE_NAME)
+        output_path = os.path.join(self.workdir, METADATA_FILE_NAME)
         with open(output_path, 'w') as f:
             lgr.debug('Writing metadata to file: {0}'.format(output_path))
             f.write(formatted_metadata)
@@ -430,17 +429,6 @@ class Wagon():
             lgr.error('Destination archive already exists: {0}. You can use '
                       'the -f flag to overwrite.'.format(archive))
             sys.exit(codes.errors['archive_already_exists'])
-
-    def _handle_working_directory(self, wheels_path, force):
-        if os.path.isdir(wheels_path):
-            if force:
-                # Ignore errors is currently a workaround for shutil failing
-                # on Windows when the directory is not empty.
-                shutil.rmtree(wheels_path, ignore_errors=True)
-            else:
-                lgr.error('Directory {0} already exists. Please remove it and '
-                          'run this again.'.format(wheels_path))
-                sys.exit(codes.errors['directory_already_exists'])
 
 
 @click.group()
