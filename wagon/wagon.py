@@ -279,6 +279,7 @@ class Wagon():
         """
         lgr.debug('Generating Metadata...')
         metadata = {
+            'created_by_wagon_version': utils.get_wagon_version(),
             'archive_name': self.archive,
             'supported_platform': self.platform,
             'supported_python_versions': self.python_versions,

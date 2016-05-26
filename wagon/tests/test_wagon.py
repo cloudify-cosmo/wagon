@@ -174,6 +174,7 @@ class TestCreate(testtools.TestCase):
         self.package_name = TEST_PACKAGE_NAME
         self.archive_name = self.wagon._set_archive_name(
             self.package_name, self.package_version)
+        self.wagon_version = utils.get_wagon_version()
 
     def tearDown(self):
         super(TestCreate, self).tearDown()
@@ -193,9 +194,10 @@ class TestCreate(testtools.TestCase):
                 wagon.METADATA_FILE_NAME), 'r') as f:
             m = json.loads(f.read())
 
-        self.assertEqual(m['package_version'], self.package_version)
-        self.assertEqual(m['package_name'], self.package_name)
-        self.assertEqual(m['supported_platform'], self.wagon.platform)
+        self.assertEqual(self.wagon_version, m['created_by_wagon_version'])
+        self.assertEqual(self.package_version, m['package_version'])
+        self.assertEqual(self.package_name, m['package_name'])
+        self.assertEqual(self.wagon.platform, m['supported_platform'])
         if hasattr(self, 'excluded_package'):
             self.assertTrue(len(m['wheels']) >= 7)
         else:
@@ -204,14 +206,14 @@ class TestCreate(testtools.TestCase):
         if utils.IS_LINUX and self.wagon.platform != 'any':
             distro, version, release = utils.get_os_properties()
             self.assertEqual(
-                m['build_server_os_properties']['distribution'],
-                distro.lower())
+                distro.lower(),
+                m['build_server_os_properties']['distribution'])
             self.assertEqual(
-                m['build_server_os_properties']['distribution_version'],
-                version.lower())
+                version.lower(),
+                m['build_server_os_properties']['distribution_version'])
             self.assertEqual(
-                m['build_server_os_properties']['distribution_release'],
-                release.lower())
+                release.lower(),
+                m['build_server_os_properties']['distribution_release'])
 
         self.assertIn(
             '{0}-{1}-{2}-none-{3}'.format(

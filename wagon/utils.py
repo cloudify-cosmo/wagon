@@ -18,14 +18,15 @@ import re
 import sys
 import time
 import json
-import urllib
 import shutil
+import urllib
 import tarfile
 import zipfile
 import logging
 import platform
 import tempfile
 import subprocess
+import pkg_resources
 from threading import Thread
 from contextlib import closing
 
@@ -340,3 +341,7 @@ def get_package_version_from_wheel_name(source):
         sys.exit(codes.errors['failed_retrieve_version_from_wheel'])
     finally:
         shutil.rmtree(tmpdir)
+
+
+def get_wagon_version():
+    return pkg_resources.get_distribution('wagon').version
