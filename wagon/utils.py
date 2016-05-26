@@ -205,9 +205,11 @@ def download_file(url, destination):
 def zip(source, destination):
     lgr.info('Creating zip archive: {0}...'.format(destination))
     with closing(zipfile.ZipFile(destination, 'w')) as zip:
-        for root, dirs, files in os.walk(source):
+        for root, _, files in os.walk(source):
             for f in files:
-                zip.write(os.path.join(root, f))
+                file_path = os.path.join(root, f)
+                source_dir = os.path.dirname(source)
+                zip.write(file_path, os.path.relpath(file_path, source_dir))
 
 
 def unzip(archive, destination):
