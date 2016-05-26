@@ -13,12 +13,12 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import logging
 import os
 import sys
-import shutil
-import tempfile
 import json
+import shutil
+import logging
+import tempfile
 
 import click
 
@@ -403,10 +403,10 @@ class Wagon():
         if os.path.isfile(os.path.join(source, 'setup.py')):
             lgr.debug('setup.py file found. Retrieving name and version...')
             setuppy_path = os.path.join(source, 'setup.py')
-            self.name = utils.run('python {0} --name'.format(
-                setuppy_path)).aggr_stdout.rstrip('\r\n')
-            self.version = utils.run('python {0} --version'.format(
-                setuppy_path)).aggr_stdout.rstrip('\r\n')
+            self.name = utils.run('{0} {1} --name'.format(
+                sys.executable, setuppy_path)).aggr_stdout.rstrip('\r\n')
+            self.version = utils.run('{0} {1} --version'.format(
+                sys.executable, setuppy_path)).aggr_stdout.rstrip('\r\n')
         # TODO: maybe we don't want to be that explicit and allow using >=
         elif '==' in source:
             self.name, self.version = source.split('==')
@@ -543,7 +543,7 @@ def validate(source, verbose):
     logger.configure()
     validator = Wagon(source, verbose)
     if not validator.validate():
-        sys.exit('validation_failed')
+        sys.exit(codes.errors['validation_failed'])
 
 
 @click.command()

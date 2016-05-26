@@ -14,20 +14,20 @@
 #    * limitations under the License.
 
 import os
-import subprocess
 import re
+import sys
+import time
+import json
 import urllib
+import shutil
 import tarfile
 import zipfile
 import logging
-from threading import Thread
-import time
-import sys
-from contextlib import closing
 import platform
 import tempfile
-import json
-import shutil
+import subprocess
+from threading import Thread
+from contextlib import closing
 
 from wheel import pep425tags as wheel_tags
 
@@ -40,7 +40,7 @@ IS_VIRTUALENV = hasattr(sys, 'real_prefix')
 PLATFORM = sys.platform
 IS_WIN = (os.name == 'nt')
 IS_DARWIN = (PLATFORM == 'darwin')
-IS_LINUX = (PLATFORM == 'linux2')
+IS_LINUX = PLATFORM.startswith('linux')
 
 PROCESS_POLLING_INTERVAL = 0.1
 
@@ -98,7 +98,8 @@ def run(cmd, suppress_errors=False, suppress_output=False):
 def wheel(package, requirement_files=False, wheels_path='package',
           excluded_packages=None, wheel_args=None, no_deps=False):
     lgr.info('Downloading Wheels for {0}...'.format(package))
-    wheel_cmd = ['pip', 'wheel']
+    pip_executable = os.path.join(os.path.dirname(sys.executable), 'pip')
+    wheel_cmd = [pip_executable, 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
     if no_deps:
@@ -121,6 +122,7 @@ def wheel(package, requirement_files=False, wheels_path='package',
         lgr.error('Could not download wheels for: {0}. '
                   'Please verify that the package you are trying '
                   'to wheel is wheelable.'.format(package))
+        lgr.error(p.aggr_stdout)
         sys.exit(codes.errors['failed_to_wheel'])
     wheels = get_downloaded_wheels(wheels_path)
     excluded_packages = excluded_packages or []
@@ -158,9 +160,10 @@ def install_package(package, wheels_path, virtualenv_path=None,
     # install_args = install_args or []
 
     lgr.info('Installing {0}...'.format(package))
-
-    pip_cmd = ['pip', 'install']
+    pip_executable = os.path.join(os.path.dirname(sys.executable), 'pip')
+    pip_cmd = [pip_executable, 'install']
     if virtualenv_path:
+        pip_cmd = ['pip', 'install']
         pip_cmd[0] = os.path.join(
             _get_env_bin_path(virtualenv_path), pip_cmd[0])
     if requirements_file:
@@ -286,8 +289,11 @@ def _get_env_bin_path(env_path):
 def check_installed(package, virtualenv):
     """Checks to see if a package is installed within a virtualenv.
     """
-    pip_path = os.path.join(_get_env_bin_path(virtualenv), 'pip')
-    p = run('{0} freeze'.format(pip_path), suppress_output=True)
+    if virtualenv:
+        pip_executable = os.path.join(_get_env_bin_path(virtualenv), 'pip')
+    else:
+        pip_executable = os.path.join(os.path.dirname(sys.executable), 'pip')
+    p = run('{0} freeze'.format(pip_executable), suppress_output=True)
     if re.search(r'{0}'.format(package), p.aggr_stdout.lower()):
         lgr.debug('Package {0} is installed in {1}'.format(
             package, virtualenv))

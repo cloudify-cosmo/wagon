@@ -13,9 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from setuptools import setup
 import os
 import codecs
+from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -27,13 +27,13 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='0.3.0',
+    version='0.3.1',
     url='https://github.com/cloudify-cosmo/wagon',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
     license='LICENSE',
     platforms='All',
-    description='Creates Python Wheel based archives.',
+    description='Creates Python Wheel based archives with dependencies.',
     long_description=read('README.rst'),
     packages=['wagon'],
     include_package_data=True,
