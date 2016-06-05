@@ -20,6 +20,7 @@ import tarfile
 import tempfile
 from contextlib import closing
 
+import mock
 import testtools
 import click.testing as clicktest
 
@@ -28,10 +29,10 @@ import wagon.utils as utils
 import wagon.codes as codes
 
 
-TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz'  # NOQA
-TEST_ZIP = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.zip'  # NOQA
+TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.4.tar.gz'  # NOQA
+TEST_ZIP = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.4.zip'  # NOQA
 TEST_PACKAGE_NAME = 'cloudify-script-plugin'
-TEST_PACKAGE_VERSION = '1.2'
+TEST_PACKAGE_VERSION = '1.4'
 TEST_PACKAGE_PLATFORM = 'linux_x86_64'
 TEST_PACKAGE = '{0}=={1}'.format(TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
 
@@ -151,6 +152,20 @@ class TestUtils(testtools.TestCase):
         e = self.assertRaises(SystemExit, utils.install_package, 'x', 'y')
         self.assertEqual(
             str(codes.errors['failed_to_install_package']), str(e))
+
+    @mock.patch('sys.executable', new='/a/b/c/python')
+    def test_pip_path_on_linux(self):
+        if utils.IS_WIN:
+            self.skipTest('Irrelevant on Windows')
+        self.assertEqual(utils._get_pip_path(virtualenv=''), '/a/b/c/pip')
+
+    @mock.patch('sys.executable',
+                new='C:\Python27\python.exe')
+    def test_pip_path_on_windows(self):
+        if utils.IS_LINUX:
+            self.skipTest('Irrelevant on Linux')
+        self.assertEqual(utils._get_pip_path(virtualenv=''),
+                         'C:\Python27\Scripts\pip.exe')
 
 
 class TestCreateBadSources(testtools.TestCase):
