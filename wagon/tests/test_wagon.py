@@ -29,10 +29,10 @@ import wagon.utils as utils
 import wagon.codes as codes
 
 
-TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz'  # NOQA
-TEST_ZIP = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.zip'  # NOQA
+TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.4.tar.gz'  # NOQA
+TEST_ZIP = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.4.zip'  # NOQA
 TEST_PACKAGE_NAME = 'cloudify-script-plugin'
-TEST_PACKAGE_VERSION = '1.2'
+TEST_PACKAGE_VERSION = '1.4'
 TEST_PACKAGE_PLATFORM = 'linux_x86_64'
 TEST_PACKAGE = '{0}=={1}'.format(TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
 
