@@ -99,7 +99,7 @@ def run(cmd, suppress_errors=False, suppress_output=False):
 def wheel(package, requirement_files=False, wheels_path='package',
           excluded_packages=None, wheel_args=None, no_deps=False):
     lgr.info('Downloading Wheels for {0}...'.format(package))
-    pip_executable = os.path.join(os.path.dirname(sys.executable), 'pip')
+    pip_executable = _get_pip_path()
     wheel_cmd = [pip_executable, 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
@@ -161,12 +161,8 @@ def install_package(package, wheels_path, virtualenv_path=None,
     # install_args = install_args or []
 
     lgr.info('Installing {0}...'.format(package))
-    pip_executable = os.path.join(os.path.dirname(sys.executable), 'pip')
+    pip_executable = _get_pip_path(virtualenv_path)
     pip_cmd = [pip_executable, 'install']
-    if virtualenv_path:
-        pip_cmd = ['pip', 'install']
-        pip_cmd[0] = os.path.join(
-            _get_env_bin_path(virtualenv_path), pip_cmd[0])
     if requirements_file:
         pip_cmd.extend(['-r', requirements_file])
     if install_args:
@@ -289,7 +285,7 @@ def _get_env_bin_path(env_path):
         return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')
 
 
-def _get_pip_path(virtualenv):
+def _get_pip_path(virtualenv=None):
     if virtualenv:
         return os.path.join(_get_env_bin_path(virtualenv), 'pip')
     else:
