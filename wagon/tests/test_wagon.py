@@ -20,6 +20,7 @@ import tarfile
 import tempfile
 from contextlib import closing
 
+import mock
 import testtools
 import click.testing as clicktest
 
@@ -151,6 +152,20 @@ class TestUtils(testtools.TestCase):
         e = self.assertRaises(SystemExit, utils.install_package, 'x', 'y')
         self.assertEqual(
             str(codes.errors['failed_to_install_package']), str(e))
+
+    @mock.patch('sys.executable', new='/a/b/c/python')
+    def test_pip_path_on_linux(self):
+        if utils.IS_WIN:
+            self.skipTest('Irrelevant on Windows')
+        self.assertEqual(utils._get_pip_path(virtualenv=''), '/a/b/c/pip')
+
+    @mock.patch('sys.executable',
+                new='C:\Python27\python.exe')
+    def test_pip_path_on_windows(self):
+        if utils.IS_LINUX:
+            self.skipTest('Irrelevant on Linux')
+        self.assertEqual(utils._get_pip_path(virtualenv=''),
+                         'C:\Python27\Scripts\pip')
 
 
 class TestCreateBadSources(testtools.TestCase):
