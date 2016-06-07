@@ -154,16 +154,18 @@ class TestUtils(testtools.TestCase):
             str(codes.errors['failed_to_install_package']), str(e))
 
     @mock.patch('sys.executable', new='/a/b/c/python')
-    @mock.patch('wagon.utils.IS_LINUX', new=True)
     def test_pip_path_on_linux(self):
+        if utils.IS_WIN:
+            self.skipTest('Irrelevant on Windows')
         self.assertEqual(utils._get_pip_path(virtualenv=''), '/a/b/c/pip')
 
     @mock.patch('sys.executable',
-                new=os.path.normpath('C:/Python27/python.exe'))
-    @mock.patch('wagon.utils.IS_WIN', new=True)
+                new='C:\Python27\python.exe')
     def test_pip_path_on_windows(self):
+        if utils.IS_LINUX:
+            self.skipTest('Irrelevant on Linux')
         self.assertEqual(utils._get_pip_path(virtualenv=''),
-                         os.path.normpath('C:/Python27/Scripts/pip'))
+                         'C:\Python27\Scripts\pip')
 
 
 class TestCreateBadSources(testtools.TestCase):
