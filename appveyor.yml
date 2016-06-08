@@ -7,6 +7,9 @@ environment:
       PYTHON_VERSION: 2.7.8
       PYTHON_ARCH: 32
 
+init:
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 install:
 
   #################################
@@ -35,6 +38,9 @@ build: false # Not a C# project, build stuff at the test step instead.
 before_test:
   - echo Installing tox (2.0.0)
   - pip install tox==2.0.0
+
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 test_script:
   - tox -e %TOX_ENV%
