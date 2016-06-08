@@ -146,7 +146,7 @@ def get_wheel_for_package(wheels_path, package):
             return wheel
 
 
-def install_package(package, wheels_path, virtualenv_path=None,
+def install_package(package, wheels_path, virtualenv=None,
                     requirements_file=None, upgrade=False,
                     install_args=None):
     """This will install a Python package.
@@ -161,7 +161,7 @@ def install_package(package, wheels_path, virtualenv_path=None,
     # install_args = install_args or []
 
     lgr.info('Installing {0}...'.format(package))
-    pip_executable = _get_pip_path(virtualenv_path)
+    pip_executable = _get_pip_path(virtualenv)
     pip_cmd = [pip_executable, 'install']
     if requirements_file:
         pip_cmd.extend(['-r', requirements_file])
@@ -174,7 +174,7 @@ def install_package(package, wheels_path, virtualenv_path=None,
     pip_cmd.append('--pre')
     if upgrade:
         pip_cmd.append('--upgrade')
-    if IS_VIRTUALENV and not virtualenv_path:
+    if IS_VIRTUALENV and not virtualenv:
         lgr.info('Installing within current virtualenv: {0}...'.format(
             IS_VIRTUALENV))
     result = run(' '.join(pip_cmd))
