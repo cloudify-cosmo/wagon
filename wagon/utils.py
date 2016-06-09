@@ -287,10 +287,14 @@ def _get_env_bin_path(env_path):
 
 def _get_pip_path(virtualenv=None):
     if virtualenv:
-        return os.path.join(_get_env_bin_path(virtualenv), 'pip')
+        return os.path.join(
+            _get_env_bin_path(virtualenv),
+            'pip.exe' if IS_WIN else 'pip')
     else:
-        return os.path.join(os.path.dirname(sys.executable),
-                            'Scripts' if IS_WIN else '', 'pip')
+        return os.path.join(
+            os.path.dirname(sys.executable),
+            'Scripts' if IS_WIN else '',
+            'pip.exe' if IS_WIN else 'pip')
 
 
 def check_installed(package, virtualenv):
