@@ -27,6 +27,7 @@ import click.testing as clicktest
 import wagon.wagon as wagon
 import wagon.utils as utils
 import wagon.codes as codes
+import wagon.logger as logger
 
 
 TEST_FILE = 'https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.4.tar.gz'  # NOQA
@@ -179,6 +180,7 @@ class TestCreate(testtools.TestCase):
 
     def setUp(self):
         super(TestCreate, self).setUp()
+        logger.configure()
         self.wagon = wagon.Wagon(TEST_PACKAGE, verbose=True)
         if utils.IS_WIN:
             self.wagon.platform = 'win32'
