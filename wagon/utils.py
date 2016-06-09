@@ -100,7 +100,7 @@ def wheel(package, requirement_files=False, wheels_path='package',
           excluded_packages=None, wheel_args=None, no_deps=False):
     lgr.info('Downloading Wheels for {0}...'.format(package))
     lgr.info('IS_VIRTUALENV: {0}'.format(IS_VIRTUALENV))
-    lgr.info('VIRTUALENV_IS: {0}'.format(os.environ.get(VIRTUAL_ENV)))
+    lgr.info('VIRTUALENV_IS: {0}'.format(os.environ.get('VIRTUAL_ENV')))
     pip_executable = _get_pip_path()
     wheel_cmd = [pip_executable, 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
