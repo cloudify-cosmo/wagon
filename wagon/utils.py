@@ -99,7 +99,7 @@ def run(cmd, suppress_errors=False, suppress_output=False):
 def wheel(package, requirement_files=False, wheels_path='package',
           excluded_packages=None, wheel_args=None, no_deps=False):
     lgr.info('Downloading Wheels for {0}...'.format(package))
-    pip_executable = os.path.join(os.path.dirname(sys.executable), 'pip')
+    pip_executable = _get_pip_path(os.environ.get('VIRTUAL_ENV'))
     wheel_cmd = [pip_executable, 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
@@ -109,21 +109,18 @@ def wheel(package, requirement_files=False, wheels_path='package',
         wheel_cmd_with_reqs = wheel_cmd
         for req_file in requirement_files:
             wheel_cmd_with_reqs.extend(['-r', req_file])
-        p = run(' '.join(wheel_cmd_with_reqs))
-        if not p.returncode == 0:
-            lgr.error('Could not download wheels for: {0}. '
-                      'Please verify that the file you are trying '
-                      'to wheel is wheelable.'.format(req_file))
+        process = run(' '.join(wheel_cmd_with_reqs))
+        if not process.returncode == 0:
+            lgr.error('Could not download wheels for: {0} ({1})'.format(
+                req_file, process.aggr_stderr))
             sys.exit(codes.errors['failed_to_wheel'])
     if wheel_args:
         wheel_cmd.append(wheel_args)
     wheel_cmd.append(package)
-    p = run(' '.join(wheel_cmd))
-    if not p.returncode == 0:
-        lgr.error('Could not download wheels for: {0}. '
-                  'Please verify that the package you are trying '
-                  'to wheel is wheelable.'.format(package))
-        lgr.error(p.aggr_stdout)
+    process = run(' '.join(wheel_cmd))
+    if not process.returncode == 0:
+        lgr.error('Could not download wheels for: {0} ({1})'.format(
+            package, process.aggr_stderr))
         sys.exit(codes.errors['failed_to_wheel'])
     wheels = get_downloaded_wheels(wheels_path)
     excluded_packages = excluded_packages or []
@@ -146,7 +143,7 @@ def get_wheel_for_package(wheels_path, package):
             return wheel
 
 
-def install_package(package, wheels_path, virtualenv_path=None,
+def install_package(package, wheels_path, virtualenv=None,
                     requirements_file=None, upgrade=False,
                     install_args=None):
     """This will install a Python package.
@@ -161,12 +158,8 @@ def install_package(package, wheels_path, virtualenv_path=None,
     # install_args = install_args or []
 
     lgr.info('Installing {0}...'.format(package))
-    pip_executable = os.path.join(os.path.dirname(sys.executable), 'pip')
+    pip_executable = _get_pip_path(virtualenv)
     pip_cmd = [pip_executable, 'install']
-    if virtualenv_path:
-        pip_cmd = ['pip', 'install']
-        pip_cmd[0] = os.path.join(
-            _get_env_bin_path(virtualenv_path), pip_cmd[0])
     if requirements_file:
         pip_cmd.extend(['-r', requirements_file])
     if install_args:
@@ -178,7 +171,7 @@ def install_package(package, wheels_path, virtualenv_path=None,
     pip_cmd.append('--pre')
     if upgrade:
         pip_cmd.append('--upgrade')
-    if IS_VIRTUALENV and not virtualenv_path:
+    if IS_VIRTUALENV and not virtualenv:
         lgr.info('Installing within current virtualenv: {0}...'.format(
             IS_VIRTUALENV))
     result = run(' '.join(pip_cmd))
@@ -289,13 +282,22 @@ def _get_env_bin_path(env_path):
         return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')
 
 
+def _get_pip_path(virtualenv=None):
+    if virtualenv:
+        return os.path.join(
+            _get_env_bin_path(virtualenv),
+            'pip.exe' if IS_WIN else 'pip')
+    else:
+        return os.path.join(
+            os.path.dirname(sys.executable),
+            'Scripts' if IS_WIN else '',
+            'pip.exe' if IS_WIN else 'pip')
+
+
 def check_installed(package, virtualenv):
     """Checks to see if a package is installed within a virtualenv.
     """
-    if virtualenv:
-        pip_executable = os.path.join(_get_env_bin_path(virtualenv), 'pip')
-    else:
-        pip_executable = os.path.join(os.path.dirname(sys.executable), 'pip')
+    pip_executable = _get_pip_path(virtualenv)
     p = run('{0} freeze'.format(pip_executable), suppress_output=True)
     if re.search(r'{0}'.format(package), p.aggr_stdout.lower()):
         lgr.debug('Package {0} is installed in {1}'.format(
