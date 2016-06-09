@@ -166,7 +166,7 @@ class TestUtils(testtools.TestCase):
         if utils.IS_LINUX:
             self.skipTest('Irrelevant on Linux')
         self.assertEqual(utils._get_pip_path(virtualenv=''),
-                         'C:\Python27\Scripts\pip')
+                         'C:\Python27\Scripts\pip.exe')
 
 
 class TestCreateBadSources(testtools.TestCase):
