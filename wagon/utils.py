@@ -99,8 +99,6 @@ def run(cmd, suppress_errors=False, suppress_output=False):
 def wheel(package, requirement_files=False, wheels_path='package',
           excluded_packages=None, wheel_args=None, no_deps=False):
     lgr.info('Downloading Wheels for {0}...'.format(package))
-    lgr.info('IS_VIRTUALENV: {0}'.format(IS_VIRTUALENV))
-    lgr.info('VIRTUALENV_IS: {0}'.format(os.environ.get('VIRTUAL_ENV')))
     pip_executable = _get_pip_path(os.environ.get('VIRTUAL_ENV'))
     wheel_cmd = [pip_executable, 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
@@ -113,7 +111,6 @@ def wheel(package, requirement_files=False, wheels_path='package',
             wheel_cmd_with_reqs.extend(['-r', req_file])
         process = run(' '.join(wheel_cmd_with_reqs))
         if not process.returncode == 0:
-            lgr.error(process.aggr_stdout)
             lgr.error('Could not download wheels for: {0} ({1})'.format(
                 req_file, process.aggr_stderr))
             sys.exit(codes.errors['failed_to_wheel'])
@@ -122,7 +119,6 @@ def wheel(package, requirement_files=False, wheels_path='package',
     wheel_cmd.append(package)
     process = run(' '.join(wheel_cmd))
     if not process.returncode == 0:
-        lgr.error(process.aggr_stdout)
         lgr.error('Could not download wheels for: {0} ({1})'.format(
             package, process.aggr_stderr))
         sys.exit(codes.errors['failed_to_wheel'])

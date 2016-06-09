@@ -51,129 +51,129 @@ def _invoke_click(func, args_dict):
     return clicktest.CliRunner().invoke(getattr(wagon, func), args_list)
 
 
-# class TestUtils(testtools.TestCase):
+class TestUtils(testtools.TestCase):
 
-#     def test_run(self):
-#         proc = utils.run('uname')
-#         self.assertEqual(0, proc.returncode)
+    def test_run(self):
+        proc = utils.run('uname')
+        self.assertEqual(0, proc.returncode)
 
-#     def test_run_bad_command(self):
-#         proc = utils.run('suname')
-#         self.assertEqual(1 if utils.IS_WIN else 127, proc.returncode)
+    def test_run_bad_command(self):
+        proc = utils.run('suname')
+        self.assertEqual(1 if utils.IS_WIN else 127, proc.returncode)
 
-#     def test_download_file(self):
-#         utils.download_file(TEST_FILE, 'file')
-#         os.remove('file')
+    def test_download_file(self):
+        utils.download_file(TEST_FILE, 'file')
+        os.remove('file')
 
-#     def test_download_file_missing(self):
-#         e = self.assertRaises(
-#             IOError, utils.download_file,
-#             'http://www.google.com/x.tar.gz', 'file')
-#         self.assertIn("'http error', 404, 'Not Found'", str(e))
+    def test_download_file_missing(self):
+        e = self.assertRaises(
+            IOError, utils.download_file,
+            'http://www.google.com/x.tar.gz', 'file')
+        self.assertIn("'http error', 404, 'Not Found'", str(e))
 
-#     def test_download_bad_url(self):
-#         e = self.assertRaises(
-#             IOError, utils.download_file, 'something', 'file')
-#         if utils.IS_WIN:
-#             self.assertIn("The system cannot find the file "
-#                           "specified: 'something'", str(e))
-#         else:
-#             self.assertIn("No such file or directory: 'something'", str(e))
+    def test_download_bad_url(self):
+        e = self.assertRaises(
+            IOError, utils.download_file, 'something', 'file')
+        if utils.IS_WIN:
+            self.assertIn("The system cannot find the file "
+                          "specified: 'something'", str(e))
+        else:
+            self.assertIn("No such file or directory: 'something'", str(e))
 
-#     def test_download_missing_path(self):
-#         e = self.assertRaises(
-#             IOError, utils.download_file, TEST_FILE, 'x/file')
-#         self.assertIn('No such file or directory', e)
+    def test_download_missing_path(self):
+        e = self.assertRaises(
+            IOError, utils.download_file, TEST_FILE, 'x/file')
+        self.assertIn('No such file or directory', e)
 
-#     def test_download_no_permissions(self):
-#         if utils.IS_WIN:
-#             self.skipTest('Irrelevant on Windows.')
-#         e = self.assertRaises(IOError, utils.download_file, TEST_FILE, '/file')
-#         self.assertIn('Permission denied', str(e))
+    def test_download_no_permissions(self):
+        if utils.IS_WIN:
+            self.skipTest('Irrelevant on Windows.')
+        e = self.assertRaises(IOError, utils.download_file, TEST_FILE, '/file')
+        self.assertIn('Permission denied', str(e))
 
-#     def test_tar(self):
-#         os.makedirs('dir')
-#         with open('dir/content.file', 'w') as f:
-#             f.write('CONTENT')
-#         utils.tar('dir', 'tar.file')
-#         shutil.rmtree('dir')
-#         self.assertTrue(tarfile.is_tarfile('tar.file'))
-#         with closing(tarfile.open('tar.file', 'r:gz')) as tar:
-#             members = tar.getnames()
-#             self.assertIn('dir/content.file', members)
-#         os.remove('tar.file')
+    def test_tar(self):
+        os.makedirs('dir')
+        with open('dir/content.file', 'w') as f:
+            f.write('CONTENT')
+        utils.tar('dir', 'tar.file')
+        shutil.rmtree('dir')
+        self.assertTrue(tarfile.is_tarfile('tar.file'))
+        with closing(tarfile.open('tar.file', 'r:gz')) as tar:
+            members = tar.getnames()
+            self.assertIn('dir/content.file', members)
+        os.remove('tar.file')
 
-#     def test_tar_no_permissions(self):
-#         if utils.IS_WIN:
-#             self.skipTest("Irrelevant on Windows.")
-#         tmpdir = tempfile.mkdtemp()
-#         try:
-#             e = self.assertRaises(IOError, utils.tar, tmpdir, '/file')
-#             self.assertIn("Permission denied: '/file'", str(e))
-#         finally:
-#             shutil.rmtree(tmpdir)
+    def test_tar_no_permissions(self):
+        if utils.IS_WIN:
+            self.skipTest("Irrelevant on Windows.")
+        tmpdir = tempfile.mkdtemp()
+        try:
+            e = self.assertRaises(IOError, utils.tar, tmpdir, '/file')
+            self.assertIn("Permission denied: '/file'", str(e))
+        finally:
+            shutil.rmtree(tmpdir)
 
-#     def test_tar_missing_source(self):
-#         e = self.assertRaises(OSError, utils.tar, 'missing', 'file')
-#         if utils.IS_WIN:
-#             self.assertIn("The system cannot find the "
-#                           "file specified: 'missing'", str(e))
-#         else:
-#             self.assertIn("No such file or directory: 'missing'", str(e))
-#         os.remove('file')
+    def test_tar_missing_source(self):
+        e = self.assertRaises(OSError, utils.tar, 'missing', 'file')
+        if utils.IS_WIN:
+            self.assertIn("The system cannot find the "
+                          "file specified: 'missing'", str(e))
+        else:
+            self.assertIn("No such file or directory: 'missing'", str(e))
+        os.remove('file')
 
-#     def test_wheel_nonexisting_package(self):
-#         try:
-#             e = self.assertRaises(
-#                 SystemExit, utils.wheel, 'cloudify-script-plug==1.3')
-#             self.assertEqual(str(codes.errors['failed_to_wheel']), str(e))
-#         finally:
-#             shutil.rmtree('package')
+    def test_wheel_nonexisting_package(self):
+        try:
+            e = self.assertRaises(
+                SystemExit, utils.wheel, 'cloudify-script-plug==1.3')
+            self.assertEqual(str(codes.errors['failed_to_wheel']), str(e))
+        finally:
+            shutil.rmtree('package')
 
-#     def test_machine_platform(self):
-#         self.assertIn(
-#             'win32' if utils.IS_WIN else 'linux_x86_64', utils.get_platform())
+    def test_machine_platform(self):
+        self.assertIn(
+            'win32' if utils.IS_WIN else 'linux_x86_64', utils.get_platform())
 
-#     def test_get_version_from_pypi_bad_source(self):
-#         e = self.assertRaises(
-#             SystemExit, utils.get_package_version_from_pypi,
-#             'NONEXISTING_PACKAGE')
-#         self.assertEqual(
-#             str(codes.errors['failed_to_retrieve_index_info']), str(e))
+    def test_get_version_from_pypi_bad_source(self):
+        e = self.assertRaises(
+            SystemExit, utils.get_package_version_from_pypi,
+            'NONEXISTING_PACKAGE')
+        self.assertEqual(
+            str(codes.errors['failed_to_retrieve_index_info']), str(e))
 
-#     def test_check_package_not_installed(self):
-#         utils.make_virtualenv('test_env')
-#         try:
-#             result = utils.check_installed(TEST_PACKAGE_NAME, 'test_env')
-#             self.assertFalse(result)
-#         finally:
-#             shutil.rmtree('test_env')
+    def test_check_package_not_installed(self):
+        utils.make_virtualenv('test_env')
+        try:
+            result = utils.check_installed(TEST_PACKAGE_NAME, 'test_env')
+            self.assertFalse(result)
+        finally:
+            shutil.rmtree('test_env')
 
-#     def test_install_package_failed(self):
-#         e = self.assertRaises(SystemExit, utils.install_package, 'x', 'y')
-#         self.assertEqual(
-#             str(codes.errors['failed_to_install_package']), str(e))
+    def test_install_package_failed(self):
+        e = self.assertRaises(SystemExit, utils.install_package, 'x', 'y')
+        self.assertEqual(
+            str(codes.errors['failed_to_install_package']), str(e))
 
-#     @mock.patch('sys.executable', new='/a/b/c/python')
-#     def test_pip_path_on_linux(self):
-#         if utils.IS_WIN:
-#             self.skipTest('Irrelevant on Windows')
-#         self.assertEqual(utils._get_pip_path(virtualenv=''), '/a/b/c/pip')
+    @mock.patch('sys.executable', new='/a/b/c/python')
+    def test_pip_path_on_linux(self):
+        if utils.IS_WIN:
+            self.skipTest('Irrelevant on Windows')
+        self.assertEqual(utils._get_pip_path(virtualenv=''), '/a/b/c/pip')
 
-#     @mock.patch('sys.executable',
-#                 new='C:\Python27\python.exe')
-#     def test_pip_path_on_windows(self):
-#         if utils.IS_LINUX:
-#             self.skipTest('Irrelevant on Linux')
-#         self.assertEqual(utils._get_pip_path(virtualenv=''),
-#                          'C:\Python27\Scripts\pip')
+    @mock.patch('sys.executable',
+                new='C:\Python27\python.exe')
+    def test_pip_path_on_windows(self):
+        if utils.IS_LINUX:
+            self.skipTest('Irrelevant on Linux')
+        self.assertEqual(utils._get_pip_path(virtualenv=''),
+                         'C:\Python27\Scripts\pip')
 
 
-# class TestCreateBadSources(testtools.TestCase):
-#     def test_unsupported_url_schema(self):
-#         packager = wagon.Wagon(source='ftp://x', verbose=True)
-#         e = self.assertRaises(SystemExit, packager.create)
-#         self.assertIn(str(codes.errors['unsupported_url_type']), str(e))
+class TestCreateBadSources(testtools.TestCase):
+    def test_unsupported_url_schema(self):
+        packager = wagon.Wagon(source='ftp://x', verbose=True)
+        e = self.assertRaises(SystemExit, packager.create)
+        self.assertIn(str(codes.errors['unsupported_url_type']), str(e))
 
 
 class TestCreate(testtools.TestCase):
@@ -200,170 +200,170 @@ class TestCreate(testtools.TestCase):
         if os.path.isdir(self.package_name):
             shutil.rmtree(self.package_name)
 
-    # def _test(self):
-    #     self.assertTrue(os.path.isfile(self.archive_name))
-    #     try:
-    #         utils.untar(self.archive_name, '.')
-    #     except:
-    #         utils.unzip(self.archive_name, '.')
-    #     with open(os.path.join(
-    #             self.package_name,
-    #             wagon.METADATA_FILE_NAME), 'r') as f:
-    #         m = json.loads(f.read())
+    def _test(self):
+        self.assertTrue(os.path.isfile(self.archive_name))
+        try:
+            utils.untar(self.archive_name, '.')
+        except:
+            utils.unzip(self.archive_name, '.')
+        with open(os.path.join(
+                self.package_name,
+                wagon.METADATA_FILE_NAME), 'r') as f:
+            m = json.loads(f.read())
 
-    #     self.assertEqual(self.wagon_version, m['created_by_wagon_version'])
-    #     self.assertEqual(self.package_version, m['package_version'])
-    #     self.assertEqual(self.package_name, m['package_name'])
-    #     self.assertEqual(self.wagon.platform, m['supported_platform'])
-    #     if hasattr(self, 'excluded_package'):
-    #         self.assertTrue(len(m['wheels']) >= 7)
-    #     else:
-    #         self.assertTrue(len(m['wheels']) >= 8)
+        self.assertEqual(self.wagon_version, m['created_by_wagon_version'])
+        self.assertEqual(self.package_version, m['package_version'])
+        self.assertEqual(self.package_name, m['package_name'])
+        self.assertEqual(self.wagon.platform, m['supported_platform'])
+        if hasattr(self, 'excluded_package'):
+            self.assertTrue(len(m['wheels']) >= 7)
+        else:
+            self.assertTrue(len(m['wheels']) >= 8)
 
-    #     if utils.IS_LINUX and self.wagon.platform != 'any':
-    #         distro, version, release = utils.get_os_properties()
-    #         self.assertEqual(
-    #             distro.lower(),
-    #             m['build_server_os_properties']['distribution'])
-    #         self.assertEqual(
-    #             version.lower(),
-    #             m['build_server_os_properties']['distribution_version'])
-    #         self.assertEqual(
-    #             release.lower(),
-    #             m['build_server_os_properties']['distribution_release'])
+        if utils.IS_LINUX and self.wagon.platform != 'any':
+            distro, version, release = utils.get_os_properties()
+            self.assertEqual(
+                distro.lower(),
+                m['build_server_os_properties']['distribution'])
+            self.assertEqual(
+                version.lower(),
+                m['build_server_os_properties']['distribution_version'])
+            self.assertEqual(
+                release.lower(),
+                m['build_server_os_properties']['distribution_release'])
 
-    #     self.assertIn(
-    #         '{0}-{1}-{2}-none-{3}'.format(
-    #             self.package_name.replace('-', '_'),
-    #             self.package_version,
-    #             '.'.join(self.wagon.python_versions),
-    #             self.wagon.platform),
-    #         m['archive_name'])
+        self.assertIn(
+            '{0}-{1}-{2}-none-{3}'.format(
+                self.package_name.replace('-', '_'),
+                self.package_version,
+                '.'.join(self.wagon.python_versions),
+                self.wagon.platform),
+            m['archive_name'])
 
-    #     self.assertTrue(os.path.isfile(os.path.join(
-    #         self.package_name, wagon.DEFAULT_WHEELS_PATH,
-    #         '{0}-{1}-py2-none-any.whl'.format(
-    #             self.package_name.replace('-', '_'),
-    #             self.package_version))))
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.package_name, wagon.DEFAULT_WHEELS_PATH,
+            '{0}-{1}-py2-none-any.whl'.format(
+                self.package_name.replace('-', '_'),
+                self.package_version))))
 
-    #     return m
+        return m
 
-    # def test_create_archive_from_pypi_with_version(self):
-    #     params = {
-    #         '-s': TEST_PACKAGE,
-    #         '-v': None,
-    #         '-f': None
-    #     }
-    #     result = _invoke_click('create', params)
-    #     self.assertIn('Process complete!', str(result.output))
-    #     m = self._test()
-    #     self.assertEqual(m['package_source'], TEST_PACKAGE)
+    def test_create_archive_from_pypi_with_version(self):
+        params = {
+            '-s': TEST_PACKAGE,
+            '-v': None,
+            '-f': None
+        }
+        result = _invoke_click('create', params)
+        self.assertIn('Process complete!', str(result.output))
+        m = self._test()
+        self.assertEqual(m['package_source'], TEST_PACKAGE)
 
-    # def test_create_zip_from_pypi(self):
-    #     self.archive_name = self.wagon._set_archive_name(
-    #         TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
-    #     params = {
-    #         '-s': TEST_ZIP,
-    #         '-v': None,
-    #         '-f': None,
-    #         '-t': 'zip'
-    #     }
-    #     result = _invoke_click('create', params)
-    #     self.assertIn('Process complete!', str(result.output))
-    #     m = self._test()
-    #     self.assertEqual(m['package_source'], TEST_ZIP)
+    def test_create_zip_from_pypi(self):
+        self.archive_name = self.wagon._set_archive_name(
+            TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
+        params = {
+            '-s': TEST_ZIP,
+            '-v': None,
+            '-f': None,
+            '-t': 'zip'
+        }
+        result = _invoke_click('create', params)
+        self.assertIn('Process complete!', str(result.output))
+        m = self._test()
+        self.assertEqual(m['package_source'], TEST_ZIP)
 
-    # def test_create_archive_from_pypi_with_additional_wheel_args(self):
-    #     fd, reqs_file_path = tempfile.mkstemp()
-    #     os.write(fd, 'virtualenv==13.1.2')
-    #     params = {
-    #         '-s': TEST_PACKAGE,
-    #         '-v': None,
-    #         '-f': None,
-    #         '-a': '-r {0}'.format(reqs_file_path),
-    #         '--keep-wheels': None
-    #     }
-    #     result = _invoke_click('create', params)
-    #     self.assertIn('Process complete!', str(result.output))
-    #     m = self._test()
-    #     self.assertEqual(m['package_source'], TEST_PACKAGE)
-    #     self.assertIn('virtualenv-13.1.2-py2.py3-none-any.whl', m['wheels'])
-    #     os.close(fd)
+    def test_create_archive_from_pypi_with_additional_wheel_args(self):
+        fd, reqs_file_path = tempfile.mkstemp()
+        os.write(fd, 'virtualenv==13.1.2')
+        params = {
+            '-s': TEST_PACKAGE,
+            '-v': None,
+            '-f': None,
+            '-a': '-r {0}'.format(reqs_file_path),
+            '--keep-wheels': None
+        }
+        result = _invoke_click('create', params)
+        self.assertIn('Process complete!', str(result.output))
+        m = self._test()
+        self.assertEqual(m['package_source'], TEST_PACKAGE)
+        self.assertIn('virtualenv-13.1.2-py2.py3-none-any.whl', m['wheels'])
+        os.close(fd)
 
-    # def test_create_archive_from_pypi_latest(self):
-    #     package = 'wheel'
-    #     params = {
-    #         '-s': package,
-    #         '-v': None,
-    #         '-f': None,
-    #         '--validate': None
-    #     }
-    #     self.wagon.platform = 'any'
-    #     pypi_version = utils.get_package_version_from_pypi(package)
-    #     self.archive_name = self.wagon._set_archive_name(package, pypi_version)
-    #     result = _invoke_click('create', params)
-    #     self.assertEqual(str(result), '<Result okay>')
-    #     self.wagon.source = self.archive_name
-    #     metadata = self.wagon.get_metadata_from_archive()
-    #     self.wagon.platform = 'linux_x86_64'
-    #     self.assertEqual(pypi_version, metadata['package_version'])
+    def test_create_archive_from_pypi_latest(self):
+        package = 'wheel'
+        params = {
+            '-s': package,
+            '-v': None,
+            '-f': None,
+            '--validate': None
+        }
+        self.wagon.platform = 'any'
+        pypi_version = utils.get_package_version_from_pypi(package)
+        self.archive_name = self.wagon._set_archive_name(package, pypi_version)
+        result = _invoke_click('create', params)
+        self.assertEqual(str(result), '<Result okay>')
+        self.wagon.source = self.archive_name
+        metadata = self.wagon.get_metadata_from_archive()
+        self.wagon.platform = 'linux_x86_64'
+        self.assertEqual(pypi_version, metadata['package_version'])
 
-    # def test_create_archive_from_url_with_requirements(self):
-    #     if utils.IS_WIN:
-    #         self.skipTest('Due to a certificate related problem with AppVeyor '
-    #                       'we currently have to ignore this test on Windows.')
-    #     # once appveyor's problem is fixed, this will be used.
-    #     self.wagon.platform = 'win32' if utils.IS_WIN else utils.get_platform()
-    #     self.archive_name = self.wagon._set_archive_name(
-    #         TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
-    #     params = {
-    #         '-s': TEST_FILE,
-    #         '-v': None,
-    #         '-f': None,
-    #         '-r': None
-    #     }
-    #     result = _invoke_click('create', params)
-    #     self.assertIn('Process complete!', str(result.output))
-    #     m = self._test()
-    #     self.assertEqual(m['package_source'], TEST_FILE)
+    def test_create_archive_from_url_with_requirements(self):
+        if utils.IS_WIN:
+            self.skipTest('Due to a certificate related problem with AppVeyor '
+                          'we currently have to ignore this test on Windows.')
+        # once appveyor's problem is fixed, this will be used.
+        self.wagon.platform = 'win32' if utils.IS_WIN else utils.get_platform()
+        self.archive_name = self.wagon._set_archive_name(
+            TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
+        params = {
+            '-s': TEST_FILE,
+            '-v': None,
+            '-f': None,
+            '-r': None
+        }
+        result = _invoke_click('create', params)
+        self.assertIn('Process complete!', str(result.output))
+        m = self._test()
+        self.assertEqual(m['package_source'], TEST_FILE)
 
-    # def test_create_archive_from_path_and_validate(self):
-    #     source = self.wagon.get_source(TEST_FILE)
-    #     params = {
-    #         '-s': source,
-    #         '-v': None,
-    #         '-f': None,
-    #         '--validate': None
-    #     }
-    #     _invoke_click('create', params)
-    #     m = self._test()
-    #     self.assertEqual(m['package_source'], source)
+    def test_create_archive_from_path_and_validate(self):
+        source = self.wagon.get_source(TEST_FILE)
+        params = {
+            '-s': source,
+            '-v': None,
+            '-f': None,
+            '--validate': None
+        }
+        _invoke_click('create', params)
+        m = self._test()
+        self.assertEqual(m['package_source'], source)
 
-    # def test_create_archive_with_exclusion(self):
-    #     self.excluded_package = 'cloudify-plugins-common'
-    #     params = {
-    #         '-s': TEST_PACKAGE,
-    #         '-v': None,
-    #         '-f': None,
-    #         '-x': self.excluded_package
-    #     }
-    #     result = _invoke_click('create', params)
-    #     self.assertIn('Process complete!', str(result.output))
-    #     m = self._test()
-    #     self.assertEqual(len(m['excluded_wheels']), 1)
+    def test_create_archive_with_exclusion(self):
+        self.excluded_package = 'cloudify-plugins-common'
+        params = {
+            '-s': TEST_PACKAGE,
+            '-v': None,
+            '-f': None,
+            '-x': self.excluded_package
+        }
+        result = _invoke_click('create', params)
+        self.assertIn('Process complete!', str(result.output))
+        m = self._test()
+        self.assertEqual(len(m['excluded_wheels']), 1)
 
-    # def test_create_archive_with_missing_exclusion(self):
-    #     self.missing_excluded_package = 'cloudify-plugins-common2'
-    #     params = {
-    #         '-s': TEST_PACKAGE,
-    #         '-v': None,
-    #         '-f': None,
-    #         '-x': self.missing_excluded_package
-    #     }
-    #     result = _invoke_click('create', params)
-    #     self.assertIn('Process complete!', str(result.output))
-    #     m = self._test()
-    #     self.assertEqual(len(m['excluded_wheels']), 0)
+    def test_create_archive_with_missing_exclusion(self):
+        self.missing_excluded_package = 'cloudify-plugins-common2'
+        params = {
+            '-s': TEST_PACKAGE,
+            '-v': None,
+            '-f': None,
+            '-x': self.missing_excluded_package
+        }
+        result = _invoke_click('create', params)
+        self.assertIn('Process complete!', str(result.output))
+        m = self._test()
+        self.assertEqual(len(m['excluded_wheels']), 0)
 
     def test_create_archive_already_exists(self):
         self.wagon.create()
@@ -371,75 +371,75 @@ class TestCreate(testtools.TestCase):
         e = self.assertRaises(SystemExit, self.wagon.create)
         self.assertIn(str(codes.errors['archive_already_exists']), str(e))
 
-#     def test_create_archive_already_exists_force(self):
-#         self.wagon.create()
-#         self.assertTrue(os.path.isfile(self.archive_name))
-#         self.wagon.create(force=True)
-#         self.assertTrue(os.path.isfile(self.archive_name))
+    def test_create_archive_already_exists_force(self):
+        self.wagon.create()
+        self.assertTrue(os.path.isfile(self.archive_name))
+        self.wagon.create(force=True)
+        self.assertTrue(os.path.isfile(self.archive_name))
 
-#     def test_create_while_excluding_the_main_package(self):
-#         e = self.assertRaises(
-#             SystemExit, self.wagon.create,
-#             excluded_packages=[TEST_PACKAGE_NAME])
-#         self.assertIn(str(codes.errors['cannot_exclude_main_package']), str(e))
-
-
-# class TestInstall(testtools.TestCase):
-
-#     def setUp(self):
-#         super(TestInstall, self).setUp()
-#         self.packager = wagon.Wagon(TEST_PACKAGE, verbose=True)
-#         utils.run('virtualenv test_env')
-#         self.archive_path = self.packager.create(force=True)
-
-#     def tearDown(self):
-#         super(TestInstall, self).tearDown()
-#         os.remove(self.archive_path)
-#         if os.path.isdir('test_env'):
-#             shutil.rmtree('test_env')
-
-#     def test_install_package_from_local_archive(self):
-#         params = {
-#             '-s': self.archive_path,
-#             '-v': None,
-#             '--virtualenv=': 'test_env',
-#             '-u': None,
-#             '-a': '--retries 2'
-#         }
-#         _invoke_click('install', params)
-#         self.assertTrue(utils.check_installed(TEST_PACKAGE_NAME, 'test_env'))
+    def test_create_while_excluding_the_main_package(self):
+        e = self.assertRaises(
+            SystemExit, self.wagon.create,
+            excluded_packages=[TEST_PACKAGE_NAME])
+        self.assertIn(str(codes.errors['cannot_exclude_main_package']), str(e))
 
 
-# class TestValidate(testtools.TestCase):
+class TestInstall(testtools.TestCase):
 
-#     def setUp(self):
-#         super(TestValidate, self).setUp()
-#         self.packager = wagon.Wagon(TEST_PACKAGE, verbose=True)
-#         self.archive_path = self.packager.create(force=True)
-#         utils.untar(self.archive_path, '.')
-#         with open(os.path.join(
-#                 TEST_PACKAGE_NAME,
-#                 wagon.METADATA_FILE_NAME), 'r') as f:
-#             self.m = json.loads(f.read())
+    def setUp(self):
+        super(TestInstall, self).setUp()
+        self.packager = wagon.Wagon(TEST_PACKAGE, verbose=True)
+        utils.run('virtualenv test_env')
+        self.archive_path = self.packager.create(force=True)
 
-#     def tearDown(self):
-#         super(TestValidate, self).tearDown()
-#         if os.path.isfile(self.archive_path):
-#             os.remove(self.archive_path)
-#         if os.path.isdir(TEST_PACKAGE_NAME):
-#             shutil.rmtree(TEST_PACKAGE_NAME)
+    def tearDown(self):
+        super(TestInstall, self).tearDown()
+        os.remove(self.archive_path)
+        if os.path.isdir('test_env'):
+            shutil.rmtree('test_env')
 
-#     def test_validate_package(self):
-#         params = {
-#             '-s': self.archive_path,
-#             '-v': None
-#         }
-#         result = _invoke_click('validate', params)
-#         self.assertEqual(str(result), '<Result okay>')
+    def test_install_package_from_local_archive(self):
+        params = {
+            '-s': self.archive_path,
+            '-v': None,
+            '--virtualenv=': 'test_env',
+            '-u': None,
+            '-a': '--retries 2'
+        }
+        _invoke_click('install', params)
+        self.assertTrue(utils.check_installed(TEST_PACKAGE_NAME, 'test_env'))
 
-#     def test_get_metadata_for_archive(self):
-#         params = {
-#             '-s': self.archive_path,
-#         }
-#         result = _invoke_click('showmeta', params)
-#         self.assertDictEqual(json.loads(result.output), self.m)
+
+class TestValidate(testtools.TestCase):
+
+    def setUp(self):
+        super(TestValidate, self).setUp()
+        self.packager = wagon.Wagon(TEST_PACKAGE, verbose=True)
+        self.archive_path = self.packager.create(force=True)
+        utils.untar(self.archive_path, '.')
+        with open(os.path.join(
+                TEST_PACKAGE_NAME,
+                wagon.METADATA_FILE_NAME), 'r') as f:
+            self.m = json.loads(f.read())
+
+    def tearDown(self):
+        super(TestValidate, self).tearDown()
+        if os.path.isfile(self.archive_path):
+            os.remove(self.archive_path)
+        if os.path.isdir(TEST_PACKAGE_NAME):
+            shutil.rmtree(TEST_PACKAGE_NAME)
+
+    def test_validate_package(self):
+        params = {
+            '-s': self.archive_path,
+            '-v': None
+        }
+        result = _invoke_click('validate', params)
+        self.assertEqual(str(result), '<Result okay>')
+
+    def test_get_metadata_for_archive(self):
+        params = {
+            '-s': self.archive_path,
+        }
+        result = _invoke_click('showmeta', params)
+        self.assertDictEqual(json.loads(result.output), self.m)

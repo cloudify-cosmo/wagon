@@ -1,5 +1,5 @@
 nose
-nose-cov
-testfixtures
-testtools
 mock
+nose-cov
+testtools
+testfixtures
