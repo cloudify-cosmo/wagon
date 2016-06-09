@@ -109,21 +109,20 @@ def wheel(package, requirement_files=False, wheels_path='package',
         wheel_cmd_with_reqs = wheel_cmd
         for req_file in requirement_files:
             wheel_cmd_with_reqs.extend(['-r', req_file])
-        p = run(' '.join(wheel_cmd_with_reqs))
-        if not p.returncode == 0:
-            lgr.error('Could not download wheels for: {0}. '
-                      'Please verify that the file you are trying '
-                      'to wheel is wheelable.'.format(req_file))
+        process = run(' '.join(wheel_cmd_with_reqs))
+        if not process.returncode == 0:
+            lgr.error(process.aggr_stdout)
+            lgr.error('Could not download wheels for: {0} ({1})'.format(
+                req_file, process.aggr_stderr))
             sys.exit(codes.errors['failed_to_wheel'])
     if wheel_args:
         wheel_cmd.append(wheel_args)
     wheel_cmd.append(package)
-    p = run(' '.join(wheel_cmd))
-    if not p.returncode == 0:
-        lgr.error('Could not download wheels for: {0}. '
-                  'Please verify that the package you are trying '
-                  'to wheel is wheelable.'.format(package))
-        lgr.error(p.aggr_stdout)
+    process = run(' '.join(wheel_cmd))
+    if not process.returncode == 0:
+        lgr.error(process.aggr_stdout)
+        lgr.error('Could not download wheels for: {0} ({1})'.format(
+            package, process.aggr_stderr))
         sys.exit(codes.errors['failed_to_wheel'])
     wheels = get_downloaded_wheels(wheels_path)
     excluded_packages = excluded_packages or []
