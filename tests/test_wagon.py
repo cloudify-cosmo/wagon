@@ -91,9 +91,8 @@ class TestBase(testtools.TestCase):
             IOError, wagon._download_file, TEST_TAR, 'x/file')
         self.assertIn('No such file or directory', e)
 
+    @testtools.skipIf(wagon.IS_WIN, 'Irrelevant on Windows.')
     def test_download_no_permissions(self):
-        if wagon.IS_WIN:
-            self.skipTest('Irrelevant on Windows.')
         e = self.assertRaises(IOError, wagon._download_file, TEST_TAR, '/file')
         self.assertIn('Permission denied', str(e))
 
@@ -109,9 +108,8 @@ class TestBase(testtools.TestCase):
             self.assertIn('dir/content.file', members)
         os.remove('tar.file')
 
+    @testtools.skipIf(wagon.IS_WIN, 'Irrelevant on Windows.')
     def test_tar_no_permissions(self):
-        if wagon.IS_WIN:
-            self.skipTest("Irrelevant on Windows.")
         tmpdir = tempfile.mkdtemp()
         try:
             e = self.assertRaises(IOError, wagon._tar, tmpdir, '/file')
@@ -129,9 +127,8 @@ class TestBase(testtools.TestCase):
             self.assertIn("No such file or directory: 'missing'", str(e))
         os.remove('file')
 
+    @testtools.skipIf(wagon.IS_WIN, 'Irrelevant on Windows.')
     def test_make_virtualenv_illegal_dir(self):
-        if wagon.IS_WIN:
-            self.skipTest('Irrelevant on Windows')
         illegal_path = '/opt/test_virtualenv'
         ex = self.assertRaises(
             wagon.WagonError,
@@ -193,17 +190,14 @@ class TestBase(testtools.TestCase):
         expected_versions = ['py27', 'py26']
         self.assertEqual(versions, expected_versions)
 
+    @testtools.skipIf(wagon.IS_WIN, 'Irrelevant on Windows.')
     @mock.patch('sys.executable', new='/a/b/c/python')
     def test_pip_path_on_linux(self):
-        if wagon.IS_WIN:
-            self.skipTest('Irrelevant on Windows')
         self.assertEqual(wagon._get_pip_path(virtualenv=''), '/a/b/c/pip')
 
-    @mock.patch('sys.executable',
-                new='C:\Python27\python.exe')
+    @testtools.skipIf(not wagon.IS_WIN, 'Irrelevant on Linux.')
+    @mock.patch('sys.executable', new='C:\Python27\python.exe')
     def test_pip_path_on_windows(self):
-        if wagon.IS_LINUX:
-            self.skipTest('Irrelevant on Linux')
         self.assertEqual(wagon._get_pip_path(virtualenv=''),
                          'C:\Python27\scripts\pip.exe')
 
@@ -223,25 +217,6 @@ class TestGetSource(testtools.TestCase):
             self.assertIn('Failed to extract', str(ex))
         finally:
             os.remove(source_input)
-
-    # def test_source_file_not_a_package_archive(self):
-    #     package_dir = tempfile.mkdtemp()
-    #     fd, source_input = tempfile.mkstemp()
-    #     os.close(fd)
-    #     wagon._tar(package_dir, source_input)
-
-    #     try:
-    #         instance = wagon.Wagon(source_input)
-    #         ex = self.assertRaises(
-    #             wagon.WagonError,
-    #             instance.get_source,
-    #             source_input)
-    #         self.assertIn(
-    #             'Source does not seem to be a Python package',
-    #             str(ex))
-    #     finally:
-    #         shutil.rmtree(package_dir)
-    #         os.remove(source_input)
 
     def test_source_directory_not_a_package(self):
         source_input = tempfile.mkdtemp()
@@ -437,6 +412,7 @@ class TestCreate(testtools.TestCase):
 
     def test_create_with_requirements(self):
         test_package = os.path.join('tests', 'resources', 'test-package')
+
         archive_path = wagon.create(
             source=test_package,
             force=True,
@@ -449,10 +425,11 @@ class TestCreate(testtools.TestCase):
         self.assertIn('wheel', wheel_names)
         self.assertIn('test_package', wheel_names)
 
+    @testtools.skipIf(
+        wagon.IS_WIN,
+        'Due to a certificate related problem with AppVeyor '
+        'we currently have to ignore this test on Windows.')
     def test_create_archive_from_url_with_requirements(self):
-        if wagon.IS_WIN:
-            self.skipTest('Due to a certificate related problem with AppVeyor '
-                          'we currently have to ignore this test on Windows.')
         # once appveyor's problem is fixed, this will be used.
         self.platform = 'win32' if wagon.IS_WIN else wagon.get_platform()
         self.archive_name = wagon._set_archive_name(
@@ -637,6 +614,7 @@ class TestValidate(testtools.TestCase):
 
     def test_fail_validation_exclude_and_missing_wheel(self):
         test_package = os.path.join('tests', 'resources', 'test-package')
+
         archive_path = wagon.create(source=test_package,
                                     with_requirements=True,
                                     force=True,
@@ -672,6 +650,7 @@ class TestShowMetadata(testtools.TestCase):
     def tearDown(self):
         super(TestShowMetadata, self).tearDown()
         os.remove(self.archive_path)
+        shutil.rmtree(TEST_PACKAGE_NAME)
 
     def test_show_metadata_for_archive(self):
         result = _invoke_click('show_wagon', [self.archive_path])
@@ -681,6 +660,3 @@ class TestShowMetadata(testtools.TestCase):
     def test_fail_show_metadata_for_non_existing_archive(self):
         result = _invoke_click('show_wagon', ['non_existing_archive'])
         self.assertEqual(result.exit_code, 1)
-
-
-# # TODO: move all test artifacts to non-cwd paths

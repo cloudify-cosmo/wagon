@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 import os
-import re
 import sys
 import time
 import json
@@ -26,6 +25,7 @@ import zipfile
 import logging
 import platform
 import tempfile
+import StringIO
 import subprocess
 import pkg_resources
 from threading import Thread
@@ -43,13 +43,15 @@ REQUIREMENT_FILE_NAMES = ['dev-requirements.txt', 'requirements.txt']
 METADATA_FILE_NAME = 'package.json'
 DEFAULT_WHEELS_PATH = 'wheels'
 
-DEFAULT_INDEX_SOURCE_URL = 'https://pypi.python.org/pypi/{0}/json'
+DEFAULT_INDEX_SOURCE_URL_TEMPLATE = 'https://pypi.python.org/pypi/{0}/json'
 IS_VIRTUALENV = hasattr(sys, 'real_prefix')
 
 PLATFORM = sys.platform
 IS_WIN = (os.name == 'nt')
 IS_DARWIN = (PLATFORM == 'darwin')
 IS_LINUX = PLATFORM.startswith('linux')
+
+ALL_PLATFORMS_TAG = 'any'
 
 PROCESS_POLLING_INTERVAL = 0.1
 
@@ -69,22 +71,24 @@ logger = setup_logger()
 
 
 class PipeReader(Thread):
-    def __init__(self, fd, proc, logger, log_level):
+    def __init__(self, fd, process, logger, log_level):
         Thread.__init__(self)
         self.fd = fd
-        self.proc = proc
+        self.process = process
         self.logger = logger
         self.log_level = log_level
+        self._aggr = StringIO.StringIO()
         self.aggr = ''
 
     def run(self):
-        while self.proc.poll() is None:
+        while self.process.poll() is None:
             output = self.fd.readline()
             if len(output) > 0:
-                self.aggr += output
+                self._aggr.write(output)
                 self.logger.log(self.log_level, output.strip())
             else:
                 time.sleep(PROCESS_POLLING_INTERVAL)
+        self.aggr = self._aggr.getvalue()
 
 
 def run(cmd, suppress_errors=False, suppress_output=False):
@@ -92,27 +96,29 @@ def run(cmd, suppress_errors=False, suppress_output=False):
     """
     logger.debug('Executing: {0}...'.format(cmd))
     pipe = subprocess.PIPE
-    proc = subprocess.Popen(cmd, shell=True, stdout=pipe, stderr=pipe)
+    process = subprocess.Popen(cmd, shell=True, stdout=pipe, stderr=pipe)
 
     stderr_log_level = logging.NOTSET if suppress_errors else logging.ERROR
-    stdout_log_level = logging.NOTSET if suppress_errors else logging.DEBUG
+    stdout_log_level = logging.NOTSET if suppress_output else logging.DEBUG
 
-    stdout_thread = PipeReader(proc.stdout, proc, logger, stdout_log_level)
-    stderr_thread = PipeReader(proc.stderr, proc, logger, stderr_log_level)
+    stdout_thread = PipeReader(
+        process.stdout, process, logger, stdout_log_level)
+    stderr_thread = PipeReader(
+        process.stderr, process, logger, stderr_log_level)
 
     stdout_thread.start()
     stderr_thread.start()
 
-    while proc.poll() is None:
+    while process.poll() is None:
         time.sleep(PROCESS_POLLING_INTERVAL)
 
     stdout_thread.join()
     stderr_thread.join()
 
-    proc.aggr_stdout = stdout_thread.aggr
-    proc.aggr_stderr = stderr_thread.aggr
+    process.aggr_stdout = stdout_thread.aggr
+    process.aggr_stderr = stderr_thread.aggr
 
-    return proc
+    return process
 
 
 class WagonError(Exception):
@@ -163,6 +169,7 @@ def wheel(package,
           wheel_args=None):
     logger.info('Downloading Wheels for {0}...'.format(package))
 
+    # TODO: use kwargs?
     if requirement_files:
         wheel_command = _construct_wheel_command(
             wheels_path,
@@ -259,8 +266,8 @@ def install_package(package,
 
 
 def _get_downloaded_wheels(path):
-    return \
-        [filename for filename in os.listdir(path) if filename.endswith('whl')]
+    return [filename for filename in os.listdir(path)
+            if os.path.splitext(filename)[1]]
 
 
 def _download_file(url, destination):
@@ -274,18 +281,19 @@ def _download_file(url, destination):
 
 def _zip(source, destination):
     logger.info('Creating zip archive: {0}...'.format(destination))
-    with closing(zipfile.ZipFile(destination, 'w')) as zip:
+    with closing(zipfile.ZipFile(destination, 'w')) as zip_file:
         for root, _, files in os.walk(source):
             for filename in files:
                 file_path = os.path.join(root, filename)
                 source_dir = os.path.dirname(source)
-                zip.write(file_path, os.path.relpath(file_path, source_dir))
+                zip_file.write(
+                    file_path, os.path.relpath(file_path, source_dir))
 
 
 def _unzip(archive, destination):
     logger.debug('Extracting zip {0} to {1}...'.format(archive, destination))
-    with closing(zipfile.ZipFile(archive, 'r')) as zip:
-        zip.extractall(destination)
+    with closing(zipfile.ZipFile(archive, 'r')) as zip_file:
+        zip_file.extractall(destination)
 
 
 def _tar(source, destination):
@@ -308,7 +316,6 @@ def _get_wheel_tags(wheel_name):
 def _get_platform_from_wheel_name(wheel_name):
     """Extracts the platform of a wheel from its file name.
     """
-    logger.error('AAAAAAA:{0}'.format(wheel_name))
     return _get_wheel_tags(wheel_name)[-1]
 
 
@@ -323,9 +330,9 @@ def _get_platform_for_set_of_wheels(wheels_path):
     for wheel in _get_downloaded_wheels(wheels_path):
         platform = _get_platform_from_wheel_name(
             os.path.join(wheels_path, wheel))
-        if platform != 'any':
+        if platform != ALL_PLATFORMS_TAG:
             return platform
-    return 'any'
+    return ALL_PLATFORMS_TAG
 
 
 def _get_python_version():
@@ -374,7 +381,7 @@ def _get_pip_path(virtualenv=None):
 def _check_installed(package, virtualenv):
     pip_executable = _get_pip_path(virtualenv)
     process = run('{0} freeze'.format(pip_executable), suppress_output=True)
-    if re.search(r'{0}=='.format(package), process.aggr_stdout):
+    if '{0}=='.format(package) in process.aggr_stdout:
         logger.debug('Package {0} is installed in {1}'.format(
             package, virtualenv))
         return True
@@ -394,7 +401,7 @@ def _make_virtualenv(virtualenv_dir):
 
 
 def _get_package_info_from_pypi(source):
-    pypi_url = DEFAULT_INDEX_SOURCE_URL.format(source)
+    pypi_url = DEFAULT_INDEX_SOURCE_URL_TEMPLATE.format(source)
     logger.debug('Getting metadata for {0} from {1}...'.format(
         source, pypi_url))
     try:
@@ -421,7 +428,7 @@ def _get_name_and_version_from_setup(source_path):
 
     def get_arg(arg_type, setuppy_path):
         return run('{0} {1} --{2}'.format(
-            sys.executable, setuppy_path, arg_type)).aggr_stdout.rstrip('\r\n')
+            sys.executable, setuppy_path, arg_type)).aggr_stdout.strip()
 
     logger.debug('setup.py file found. Retrieving name and version...')
     setuppy_path = os.path.join(source_path, 'setup.py')
@@ -468,7 +475,7 @@ def _generate_metadata_file(workdir,
         'wheels': wheels,
         'excluded_wheels': excluded_wheels
     }
-    if IS_LINUX and platform != 'any':
+    if IS_LINUX and platform != ALL_PLATFORMS_TAG:
         distro, version, release = _get_os_properties()
         metadata.update(
             {'build_server_os_properties': {
@@ -510,7 +517,7 @@ def _set_archive_name(package_name,
         'none'
     ]
 
-    if IS_LINUX and platform != 'any':
+    if IS_LINUX and platform != ALL_PLATFORMS_TAG:
         distro, _, release = _get_os_properties()
         # TODO: maybe replace `none` with `unknown`?
         # we found a linux distro but couldn't identify it.
@@ -549,14 +556,14 @@ def get_source_name_and_version(source):
 
 
 def _create_wagon_archive(format, source_path, archive_path):
-    if format == 'tar.gz':
+    if format.lower() == 'tar.gz':
         _tar(source_path, archive_path)
-    elif format == 'zip':
+    elif format.lower() == 'zip':
         _zip(source_path, archive_path)
     else:
         raise WagonError(
             'Unsupported archive format to create: {0} '
-            '(Must be one of [zip, tar.gz]).'.format(format))
+            '(Must be one of [zip, tar.gz]).'.format(format.lower()))
 
 
 def get_source(source):
@@ -608,7 +615,7 @@ def get_source(source):
         remove_source_after_process = True
         tmpdir = tempfile.mkdtemp()
         source = extract_source(source, tmpdir)
-    elif os.path.isdir(source):
+    elif os.path.isdir(os.path.expanduser(source)):
         if not os.path.isfile(os.path.join(source, 'setup.py')):
             raise WagonError(
                 'Source directory must contain a setup.py file')
@@ -627,6 +634,10 @@ def _get_metadata(source_path):
     with open(os.path.join(source_path, METADATA_FILE_NAME)) as metadata_file:
         metadata = json.loads(metadata_file.read())
     return metadata
+
+
+def _set_verbosity(verbose):
+    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
 
 def create(source,
@@ -662,6 +673,8 @@ def create(source,
     will be automatically extracted from either the GitHub archive URL
     or the local path provided provided in `source`.
     """
+    _set_verbosity(verbose)
+
     logger.info('Creating archive for {0}...'.format(source))
     original_source = source
     source, remove_source_after_process = get_source(source)
@@ -714,12 +727,12 @@ def create(source,
 
     _create_wagon_archive(format, workdir, archive_path)
     if not keep_wheels:
-        logger.debug('Cleaning up...')
-        shutil.rmtree(workdir, ignore_errors=True)
+        logger.debug('Removing work directory...')
+        shutil.rmtree(tempdir, ignore_errors=True)
 
     if validate_archive:
         validate(archive_path, verbose)
-    logger.info('Process complete!')
+    logger.info('Wagon created successfully at: {0}'.format(archive_path))
     return archive_path
 
 
@@ -742,16 +755,15 @@ def install(source,
     and the current platform is different, it will still attempt to
     install it.
     """
-    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+    _set_verbosity(verbose)
 
     logger.info('Installing {0}'.format(source))
-    # TODO: remove source after process?
     source, _ = get_source(source)
     metadata = _get_metadata(source)
 
     try:
         supported_platform = metadata['supported_platform']
-        if not ignore_platform and supported_platform != 'any':
+        if not ignore_platform and supported_platform != ALL_PLATFORMS_TAG:
             logger.debug('Validating Platform {0} is supported...'.format(
                 supported_platform))
             machine_platform = get_platform()
@@ -785,7 +797,7 @@ def validate(source, verbose=False):
     checks that the required wheels exist vs. the list of wheels
     supplied in the `wheels` key.
     """
-    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+    _set_verbosity(verbose)
 
     logger.info('Validating {0}'.format(source))
     original_source = source
@@ -826,7 +838,7 @@ def validate(source, verbose=False):
             logger.info(error)
         logger.info('Source can be found at: {0}'.format(source))
     else:
-        logger.info('Validation Passed! (Cleaning up temporary files).')
+        logger.info('Validation Passed!')
         shutil.rmtree(os.path.dirname(source))
     return validation_errors
 
@@ -834,7 +846,7 @@ def validate(source, verbose=False):
 def show(source, verbose=False):
     """Merely returns the metadata from the provided archive.
     """
-    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+    _set_verbosity(verbose)
 
     logger.debug('Retrieving Metadata for: {0}'.format(source))
     source, _ = get_source(source)
