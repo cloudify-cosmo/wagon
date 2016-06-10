@@ -1,3 +1,0 @@
-[run]
-omit = wagon/six.py
-       wagon/dictconfig.py
