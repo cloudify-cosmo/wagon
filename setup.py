@@ -35,11 +35,11 @@ setup(
     platforms='All',
     description='Creates Python Wheel based archives with dependencies.',
     long_description=read('README.rst'),
-    packages=['wagon'],
+    py_modules=['wagon'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'wagon = wagon.wagon:main',
+            'wagon = wagon:main',
         ]
     },
     install_requires=[
