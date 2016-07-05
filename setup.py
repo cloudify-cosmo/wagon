@@ -14,8 +14,12 @@
 #    * limitations under the License.
 
 import os
+import sys
 import codecs
 from setuptools import setup
+
+if sys.version_info[:2] < (2, 6):
+    sys.exit('Wagon requires Python 2.6 or higher.')
 
 here = os.path.abspath(os.path.dirname(__file__))
 
