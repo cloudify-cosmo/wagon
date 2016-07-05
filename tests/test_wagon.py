@@ -219,6 +219,8 @@ class TestGetSource(testtools.TestCase):
     def test_source_file_not_a_valid_archive(self):
         fd, source_input = tempfile.mkstemp()
         os.close(fd)
+        with open(source_input, 'w') as f:
+            f.write('something')
 
         try:
             ex = self.assertRaises(

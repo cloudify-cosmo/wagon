@@ -612,16 +612,15 @@ def get_source(source):
     that the string is a name of a package in PyPI.
     """
     def extract_source(source, destination):
-        try:
+        if tarfile.is_tarfile(source):
             _untar(source, destination)
-        except:
-            try:
-                _unzip(source, destination)
-            except:
-                raise WagonError(
-                    'Failed to extract {0}. Please verify that the '
-                    'provided file is a valid zip or tar.gz '
-                    'archive'.format(source))
+        elif zipfile.is_zipfile(source):
+            _unzip(source, destination)
+        else:
+            raise WagonError(
+                'Failed to extract {0}. Please verify that the '
+                'provided file is a valid zip or tar.gz '
+                'archive'.format(source))
         source = os.path.join(
             destination, [d for d in next(os.walk(destination))[1]][0])
         return source
