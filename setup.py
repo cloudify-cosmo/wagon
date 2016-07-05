@@ -37,14 +37,22 @@ setup(
     long_description=read('README.rst'),
     py_modules=['wagon'],
     include_package_data=True,
-    entry_points={
-        'console_scripts': [
-            'wagon = wagon:main',
-        ]
-    },
+    entry_points={'console_scripts': ['wagon = wagon:main']},
     install_requires=[
         "wheel>=0.24.0",
         "virtualenv>=12.1",
         "click==4.0",
+    ],
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
+        'License :: OSI Approved :: Apache 2.0 License',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ]
 )
