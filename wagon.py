@@ -13,14 +13,22 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from __future__ import print_function
+
 import os
 import re
 import sys
 import time
 import json
 import shutil
-import urllib
-import urllib2
+try:
+    import urllib.error
+    from urllib.request import urlopen
+    from urllib.request import URLopener
+except ImportError:
+    import urllib
+    from urllib import urlopen
+    from urllib import URLopener
 import tarfile
 import zipfile
 import logging
@@ -38,6 +46,8 @@ except ImportError:
     pass
 from wheel import pep425tags as wheel_tags
 
+
+IS_PY3 = sys.version_info[:2] > (2, 7)
 
 REQUIREMENT_FILE_NAMES = ['dev-requirements.txt', 'requirements.txt']
 METADATA_FILE_NAME = 'package.json'
@@ -81,7 +91,7 @@ class PipeReader(Thread):
         while self.proc.poll() is None:
             output = self.fd.readline()
             if len(output) > 0:
-                self.aggr += output
+                self.aggr += output.decode('utf8').strip('\n\r')
                 self.logger.log(self.log_level, output.strip())
             else:
                 time.sleep(PROCESS_POLLING_INTERVAL)
@@ -265,10 +275,25 @@ def _get_downloaded_wheels(path):
 
 def _download_file(url, destination):
     logger.info('Downloading {0} to {1}...'.format(url, destination))
-    final_url = urllib.urlopen(url).geturl()
+
+    if IS_PY3:
+        try:
+            response = urlopen(url)
+            code = 200
+        except urllib.error.HTTPError as ex:
+            code = ex.code
+    else:
+        response = urlopen(url)
+        code = response.code
+
+    if not code == 200:
+        raise WagonError(
+            "Failed to download file. Request to {0} "
+            "failed with HTTP Error: {1}".format(url, code))
+    final_url = response.geturl()
     if final_url != url:
         logger.debug('Redirected to {0}'.format(final_url))
-    f = urllib.URLopener()
+    f = URLopener()
     f.retrieve(final_url, destination)
 
 
@@ -392,16 +417,33 @@ def _make_virtualenv(virtualenv_dir):
             virtualenv_dir, result.aggr_stderr))
 
 
+def http_request(url):
+    if IS_PY3:
+        try:
+            response = urlopen(url)
+            code = 200
+        except urllib.error.HTTPError as ex:
+            code = ex.code
+    else:
+        response = urlopen(url)
+        code = response.code
+
+    if code == 200:
+        if IS_PY3:
+            return response.read().decode('utf8')
+        else:
+            return response.read()
+    else:
+        raise WagonError(
+            "Failed to retrieve info for package. Request to {0} "
+            "failed with HTTP Error: {1}".format(url, code))
+
+
 def _get_package_info_from_pypi(source):
     pypi_url = DEFAULT_INDEX_SOURCE_URL.format(source)
     logger.debug('Getting metadata for {0} from {1}...'.format(
         source, pypi_url))
-    try:
-        package_data = json.loads(urllib2.urlopen(pypi_url).read())
-    except urllib2.HTTPError as ex:
-        raise WagonError(
-            "Failed to retrieve info for package. Request to {0} "
-            "failed with HTTP Error: {1}".format(pypi_url, ex.code))
+    package_data = json.loads(http_request(pypi_url))
     return package_data['info']
 
 
@@ -570,18 +612,17 @@ def get_source(source):
     that the string is a name of a package in PyPI.
     """
     def extract_source(source, destination):
-        try:
+        if tarfile.is_tarfile(source):
             _untar(source, destination)
-        except:
-            try:
-                _unzip(source, destination)
-            except:
-                raise WagonError(
-                    'Failed to extract {0}. Please verify that the '
-                    'provided file is a valid zip or tar.gz '
-                    'archive'.format(source))
+        elif zipfile.is_zipfile(source):
+            _unzip(source, destination)
+        else:
+            raise WagonError(
+                'Failed to extract {0}. Please verify that the '
+                'provided file is a valid zip or tar.gz '
+                'archive'.format(source))
         source = os.path.join(
-            destination, [d for d in os.walk(destination).next()[1]][0])
+            destination, [d for d in next(os.walk(destination))[1]][0])
         return source
 
     remove_source_after_process = False

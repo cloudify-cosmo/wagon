@@ -36,6 +36,8 @@ TEST_PACKAGE_VERSION = '0.10.1'
 TEST_PACKAGE_PLATFORM = 'linux_x86_64'
 TEST_PACKAGE = '{0}=={1}'.format(TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
 
+IS_PY3 = wagon.IS_PY3
+
 
 def _invoke_click(func, args=None, opts=None):
 
@@ -70,26 +72,31 @@ class TestBase(testtools.TestCase):
 
     def test_download_file_missing(self):
         e = self.assertRaises(
-            IOError,
+            wagon.WagonError,
             wagon._download_file,
             'http://www.google.com/x.tar.gz',
             'file')
-        self.assertIn("'http error', 404, 'Not Found'", str(e))
+        self.assertIn("Failed to download file", str(e))
 
     def test_download_bad_url(self):
-        e = self.assertRaises(
-            IOError, wagon._download_file, 'something', 'file')
-        if wagon.IS_WIN:
-            self.assertIn(
-                "The system cannot find the file specified: 'something'",
-                str(e))
+        if IS_PY3:
+            e = self.assertRaises(
+                ValueError, wagon._download_file, 'something', 'file')
+            self.assertIn("unknown url type: 'something'", str(e))
         else:
-            self.assertIn("No such file or directory: 'something'", str(e))
+            e = self.assertRaises(
+                IOError, wagon._download_file, 'something', 'file')
+            if wagon.IS_WIN:
+                self.assertIn(
+                    "The system cannot find the file specified: 'something'",
+                    str(e))
+            else:
+                self.assertIn("No such file or directory: 'something'", str(e))
 
     def test_download_missing_path(self):
         e = self.assertRaises(
             IOError, wagon._download_file, TEST_TAR, 'x/file')
-        self.assertIn('No such file or directory', e)
+        self.assertIn('No such file or directory', str(e))
 
     def test_download_no_permissions(self):
         if wagon.IS_WIN:
@@ -212,6 +219,10 @@ class TestGetSource(testtools.TestCase):
     def test_source_file_not_a_valid_archive(self):
         fd, source_input = tempfile.mkstemp()
         os.close(fd)
+        # In python2.6, an empty file can be opened as a tar archive.
+        # We fill it up so that it fails.
+        with open(source_input, 'w') as f:
+            f.write('something')
 
         try:
             ex = self.assertRaises(
@@ -389,7 +400,7 @@ class TestCreate(testtools.TestCase):
 
     def test_create_archive_from_pypi_with_additional_wheel_args(self):
         fd, reqs_file_path = tempfile.mkstemp()
-        os.write(fd, 'virtualenv==13.1.2')
+        os.write(fd, b'virtualenv==13.1.2')
         params = {
             '-v': None,
             '-f': None,
@@ -489,7 +500,9 @@ class TestCreate(testtools.TestCase):
         result = _invoke_click('create_wagon', [source], params)
         try:
             python_version = sys.version_info
-            if python_version[0] == 2 and python_version[1] == 7:
+            if python_version[0] == 3:
+                expected_number_of_wheels = 6
+            elif python_version[0] == 2 and python_version[1] == 7:
                 expected_number_of_wheels = 6
             elif python_version[0] == 2 and python_version[1] == 6:
                 expected_number_of_wheels = 7
@@ -630,6 +643,11 @@ class TestValidate(testtools.TestCase):
     def test_fail_validate_invalid_wagon(self):
         fd, temp_invalid_wagon = tempfile.mkstemp()
         os.close(fd)
+        # In python2.6, an empty file can be opened as a tar archive.
+        # We fill it up so that it fails.
+        with open(temp_invalid_wagon, 'w') as f:
+            f.write('something')
+
         try:
             result = _invoke_click('validate_wagon', [temp_invalid_wagon])
             self.assertEqual(result.exit_code, 1)
@@ -684,6 +702,10 @@ class TestShowMetadata(testtools.TestCase):
         self.archive_path = wagon.create(source=TEST_PACKAGE, force=True)
         wagon._untar(self.archive_path, '.')
         self.metadata = wagon._get_metadata(TEST_PACKAGE_NAME)
+
+    def tearDown(self):
+        super(TestShowMetadata, self).tearDown()
+        os.remove(self.archive_path)
 
     def test_show_metadata_for_archive(self):
         result = _invoke_click('show_wagon', [self.archive_path])
