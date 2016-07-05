@@ -219,6 +219,8 @@ class TestGetSource(testtools.TestCase):
     def test_source_file_not_a_valid_archive(self):
         fd, source_input = tempfile.mkstemp()
         os.close(fd)
+        # In python2.6, an empty file can be opened as a tar archive.
+        # We fill it up so that it fails.
         with open(source_input, 'w') as f:
             f.write('something')
 
@@ -641,6 +643,11 @@ class TestValidate(testtools.TestCase):
     def test_fail_validate_invalid_wagon(self):
         fd, temp_invalid_wagon = tempfile.mkstemp()
         os.close(fd)
+        # In python2.6, an empty file can be opened as a tar archive.
+        # We fill it up so that it fails.
+        with open(temp_invalid_wagon, 'w') as f:
+            f.write('something')
+
         try:
             result = _invoke_click('validate_wagon', [temp_invalid_wagon])
             self.assertEqual(result.exit_code, 1)
