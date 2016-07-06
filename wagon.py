@@ -25,16 +25,17 @@ try:
     import urllib.error
     from urllib.request import urlopen
     from urllib.request import URLopener
+    from io import StringIO
 except ImportError:
     import urllib
     from urllib import urlopen
     from urllib import URLopener
+    from StringIO import StringIO
 import tarfile
 import zipfile
 import logging
 import platform
 import tempfile
-import StringIO
 import subprocess
 import pkg_resources
 from threading import Thread
@@ -87,14 +88,15 @@ class PipeReader(Thread):
         self.process = process
         self.logger = logger
         self.log_level = log_level
-        self._aggr = StringIO.StringIO()
+        self._aggr = StringIO()
         self.aggr = ''
 
     def run(self):
         while self.process.poll() is None:
             output = self.fd.readline()
             if len(output) > 0:
-                self._aggr.write(output)
+                # Python 3 StringIO requires string, not bytes
+                self._aggr.write(str(output))
                 self.logger.log(self.log_level, output.strip())
             else:
                 time.sleep(PROCESS_POLLING_INTERVAL)
@@ -281,19 +283,22 @@ def _get_downloaded_wheels(path):
 
 
 def _open_url(url):
-    response_object = type('obj', (object,))
-
     if IS_PY3:
         try:
-            response_object = urlopen(url)
-            response_object.code = 200
+            response = urlopen(url)
+            # Sometimes bytes are returned here and sometimes strings.
+            try:
+                response.text = response.read().decode('utf-8')
+            except UnicodeDecodeError:
+                response.text = response.read()
+            response.code = 200
         except urllib.error.HTTPError as ex:
-            response_object.code = ex.code
+            response = type('obj', (object,), {'code': ex.code})
     else:
         response = urlopen(url)
-        response_object.code = response.code
+        response.text = response.read()
 
-    return response_object
+    return response
 
 
 def _download_file(url, destination):
@@ -304,7 +309,7 @@ def _download_file(url, destination):
     if not response.code == 200:
         raise WagonError(
             "Failed to download file. Request to {0} "
-            "failed with HTTP Error: {1}".format(url, code))
+            "failed with HTTP Error: {1}".format(url, response.code))
     final_url = response.geturl()
     if final_url != url:
         logger.debug('Redirected to {0}'.format(final_url))
@@ -316,14 +321,11 @@ def http_request(url):
     response = _open_url(url)
 
     if response.code == 200:
-        if IS_PY3:
-            return response.read().decode('utf8')
-        else:
-            return response.read()
+        return response.text
     else:
         raise WagonError(
             "Failed to retrieve info for package. Request to {0} "
-            "failed with HTTP Error: {1}".format(url, code))
+            "failed with HTTP Error: {1}".format(url, response.code))
 
 
 def _zip(source, destination):
