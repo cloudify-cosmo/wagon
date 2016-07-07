@@ -96,8 +96,8 @@ class PipeReader(Thread):
             output = self.fd.readline()
             if len(output) > 0:
                 # Python 3 StringIO requires string, not bytes
-                self._aggr.write(str(output))
-                self.logger.log(self.log_level, output.strip())
+                self._aggr.write(str(output.strip().decode('utf-8')))
+                self.logger.log(self.log_level, output)
             else:
                 time.sleep(PROCESS_POLLING_INTERVAL)
         self.aggr = self._aggr.getvalue()
