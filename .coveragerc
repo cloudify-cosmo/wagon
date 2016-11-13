@@ -7,3 +7,7 @@ source =
 source =
    distro.py
    .tox/*/lib/python*/site-packages/wagon.py
+
+[report]
+exclude_lines =
+    if __name__ == .__main__.:
