@@ -52,13 +52,21 @@ wagon create --help
 ```shell
 # create an archive by retrieving the latest non-prerelease version from PyPI.
 wagon create flask
-# create an archive by retrieving the package from PyPI and keep the downloaded wheels.
+# create an archive by retrieving the package from PyPI and keep the 
+# downloaded wheels.
 wagon create cloudify-script-plugin==1.2 --keep-wheels -v
-# create an archive by retrieving the source from a URL and creating wheels from requirement files found within the archive. Then, validation of the archive takes place. The created archive will be in zip format.
-wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r --validate --format zip
-# create an archive by retrieving the source from a local path and output the tar.gz file to /tmp/<PACKAGE>.tar.gz (defaults to <cwd>/<PACKAGE>.tar.gz) and provides explicit Python versions supported by the package (which usually defaults to the first two digits of the Python version used to create the archive.)
+# create an archive by retrieving the source from a URL and creating wheels 
+# from requirement files found within the archive. Then, validation of the 
+# archive takes place. The created archive will be in zip format.
+wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/... -r --validate --format zip
+# create an archive by retrieving the source from a local path and output the 
+# tar.gz file to /tmp/<PACKAGE>.tar.gz (defaults to <cwd>/<PACKAGE>.tar.gz) 
+# and provides explicit Python versions supported by the package (which 
+# usually defaults to the first two digits of the Python version used to 
+# create the archive.)
 wagon create ~/packages/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26 --pyver 27
-# pass additional args to `pip wheel` (NOTE that conflicting arguments are not handled by wagon.)
+# pass additional args to `pip wheel` (NOTE that conflicting arguments are not 
+# handled by wagon.)
 wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.zip -a '--retries 5'
 ```
 
@@ -83,7 +91,9 @@ wagon install --help
 #### Examples
 
 ```shell
-# install a package from a local archive tar file and upgrade if already installed. Also, ignore the platform check which would force a package (whether it is or isn't compiled for a specific platform) to be installed.
+# install a package from a local archive tar file and upgrade if already 
+# installed. Also, ignore the platform check which would force a package 
+# (whether it is or isn't compiled for a specific platform) to be installed.
 wagon install ~/tars/cloudify_script_plugin-1.2-py27-none-any.wgn --upgrade --ignore-platform
 # install a package from a url into an existing virtualenv.
 wagon install http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn --virtualenv my_venv -v
@@ -299,13 +309,8 @@ import wagon
 source = 'http://my-wagons.com/flask-0.10.1-py27-none-linux_x86_64-Ubuntu-trusty.wgn'
 
 metadata = wagon.show(source=source)
-print metadata
+print(metadata)
 ```
-
-
-## Additional Info
-
-* Log files are stored under ~/.wagon
 
 
 ## Testing
