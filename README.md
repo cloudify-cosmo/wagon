@@ -1,10 +1,14 @@
 # Wagon
 
-[![Circle CI](https://circleci.com/gh/cloudify-cosmo/wagon/tree/master.svg?style=shield)](https://circleci.com/gh/cloudify-cosmo/wagon/tree/master)
+[![Build Status](https://circleci.com/gh/cloudify-cosmo/wagon/tree/master.svg?style=shield)](https://circleci.com/gh/cloudify-cosmo/wagon/tree/master)
 [![Build Status](https://travis-ci.org/cloudify-cosmo/wagon.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wagon)
 [![Build status](https://ci.appveyor.com/api/projects/status/xf1hp1bekf3qhtr8/branch/master?svg=true)](https://ci.appveyor.com/project/Cloudify/wagon/branch/master)
-[![PyPI](http://img.shields.io/pypi/dm/wagon.svg)](http://img.shields.io/pypi/dm/wagon.svg)
-[![PypI](http://img.shields.io/pypi/v/wagon.svg)](http://img.shields.io/pypi/v/wagon.svg)
+[![PyPI version](http://img.shields.io/pypi/v/wagon.svg)](https://pypi.python.org/pypi/wagon)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/wagon.svg)](https://img.shields.io/pypi/pyversions/wagon.svg)
+[![Requirements Status](https://requires.io/github/cloudify-cosmo/wagon/requirements.svg?branch=master)](https://requires.io/github/cloudify-cosmo/wagon/requirements/?branch=master)
+[![Code Coverage](https://codecov.io/github/cloudify-cosmo/wagon/coverage.svg?branch=master)](https://codecov.io/github/cloudify-cosmo/wagon?branch=master)
+[![Code Quality](https://landscape.io/github/cloudify-cosmo/wagon/master/landscape.svg?style=flat)](https://landscape.io/github/cloudify-cosmo/wagon)
+[![Is Wheel](https://img.shields.io/pypi/wheel/wagon.svg?style=flat)](https://pypi.python.org/pypi/wagon)
 
 
 A wagon (also spelt waggon in British and Commonwealth English) is a heavy four-wheeled vehicle pulled by draught animals, used for transporting goods, commodities, agricultural materials, supplies, and sometimes people. Wagons are distinguished from carts, which have two wheels, and from lighter four-wheeled vehicles primarily for carrying people, such as carriages.
@@ -214,7 +218,7 @@ Important Note!
 
 When the `{platform tag}` is `linux_x86_64`, the `distribution` and `release` tags might still be none. This is due to the fact that the implementation of identifying the distribution and release is not robust enough. In this situation, it might be impossible to know which distribution the wagon can be installed on. Thankfully, the most common distributions (RHEL, Centos, Ubuntu, Debian) are easily identified.
 
-Wagons created with wheels which are build for `manylinux1` will support `manylinux1` themselves.
+Wagons created with wheels which are built for `manylinux1` will support `manylinux1` themselves.
 
 
 ## Linux Support for compiled wheels

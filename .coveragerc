@@ -1,0 +1,9 @@
+[run]
+branch = True
+source =
+    wagon.py
+
+[paths]
+source =
+   distro.py
+   .tox/*/lib/python*/site-packages/wagon.py
