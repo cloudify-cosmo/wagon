@@ -1,10 +1,14 @@
 # Wagon
 
-[![Circle CI](https://circleci.com/gh/cloudify-cosmo/wagon/tree/master.svg?style=shield)](https://circleci.com/gh/cloudify-cosmo/wagon/tree/master)
+[![Build Status](https://circleci.com/gh/cloudify-cosmo/wagon/tree/master.svg?style=shield)](https://circleci.com/gh/cloudify-cosmo/wagon/tree/master)
 [![Build Status](https://travis-ci.org/cloudify-cosmo/wagon.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/wagon)
 [![Build status](https://ci.appveyor.com/api/projects/status/xf1hp1bekf3qhtr8/branch/master?svg=true)](https://ci.appveyor.com/project/Cloudify/wagon/branch/master)
-[![PyPI](http://img.shields.io/pypi/dm/wagon.svg)](http://img.shields.io/pypi/dm/wagon.svg)
-[![PypI](http://img.shields.io/pypi/v/wagon.svg)](http://img.shields.io/pypi/v/wagon.svg)
+[![PyPI version](http://img.shields.io/pypi/v/wagon.svg)](https://pypi.python.org/pypi/wagon)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/wagon.svg)](https://img.shields.io/pypi/pyversions/wagon.svg)
+[![Requirements Status](https://requires.io/github/cloudify-cosmo/wagon/requirements.svg?branch=master)](https://requires.io/github/cloudify-cosmo/wagon/requirements/?branch=master)
+[![Code Coverage](https://codecov.io/github/cloudify-cosmo/wagon/coverage.svg?branch=master)](https://codecov.io/github/cloudify-cosmo/wagon?branch=master)
+[![Code Quality](https://landscape.io/github/cloudify-cosmo/wagon/master/landscape.svg?style=flat)](https://landscape.io/github/cloudify-cosmo/wagon)
+[![Is Wheel](https://img.shields.io/pypi/wheel/wagon.svg?style=flat)](https://pypi.python.org/pypi/wagon)
 
 
 A wagon (also spelt waggon in British and Commonwealth English) is a heavy four-wheeled vehicle pulled by draught animals, used for transporting goods, commodities, agricultural materials, supplies, and sometimes people. Wagons are distinguished from carts, which have two wheels, and from lighter four-wheeled vehicles primarily for carrying people, such as carriages.
@@ -48,13 +52,21 @@ wagon create --help
 ```shell
 # create an archive by retrieving the latest non-prerelease version from PyPI.
 wagon create flask
-# create an archive by retrieving the package from PyPI and keep the downloaded wheels.
+# create an archive by retrieving the package from PyPI and keep the 
+# downloaded wheels.
 wagon create cloudify-script-plugin==1.2 --keep-wheels -v
-# create an archive by retrieving the source from a URL and creating wheels from requirement files found within the archive. Then, validation of the archive takes place. The created archive will be in zip format.
-wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.tar.gz -r --validate --format zip
-# create an archive by retrieving the source from a local path and output the tar.gz file to /tmp/<PACKAGE>.tar.gz (defaults to <cwd>/<PACKAGE>.tar.gz) and provides explicit Python versions supported by the package (which usually defaults to the first two digits of the Python version used to create the archive.)
+# create an archive by retrieving the source from a URL and creating wheels 
+# from requirement files found within the archive. Then, validation of the 
+# archive takes place. The created archive will be in zip format.
+wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/... -r --validate --format zip
+# create an archive by retrieving the source from a local path and output the 
+# tar.gz file to /tmp/<PACKAGE>.tar.gz (defaults to <cwd>/<PACKAGE>.tar.gz) 
+# and provides explicit Python versions supported by the package (which 
+# usually defaults to the first two digits of the Python version used to 
+# create the archive.)
 wagon create ~/packages/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26 --pyver 27
-# pass additional args to `pip wheel` (NOTE that conflicting arguments are not handled by wagon.)
+# pass additional args to `pip wheel` (NOTE that conflicting arguments are not 
+# handled by wagon.)
 wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.zip -a '--retries 5'
 ```
 
@@ -79,7 +91,9 @@ wagon install --help
 #### Examples
 
 ```shell
-# install a package from a local archive tar file and upgrade if already installed. Also, ignore the platform check which would force a package (whether it is or isn't compiled for a specific platform) to be installed.
+# install a package from a local archive tar file and upgrade if already 
+# installed. Also, ignore the platform check which would force a package 
+# (whether it is or isn't compiled for a specific platform) to be installed.
 wagon install ~/tars/cloudify_script_plugin-1.2-py27-none-any.wgn --upgrade --ignore-platform
 # install a package from a url into an existing virtualenv.
 wagon install http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn --virtualenv my_venv -v
@@ -214,7 +228,7 @@ Important Note!
 
 When the `{platform tag}` is `linux_x86_64`, the `distribution` and `release` tags might still be none. This is due to the fact that the implementation of identifying the distribution and release is not robust enough. In this situation, it might be impossible to know which distribution the wagon can be installed on. Thankfully, the most common distributions (RHEL, Centos, Ubuntu, Debian) are easily identified.
 
-Wagons created with wheels which are build for `manylinux1` will support `manylinux1` themselves.
+Wagons created with wheels which are built for `manylinux1` will support `manylinux1` themselves.
 
 
 ## Linux Support for compiled wheels
@@ -295,13 +309,8 @@ import wagon
 source = 'http://my-wagons.com/flask-0.10.1-py27-none-linux_x86_64-Ubuntu-trusty.wgn'
 
 metadata = wagon.show(source=source)
-print metadata
+print(metadata)
 ```
-
-
-## Additional Info
-
-* Log files are stored under ~/.wagon
 
 
 ## Testing
