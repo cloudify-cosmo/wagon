@@ -14,8 +14,12 @@
 #    * limitations under the License.
 
 import os
+import sys
 import codecs
 from setuptools import setup
+
+if sys.version_info[:2] < (2, 6):
+    sys.exit('Wagon requires Python 2.6 or higher.')
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -27,7 +31,7 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='0.3.3',
+    version='0.5.0',
     url='https://github.com/cloudify-cosmo/wagon',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
@@ -35,15 +39,10 @@ setup(
     platforms='All',
     description='Creates Python Wheel based archives with dependencies.',
     long_description=read('README.rst'),
-    packages=['wagon'],
+    py_modules=['wagon'],
     include_package_data=True,
-    entry_points={
-        'console_scripts': [
-            'wagon = wagon.wagon:main',
-        ]
-    },
+    entry_points={'console_scripts': ['wagon = wagon:main']},
     install_requires=[
-        "click==6.6",
         "wheel>=0.24.0",
         "virtualenv>=12.1",
     ]
