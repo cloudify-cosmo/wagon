@@ -24,8 +24,8 @@ import shutil
 import tarfile
 import zipfile
 import logging
-import argparse
 import platform
+import argparse
 import tempfile
 import subprocess
 import pkg_resources
@@ -73,8 +73,7 @@ PROCESS_POLLING_INTERVAL = 0.1
 
 def setup_logger():
     handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger = logging.getLogger('wagon')
     logger.addHandler(handler)
@@ -353,15 +352,29 @@ def _get_platform_for_set_of_wheels(wheels_path):
 
     Since a set of wheels created or downloaded on one machine can only
     be for a single platform, if any wheel in the set has a platform
-    which is not `any`, it will be used. If a platform other than
-    `any` was not found, `any` will be assumed.
+    which is not `any`, it will be used with one exception:
+
+    In Linux, a wagon can contain wheels for both manylinux1 and linux.
+    If, at any point we find that a wheel has `linux` as a platform,
+    it will be used since it means it doesn't cross-fit all distros.
+
+    If a platform other than `any` was not found, `any` will be assumed
     """
+    real_platform = ''
+
     for wheel in _get_downloaded_wheels(wheels_path):
         platform = _get_platform_from_wheel_name(
             os.path.join(wheels_path, wheel))
-        if platform != ALL_PLATFORMS_TAG:
+        if 'linux' in platform and 'manylinux' not in platform:
+            # Means either linux_x64_86 or linux_i686 on all wheels
+            # If, at any point, a wheel matches this, it will be
+            # returned so it'll only match that platform.
             return platform
-    return ALL_PLATFORMS_TAG
+        elif platform != ALL_PLATFORMS_TAG:
+            # Means it can be either Windows, OSX or manylinux1 on all wheels
+            real_platform = platform
+
+    return real_platform or ALL_PLATFORMS_TAG
 
 
 def _get_python_version():
@@ -374,7 +387,6 @@ def get_platform():
 
 
 def _get_os_properties():
-    # TODO: replace with `distro`
     return platform.linux_distribution(full_distribution_name=False)
 
 
@@ -528,7 +540,8 @@ def _set_archive_name(package_name,
         'none'
     ]
 
-    if IS_LINUX and platform != ALL_PLATFORMS_TAG:
+    if IS_LINUX and platform != ALL_PLATFORMS_TAG \
+            and 'manylinux' not in platform:
         distro, _, release = _get_os_properties()
         # TODO: maybe replace `none` with `unknown`?
         # we found a linux distro but couldn't identify it.
@@ -645,7 +658,7 @@ def _set_verbosity(verbose):
 
 
 def create(source,
-           requirement_files='',
+           requirement_files=None,
            force=False,
            keep_wheels=False,
            archive_destination_dir='.',
@@ -730,7 +743,7 @@ def create(source,
 
 
 def install(source,
-            virtualenv='',
+            virtualenv=None,
             requirement_files=None,
             upgrade=False,
             ignore_platform=False,
@@ -747,6 +760,13 @@ def install(source,
     that if an archive was created for a specific platform (e.g. win32),
     and the current platform is different, it will still attempt to
     install it.
+
+    Platform check will fail on the following:
+
+    If not linux and no platform match (e.g. win32 vs. darwin)
+    If linux and:
+        architecture doesn't match (e.g. manylinux1_x86_64 vs. linux_i686)
+        wheel not manylinux and no platform match (linux_x86_64 vs. linux_i686)
     """
     _set_verbosity(verbose)
 
@@ -756,16 +776,26 @@ def install(source,
     processed_source = get_source(source)
     metadata = _get_metadata(processed_source)
 
+    def raise_unsupported_platform():
+        raise WagonError(
+            'Platform unsupported for package ({0}).'.format(
+                machine_platform))
+
     try:
         supported_platform = metadata['supported_platform']
         if not ignore_platform and supported_platform != ALL_PLATFORMS_TAG:
             logger.debug(
                 'Validating Platform %s is supported...', supported_platform)
             machine_platform = get_platform()
-            if machine_platform != supported_platform:
-                raise WagonError(
-                    'Platform unsupported for package ({0}).'.format(
-                        machine_platform))
+
+            if not IS_LINUX and machine_platform != supported_platform:
+                raise_unsupported_platform()
+            elif IS_LINUX and supported_platform.split('_')[1] != \
+                    machine_platform.split('_')[1]:
+                raise_unsupported_platform()
+            elif IS_LINUX and 'manylinux' not in supported_platform \
+                    and machine_platform != supported_platform:
+                raise_unsupported_platform()
 
         wheels_path = os.path.join(processed_source, DEFAULT_WHEELS_PATH)
         install_package(
