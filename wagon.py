@@ -477,7 +477,7 @@ def _generate_metadata_file(workdir,
         'supported_platform': platform,
         'supported_python_versions': python_versions,
         'build_server_os_properties': {
-            'distribution:': None,
+            'distribution': None,
             'distribution_version': None,
             'distribution_release': None,
         },
