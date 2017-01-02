@@ -15,21 +15,30 @@ A wagon (also spelt waggon in British and Commonwealth English) is a heavy four-
 
 or.. it is just a set of (Python) Wheels.
 
+NOTE: `Wagon 0.5.0` has breaking changes over its previous versions in terms of CLI and API. While a wagon's structure is the same and there shouldn't be a problem installing wagons created with v0.5.0 using previous versions and vice versa, users using the API must adjust it. Please report any issues with backward compatibility if any are found.
+
+
+## Incentive
+
 Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz archives and so we needed a tool to create such entities; hence, Wagon.
 
+
+## Requirements 
 
 * Wagon requires pip 1.4+ to work as this is the first version of pip to support Wheels.
 * Wagon currently supports Python 2.6.x and Python 2.7.x. Python 2.5 will not be supported as it is not supported by pip.
 * Wagon is currently tested on both Linux and Windows (via Travis and AppVeyor).
 * To be able to create Wagons of Wheels which include C extensions on Windows, you must have the [C++ Compiler for Python](http://www.microsoft.com/en-us/download/details.aspx?id=44266) installed.
-* To be able to create Wagons of Wheels which include C extensions on Linux or OS X, you must have the required compiler installed depending on your base distro. Usually:
+* To be able to create Wagons of Wheels which include C extensions on Linux or OSX, you must have the required compiler installed depending on your base distro. Usually:
     * RHEL based required `gcc` and `python-devel`.
     * Debian based require `gcc` and `python-dev`.
-    * Arch-Linux requires `gcc`.
-    * OS X requires `gcc`.
+    * Other linux distributions will usually require `gcc` but might require additional packages.
+    * OSX requires `gcc`.
 
 
 ## Installation
+
+Wagon supports Linux, Windows and OSX on Python 2.6, 2.7 and 3.4+
 
 ```shell
 pip install wagon
@@ -44,7 +53,7 @@ pip install http://github.com/cloudify-cosmo/wagon/archive/master.tar.gz
 ### Create Packages
 
 ```shell
-wagon create --help
+wagon create -h
 ```
 
 #### Examples
@@ -52,40 +61,45 @@ wagon create --help
 ```shell
 # create an archive by retrieving the latest non-prerelease version from PyPI.
 wagon create flask
+
 # create an archive by retrieving the package from PyPI and keep the 
 # downloaded wheels.
 wagon create cloudify-script-plugin==1.2 --keep-wheels -v
+
 # create an archive by retrieving the source from a URL and creating wheels 
-# from requirement files found within the archive. Then, validation of the 
+# from requirement files. Then, validation of the 
 # archive takes place. The created archive will be in zip format.
-wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/... -r --validate --format zip
+wagon create ./my_package -r reqs1.txt -r reqs2.txt --validate --format zip
+
 # create an archive by retrieving the source from a local path and output the 
 # tar.gz file to /tmp/<PACKAGE>.tar.gz (defaults to <cwd>/<PACKAGE>.tar.gz) 
 # and provides explicit Python versions supported by the package (which 
 # usually defaults to the first two digits of the Python version used to 
 # create the archive.)
 wagon create ~/packages/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26 --pyver 27
-# pass additional args to `pip wheel` (NOTE that conflicting arguments are not 
-# handled by wagon.)
+
+# Create a wagon from a GitHub URL and pass additional args to `pip wheel` 
+# (NOTE that conflicting arguments are not handled by wagon.)
 wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.zip -a '--retries 5'
 ```
 
-#### Internal Requirement Files
+#### Requirement Files
 
-Sometimes, your package archive or local path contain [requirement files](http://pip.readthedocs.org/en/stable/user_guide/#requirements-files). Wagon will look for `requirements.txt` and `dev-requirements.txt` files residing in the same directory the `setup.py` file resides and wheel them as well if the `-r` flag is supplied.
+NOTE: Beginning with `Wagon 0.5.0`, Wagon no longer looks up requirement files within archives or in the local directory when creating wagons. You must expclitly spceify requirement files.
 
-In case you don't want to include both requirement files, you can explicitly specify requirement files using the `-a` flag passing `-r` as additional pip arguments to the `pip wheel` function.
+You can provide multiple requirement files to be resolved by using the `-r` flag (multiple times).
+
 
 #### Editable Mode
 
 Wagon doesn't currently provide a way for packaging packages that are in editable mode.
-So, for instance, providing a dev-requirements file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #PACKAGE#, due to being editable". We might allow processing editable provided dependencies in the future.
+So, for instance, providing a dev-requirements file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #PACKAGE#, due to being editable".
 
 
 ### Install Packages
 
 ```shell
-wagon install --help
+wagon install -h
 ```
 
 #### Examples
@@ -95,8 +109,10 @@ wagon install --help
 # installed. Also, ignore the platform check which would force a package 
 # (whether it is or isn't compiled for a specific platform) to be installed.
 wagon install ~/tars/cloudify_script_plugin-1.2-py27-none-any.wgn --upgrade --ignore-platform
+
 # install a package from a url into an existing virtualenv.
-wagon install http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn --virtualenv my_venv -v
+wagon install http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn --virtualenv my_env
+
 # pass additional args to `pip install` (NOTE that conflicting arguments are not handled by wagon.)
 wagon install http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn -a '--no-cache-dir'
 ```
@@ -108,6 +124,7 @@ Note that `--pre` is appended to the installation command to enable installation
 While wagon provides a generic way of installing wagon created archives, you might not want to use the installer as you might not wish to install wagon on your application servers. Installing the package manually via pip is as easy as running (for example):
 
 ```shell
+# For Linux (Windows wagon archives are zip files)
 tar -xzvf http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn
 pip install --no-index --find-links cloudify-script-plugin/wheels cloudify-script-plugin
 ```
@@ -116,14 +133,16 @@ pip install --no-index --find-links cloudify-script-plugin/wheels cloudify-scrip
 ### Validate Packages
 
 ```sheel
-wagon validate --help
+wagon validate -h
 ```
 
-The `validate` function provides shallow validation of a Wagon archive. Basically, it checks that some keys in the metadata are found, that all required wheels for a package are present and that the package is installable. It obviously does not check for a package's functionality.
+The `validate` function provides shallow validation of a Wagon archive. Basically, that all required wheels for a package are present and that the package is installable. It obviously does not check for a package's functionality.
 
 This shallow validation should, at the very least, allow a user to be sure that a Wagon archive is not corrupted.
 
 Note that the `--validate` flag provided with the `create` function uses this same validation method.
+
+Also note that validation must take place only on an OS distribution which supports the wagon archive if it contains C extensions. For instance, a win32 specific wagon archive will fail to validate on a Linux machine.
 
 #### Examples
 
@@ -138,7 +157,7 @@ wagon validate http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.
 ### Show Metadata
 
 ```sheel
-wagon showmeta --help
+wagon showmeta -h
 ```
 
 Given a Wagon archive, this will print its metadata.
@@ -198,9 +217,6 @@ A Metadata file is generated for the archive and looks somewhat like this:
         "cloudify_dsl_parser-3.2-py2-none-any.whl",
         "cloudify_rest_client-3.2-py2-none-any.whl",
         "cloudify_script_plugin-1.2-py2-none-any.whl"
-    ],
-    "excluded_wheels": [
-        "cloudify_plugins_common-3.2-py2-none-any.whl"
     ]
 }
 ```
@@ -257,19 +273,17 @@ import wagon
 
 source = 'flask==0.10.1'
 
-# python_versions is a list.
-# with_requirements can either be one of '.' or a path to
-# a pip installable requirements path.
 archive_path = wagon.create(
-    source=source,
-    with_requirements='', 
+    source,
+    requirement_files=None,
     force=False,
-    keep_wheels=False, 
-    excluded_packages=None,
-    archive_destination_dir='.', 
+    keep_wheels=False,
+    archive_destination_dir='.',
     python_versions=None,
-    validate=False, 
-    wheel_args='')
+    validate_archive=False,
+    wheel_args='',
+    format='tar.gz',
+    verbose=False)
 ```
 
 ### Install
@@ -281,12 +295,13 @@ import wagon
 source = 'http://my-wagons.com/flask-0.10.1-py27-none-linux_x86_64-Ubuntu-trusty.wgn'
 
 wagon.install(
-    source=source,
-    virtualenv='',
-    requirements_file='',
+    source,
+    virtualenv=None,
+    requirement_files=None,
     upgrade=False,
-    ignore_platform=False, 
-    install_args='')
+    ignore_platform=False,
+    install_args='',
+    verbose=False)
 ```
 
 ### Validate
