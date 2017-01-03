@@ -442,8 +442,7 @@ class TestCreate(testtools.TestCase):
         archive_path = wagon.create(
             source=test_package,
             force=True,
-            requirement_files=requirement_files,
-            verbose=True)
+            requirement_files=requirement_files)
         self.archive_name = os.path.basename(archive_path)
         self.platform = 'any'
         metadata = wagon.show(self.archive_name)
@@ -507,8 +506,7 @@ class TestInstall(testtools.TestCase):
         wagon._run('virtualenv test_env')
         self.archive_path = wagon.create(
             source=TEST_PACKAGE,
-            force=True,
-            verbose=True)
+            force=True)
 
     def tearDown(self):
         super(TestInstall, self).tearDown()
@@ -581,8 +579,7 @@ class TestValidate(testtools.TestCase):
         requirement_files = [os.path.join(test_package, 'requirements.txt')]
         archive_path = wagon.create(source=test_package,
                                     requirement_files=requirement_files,
-                                    force=True,
-                                    verbose=True)
+                                    force=True)
         archive_name = os.path.basename(archive_path)
         tempdir = tempfile.mkdtemp()
         try:
@@ -622,8 +619,7 @@ class TestShowMetadata(testtools.TestCase):
         result = _invoke('wagon show {0}'.format(self.archive_path))
         self.assertEqual(result.returncode, 0)
         # Remove the first line
-        resulting_metadata = json.loads(
-            '\n'.join(result.stdout.splitlines()[1:]))
+        resulting_metadata = json.loads(result.stdout)
         self.assertDictEqual(resulting_metadata, self.expected_metadata)
 
     def test_fail_show_metadata_for_non_existing_archive(self):
