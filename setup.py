@@ -46,6 +46,7 @@ setup(
         "wheel>=0.24.0",
     ],
     extras_require={
+        'dist': ['distro>=0.6.0'],
         'venv': ['virtualenv>=12.1'],
     },
     classifiers=[
