@@ -46,6 +46,9 @@ setup(
         "wheel>=0.24.0",
         "virtualenv>=12.1",
     ],
+    extras_require={
+        'dist': ['distro>=0.6.0'],
+    },
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.6',

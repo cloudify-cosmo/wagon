@@ -43,6 +43,12 @@ except ImportError:
     from urllib import URLopener
 
 try:
+    import distro
+    IS_DISTRO_INSTALLED = True
+except ImportError:
+    IS_DISTRO_INSTALLED = False
+
+try:
     import virtualenv
 except ImportError:
     pass
@@ -387,6 +393,14 @@ def get_platform():
 
 
 def _get_os_properties():
+    """Retrieve distribution properties.
+
+    **Note that platform.linux_distribution and platform.dist are deprecated
+    and will be removed in Python 3.7. By that time, distro will become
+    mandatory.
+    """
+    if IS_DISTRO_INSTALLED:
+        return distro.linux_distribution(full_distribution_name=False)
     return platform.linux_distribution(full_distribution_name=False)
 
 
@@ -499,10 +513,10 @@ def _generate_metadata_file(workdir,
         'wheels': wheels,
     }
     if IS_LINUX and platform != ALL_PLATFORMS_TAG:
-        distro, version, release = _get_os_properties()
+        distribution, version, release = _get_os_properties()
         metadata.update(
             {'build_server_os_properties': {
-                'distribution': distro.lower(),
+                'distribution': distribution.lower(),
                 'distribution_version': version.lower(),
                 'distribution_release': release.lower()
             }})
@@ -536,18 +550,7 @@ def _set_archive_name(package_name,
         python_versions,
         'none',
         platform,
-        'none',
-        'none'
     ]
-
-    if IS_LINUX and platform != ALL_PLATFORMS_TAG \
-            and 'manylinux' not in platform:
-        distro, _, release = _get_os_properties()
-        # TODO: maybe replace `none` with `unknown`?
-        # we found a linux distro but couldn't identify it.
-        archive_name_tags[5] = distro or 'none'
-        archive_name_tags[6] = release or 'none'
-
     archive_name = '{0}.wgn'.format('-'.join(archive_name_tags))
     return archive_name
 
