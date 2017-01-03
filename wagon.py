@@ -428,7 +428,7 @@ def _get_pip_path(venv=None):
             os.path.dirname(sys.executable), 'scripts' if IS_WIN else '', pip)
 
 
-def _check_installed(package, venv):
+def _check_installed(package, venv=None):
     pip_executable = _get_pip_path(venv)
     process = _run('{0} freeze'.format(pip_executable), suppress_output=True)
     if '{0}=='.format(package) in process.aggr_stdout:
@@ -782,7 +782,7 @@ def install(source,
 
     def raise_unsupported_platform():
         raise WagonError(
-            'Platform unsupported for package ({0}).'.format(
+            'Platform unsupported for package ({0})'.format(
                 machine_platform))
 
     try:
@@ -791,6 +791,7 @@ def install(source,
             logger.debug(
                 'Validating Platform %s is supported...', supported_platform)
             machine_platform = get_platform()
+            # machine_platform = 'weird_platform'
 
             if not IS_LINUX and machine_platform != supported_platform:
                 raise_unsupported_platform()
@@ -898,7 +899,6 @@ def _install_wagon(args):
     try:
         install(
             source=args.SOURCE,
-            venv=args.virtualenv,
             requirement_files=args.requirements_file,
             upgrade=args.upgrade,
             ignore_platform=args.ignore_platform,
@@ -1000,11 +1000,6 @@ def _add_install_command(parser):
         'install',
         help='Install a Wagon')
 
-    command.add_argument(
-        '-e',
-        '--virtualenv',
-        default=None,
-        help='Virtualenv to install in')
     command.add_argument(
         '-r',
         '--requirements-file',
