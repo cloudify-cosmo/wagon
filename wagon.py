@@ -44,8 +44,9 @@ except ImportError:
 
 try:
     import virtualenv
+    VIRTUALENV_EXISTS = True
 except ImportError:
-    pass
+    VIRTUALENV_EXISTS = False
 from wheel import pep425tags
 
 
@@ -191,13 +192,13 @@ def wheel(package,
 
 def _construct_pip_command(package,
                            wheels_path,
-                           virtualenv,
+                           venv,
                            requirement_files=None,
                            upgrade=False,
                            install_args=None):
     requirement_files = requirement_files or []
 
-    pip_executable = _get_pip_path(virtualenv)
+    pip_executable = _get_pip_path(venv)
 
     pip_command = [pip_executable, 'install']
     for req_file in requirement_files:
@@ -218,7 +219,7 @@ def _construct_pip_command(package,
 
 def install_package(package,
                     wheels_path,
-                    virtualenv=None,
+                    venv=None,
                     requirement_files=None,
                     upgrade=False,
                     install_args=None):
@@ -226,7 +227,7 @@ def install_package(package,
 
     Can specify a specific version.
     Can specify a prerelease.
-    Can specify a virtualenv to install in.
+    Can specify a venv to install in.
     Can specify a list of paths or urls to requirement txt files.
     Can specify a local wheels_path to use for offline installation.
     Can request an upgrade.
@@ -234,18 +235,18 @@ def install_package(package,
     requirement_files = requirement_files or []
 
     logger.info('Installing %s...', package)
-    if virtualenv and not os.path.isdir(virtualenv):
-        raise WagonError('Virtualenv {0} does not exist'.format(virtualenv))
+    if venv and not os.path.isdir(venv):
+        raise WagonError('Virtualenv {0} does not exist'.format(venv))
 
     pip_command = _construct_pip_command(
         package,
         wheels_path,
-        virtualenv,
+        venv,
         requirement_files,
         upgrade,
         install_args)
 
-    if IS_VIRTUALENV and not virtualenv:
+    if IS_VIRTUALENV and not venv:
         logger.info(
             'Installing within current virtualenv: %s...', IS_VIRTUALENV)
 
@@ -404,22 +405,22 @@ def _get_env_bin_path(env_path):
         return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')
 
 
-def _get_pip_path(virtualenv=None):
+def _get_pip_path(venv=None):
     pip = 'pip.exe' if IS_WIN else 'pip'
-    if virtualenv:
-        return os.path.join(_get_env_bin_path(virtualenv), pip)
+    if venv:
+        return os.path.join(_get_env_bin_path(venv), pip)
     else:
         return os.path.join(
             os.path.dirname(sys.executable), 'scripts' if IS_WIN else '', pip)
 
 
-def _check_installed(package, virtualenv):
-    pip_executable = _get_pip_path(virtualenv)
+def _check_installed(package, venv):
+    pip_executable = _get_pip_path(venv)
     process = _run('{0} freeze'.format(pip_executable), suppress_output=True)
     if '{0}=='.format(package) in process.aggr_stdout:
-        logger.debug('Package %s is installed in %s', package, virtualenv)
+        logger.debug('Package %s is installed in %s', package, venv)
         return True
-    logger.debug('Package %s is not installed in %s', package, virtualenv)
+    logger.debug('Package %s is not installed in %s', package, venv)
     return False
 
 
@@ -743,7 +744,7 @@ def create(source,
 
 
 def install(source,
-            virtualenv=None,
+            venv=None,
             requirement_files=None,
             upgrade=False,
             ignore_platform=False,
@@ -751,7 +752,7 @@ def install(source,
             verbose=False):
     """Install a Wagon archive.
 
-    This can install in a provided `virtualenv` or in the current
+    This can install in a provided `venv` or in the current
     virtualenv in case one is currently active.
 
     `upgrade` is merely pip's upgrade.
@@ -801,7 +802,7 @@ def install(source,
         install_package(
             metadata['package_name'],
             wheels_path,
-            virtualenv,
+            venv,
             requirement_files,
             upgrade,
             install_args)
@@ -841,7 +842,7 @@ def validate(source, verbose=False):
     logger.debug('Testing package installation...')
     tmpenv = _make_virtualenv()
     try:
-        install(source=processed_source, virtualenv=tmpenv, verbose=verbose)
+        install(source=processed_source, venv=tmpenv, verbose=verbose)
         if not _check_installed(metadata['package_name'], tmpenv):
             validation_errors.append(
                 '{0} failed to install (Reason unknown)'.format(
@@ -894,7 +895,7 @@ def _install_wagon(args):
     try:
         install(
             source=args.SOURCE,
-            virtualenv=args.virtualenv,
+            venv=args.virtualenv,
             requirement_files=args.requirements_file,
             upgrade=args.upgrade,
             ignore_platform=args.ignore_platform,

@@ -204,12 +204,12 @@ class TestBase(testtools.TestCase):
     @testtools.skipIf(wagon.IS_WIN, 'Irrelevant on Windows.')
     @mock.patch('sys.executable', new='/a/b/c/python')
     def test_pip_path_on_linux(self):
-        self.assertEqual(wagon._get_pip_path(virtualenv=''), '/a/b/c/pip')
+        self.assertEqual(wagon._get_pip_path(venv=''), '/a/b/c/pip')
 
     @testtools.skipIf(not wagon.IS_WIN, 'Irrelevant on Linux.')
     @mock.patch('sys.executable', new='C:\Python27\python.exe')
     def test_pip_path_on_windows(self):
-        self.assertEqual(wagon._get_pip_path(virtualenv=''),
+        self.assertEqual(wagon._get_pip_path(venv=''),
                          'C:\Python27\scripts\pip.exe')
 
     def test_get_downloaded_wheels(self):
