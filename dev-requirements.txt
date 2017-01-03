@@ -3,3 +3,4 @@ mock
 nose-cov
 testtools
 testfixtures
+virtualenv>=12.1
