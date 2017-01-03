@@ -50,6 +50,8 @@ pip install http://github.com/cloudify-cosmo/wagon/archive/master.tar.gz
 
 ## Usage
 
+Note: Currently, Wagon allows to pass arbitrary args to `pip wheel` and `pip install`. The way in which this is implemented is inconsistent with pip's implementation (wagon just allows passing a `-a` flag for all args.) This will be changed in the future to correspond to pip's implementation. See https://github.com/cloudify-cosmo/wagon/issues/70 for more information.
+
 ### Create Packages
 
 ```shell
