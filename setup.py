@@ -44,8 +44,10 @@ setup(
     entry_points={'console_scripts': ['wagon = wagon:main']},
     install_requires=[
         "wheel>=0.24.0",
-        "virtualenv>=12.1",
     ],
+    extras_require={
+        'venv': ['virtualenv>=12.1'],
+    },
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.6',
