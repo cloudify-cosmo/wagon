@@ -227,6 +227,25 @@ class TestBase(testtools.TestCase):
         finally:
             shutil.rmtree(tempdir)
 
+    def test_cli_too_few_arguments(self):
+        ex = self.assertRaises(
+            SystemExit,
+            _parse,
+            'wagon create')
+        if wagon.IS_PY3:
+            self.assertIn('the following arguments are required', str(ex))
+        else:
+            self.assertIn('too few arguments', str(ex))
+
+    def test_cli_bad_arumgnet(self):
+        ex = self.assertRaises(
+            SystemExit,
+            _parse,
+            'wagon create flask --non-existing-argument')
+        self.assertIn(
+            'error: unrecognized arguments: --non-existing-argument',
+            str(ex))
+
 
 class TestGetSource(testtools.TestCase):
     def test_source_file_not_a_valid_archive(self):
