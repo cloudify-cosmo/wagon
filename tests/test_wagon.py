@@ -184,9 +184,9 @@ class TestBase(testtools.TestCase):
         e = self.assertRaises(
             wagon.WagonError,
             wagon._create_wagon_archive,
-            'unsupported_format',
             'source_dir',
-            'output_archive')
+            'output_archive',
+            'unsupported_format')
         self.assertIn('Unsupported archive format to create', str(e))
 
     def test_single_python_version(self):
