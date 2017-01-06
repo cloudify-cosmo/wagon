@@ -32,6 +32,7 @@ import pkg_resources
 from io import StringIO
 from threading import Thread
 from contextlib import closing
+from distutils.spawn import find_executable
 
 try:
     import urllib.error
@@ -54,7 +55,6 @@ try:
 except ImportError:
     VIRTUALENV_EXISTS = False
 from wheel import pep425tags
-
 
 DESCRIPTION = \
     '''Create and install wheel based packages with their dependencies'''
@@ -348,6 +348,12 @@ def _get_wheel_tags(wheel_name):
     return filename.split('-')
 
 
+def _get_package_name_from_wheel_name(wheel_name):
+    """Extract the platform of a wheel from its file name.
+    """
+    return _get_wheel_tags(wheel_name)[0]
+
+
 def _get_platform_from_wheel_name(wheel_name):
     """Extract the platform of a wheel from its file name.
     """
@@ -583,7 +589,7 @@ def get_source_name_and_version(source):
     return package_name, package_version
 
 
-def _create_wagon_archive(archive_format, source_path, archive_path):
+def _create_wagon_archive(source_path, archive_path, archive_format='tar.gz'):
     if archive_format.lower() == 'tar.gz':
         _tar(source_path, archive_path)
     elif archive_format.lower() == 'zip':
@@ -735,7 +741,7 @@ def create(source,
         source,
         wheels)
 
-    _create_wagon_archive(format, workdir, archive_path)
+    _create_wagon_archive(workdir, archive_path, format)
     if not keep_wheels:
         logger.debug('Removing work directory...')
         shutil.rmtree(tempdir, ignore_errors=True)
@@ -878,6 +884,92 @@ def show(source, verbose=False):
     return metadata
 
 
+def _repair_wheels(workdir, metadata):
+    wheels_path = os.path.join(workdir, DEFAULT_WHEELS_PATH)
+
+    for wheel in _get_downloaded_wheels(wheels_path):
+        if _get_platform_from_wheel_name(wheel).startswith('linux'):
+            wheel_path = os.path.join(wheels_path, wheel)
+            outcome = _run('auditwheel repair {0} -w {1}'.format(
+                wheel_path, wheels_path))
+            if outcome.returncode != 0:
+                raise WagonError('Failed to repair wagon')
+            os.remove(wheel_path)
+
+    # Note that at this point, _get_downloaded_wheels will return
+    # a different set of wheels which have been repaired.
+    for wheel in _get_downloaded_wheels(wheels_path):
+        manylinux1_platform = _get_platform_from_wheel_name(wheel)
+        if manylinux1_platform.startswith('manylinux1'):
+            # It's enough to get the new platform from a single
+            # repaired wheel.
+            break
+
+    # TODO: Return this and update in another function
+    metadata['wheels'] = _get_downloaded_wheels(wheels_path)
+    metadata['supported_platform'] = manylinux1_platform
+
+    distribution, version, release = _get_os_properties()
+    metadata.update(
+        {'build_server_os_properties': {
+            'distribution': distribution.lower(),
+            'distribution_version': version.lower(),
+            'distribution_release': release.lower()
+        }})
+    return metadata
+
+
+def _assert_auditwheel_exists():
+    if not find_executable('auditwheel'):
+        raise WagonError(
+            'Could not find auditwheel. '
+            'Please make sure auditwheel is installed and is in the PATH.\n'
+            'Please see https://github.com/pypa/auditwheel for more info.')
+
+
+def repair(source, validate_archive=False, verbose=False):
+    """Use auditwheel (https://github.com/pypa/auditwheel)
+    to attempt and repair all wheels in a wagon.
+
+    The repair process will:
+
+    1. Extract the wagon and its metadata
+    2. Repair all wheels
+    3. Update the metadata with the new wheel names and platform
+    4. Repack the wagon
+    """
+    _set_verbosity(verbose)
+    _assert_auditwheel_exists()
+
+    logger.info('Repairing: %s', source)
+    processed_source = get_source(source)
+    metadata = _get_metadata(processed_source)
+    new_metadata = _repair_wheels(processed_source, metadata)
+
+    archive_name = _set_archive_name(
+        new_metadata['package_name'],
+        new_metadata['package_version'],
+        new_metadata['supported_python_versions'],
+        new_metadata['supported_platform'])
+
+    _generate_metadata_file(
+        processed_source,
+        archive_name,
+        new_metadata['supported_platform'],
+        new_metadata['supported_python_versions'],
+        new_metadata['package_name'],
+        new_metadata['package_version'],
+        new_metadata['package_source'],
+        new_metadata['wheels'])
+    archive_path = os.path.join(os.getcwd(), archive_name)
+    _create_wagon_archive(processed_source, archive_path)
+
+    if validate_archive:
+        validate(archive_path, verbose)
+    logger.info('Wagon created successfully at: %s', archive_path)
+    return archive_path
+
+
 def _create_wagon(args):
     try:
         create(
@@ -920,6 +1012,16 @@ def _show_wagon(args):
     try:
         metadata = show(args.SOURCE, args.verbose)
         print(json.dumps(metadata, indent=4, sort_keys=True))
+    except WagonError as ex:
+        sys.exit(ex)
+
+
+def _repair_wagon(args):
+    try:
+        repair(
+            args.SOURCE,
+            args.validate,
+            args.verbose)
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1050,6 +1152,21 @@ def _add_show_command(parser):
     return parser
 
 
+def _add_repair_command(parser):
+    command = parser.add_parser(
+        'repair',
+        help='Use auditwheel to repair all wheels in a wagon')
+
+    command.add_argument(
+        '--validate',
+        default=False,
+        action='store_true',
+        help='Runs a postcreation validation on the archive')
+
+    _add_common(command, func=_repair_wagon)
+    return parser
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description=DESCRIPTION,
@@ -1061,6 +1178,7 @@ def parse_args():
     subparsers = _add_install_command(subparsers)
     subparsers = _add_validate_command(subparsers)
     subparsers = _add_show_command(subparsers)
+    subparsers = _add_repair_command(subparsers)
 
     return parser.parse_args()
 
