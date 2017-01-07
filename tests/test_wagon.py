@@ -498,7 +498,7 @@ class TestInstall(testtools.TestCase):
             shutil.rmtree('test_env')
 
     # TODO: Important before releasing 0.6.0!
-    @testtools.skipIf(wagon.IS_WIN, 'UNKNOWN PROBLEM! NEED TO FIX!.')
+    @testtools.skipIf(not os.environ.get('CI'), 'Can only run in CI env')
     def test_install_package_from_local_archive(self):
         self.assertFalse(wagon._check_installed(TEST_PACKAGE_NAME))
         _parse("wagon install {0} -v -u".format(self.archive_path))
