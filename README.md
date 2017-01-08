@@ -15,6 +15,8 @@ A wagon (also spelt waggon in British and Commonwealth English) is a heavy four-
 
 or.. it is just a set of (Python) Wheels.
 
+NOTE: To accommodate for the inconsistencies between wagon and pip, and to allow for additional required functionality, we will have to perform breaking changes until we can release v1.0.0. Please make sure you hardcode your wagon versions up until then.
+
 NOTE: `Wagon 0.5.0` has breaking changes over its previous versions in terms of CLI and API. While a wagon's structure is the same and there shouldn't be a problem installing wagons created with v0.5.0 using previous versions and vice versa, users using the API must adjust it. Please report any issues with backward compatibility if any are found.
 
 
@@ -26,7 +28,7 @@ Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.pytho
 ## Requirements 
 
 * Wagon requires pip 1.4+ to work as this is the first version of pip to support Wheels.
-* Wagon currently supports Python 2.6.x and Python 2.7.x. Python 2.5 will not be supported as it is not supported by pip.
+* Wagon currently supports Python 2.6.x, Python 2.7.x, 3.4.x and 3.5.x. Python 2.5 will not be supported as it is not supported by pip. Python 2.6.x support will be dropped once we feel sure it is no longer widely used. Python 3.6.x will probably work and will be tested soon.
 * Wagon is currently tested on both Linux and Windows (via Travis and AppVeyor).
 * To be able to create Wagons of Wheels which include C extensions on Windows, you must have the [C++ Compiler for Python](http://www.microsoft.com/en-us/download/details.aspx?id=44266) installed.
 * To be able to create Wagons of Wheels which include C extensions on Linux or OSX, you must have the required compiler installed depending on your base distro. Usually:
@@ -50,39 +52,42 @@ pip install http://github.com/cloudify-cosmo/wagon/archive/master.tar.gz
 
 ## Usage
 
-Note: Currently, Wagon allows to pass arbitrary args to `pip wheel` and `pip install`. The way in which this is implemented is inconsistent with pip's implementation (wagon just allows passing a `-a` flag for all args.) This will be changed in the future to correspond to pip's implementation. See https://github.com/cloudify-cosmo/wagon/issues/70 for more information.
+NOTE: Currently, Wagon allows to pass arbitrary args to `pip wheel` and `pip install`. The way in which this is implemented is inconsistent with pip's implementation (wagon just allows passing a `-a` flag for all args.) This will be changed in the future to correspond to pip's implementation. See https://github.com/cloudify-cosmo/wagon/issues/70 for more information.
+
+```bash
+$ wagon
+usage: wagon [-h] [-v] {create,install,validate,show,repair} ...
+
+Create and install wheel based packages with their dependencies
+
+positional arguments:
+  {create,install,validate,show,repair}
+    create              Create a Wagon archive
+    install             Install a Wagon archive
+    validate            Validate a wagon archive
+    show                Print out the metadata of a wagon
+    repair              Repair a Wagon archive
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbose logging level (default: False)
+
+...
+```
+
 
 ### Create Packages
 
-```shell
-wagon create -h
-```
+```bash
+$ wagon create flask
+...
 
-#### Examples
+Creating archive for flask...
+Downloading Wheels for Flask...
+Creating tgz archive: ./Flask-0.12-py27-none-linux_x86_64.wgn...
+Wagon created successfully at: ./Flask-0.12-py27-none-linux_x86_64.wgn
 
-```shell
-# create an archive by retrieving the latest non-prerelease version from PyPI.
-wagon create flask
-
-# create an archive by retrieving the package from PyPI and keep the 
-# downloaded wheels.
-wagon create cloudify-script-plugin==1.2 --keep-wheels -v
-
-# create an archive by retrieving the source from a URL and creating wheels 
-# from requirement files. Then, validation of the 
-# archive takes place. The created archive will be in zip format.
-wagon create ./my_package -r reqs1.txt -r reqs2.txt --validate --format zip
-
-# create an archive by retrieving the source from a local path and output the 
-# tar.gz file to /tmp/<PACKAGE>.tar.gz (defaults to <cwd>/<PACKAGE>.tar.gz) 
-# and provides explicit Python versions supported by the package (which 
-# usually defaults to the first two digits of the Python version used to 
-# create the archive.)
-wagon create ~/packages/cloudify-script-plugin/ -o /tmp/ --pyver 33 --pyver 26 --pyver 27
-
-# Create a wagon from a GitHub URL and pass additional args to `pip wheel` 
-# (NOTE that conflicting arguments are not handled by wagon.)
-wagon create http://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.2.zip -a '--retries 5'
+...
 ```
 
 #### Requirement Files
@@ -91,52 +96,53 @@ NOTE: Beginning with `Wagon 0.5.0`, Wagon no longer looks up requirement files w
 
 You can provide multiple requirement files to be resolved by using the `-r` flag (multiple times).
 
-
 #### Editable Mode
 
 Wagon doesn't currently provide a way for packaging packages that are in editable mode.
-So, for instance, providing a dev-requirements file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #PACKAGE#, due to being editable".
+So, for instance, providing a `dev-requirements` file which contains a `-e DEPENDENCY` requirement will not be taken into consideration. This is not related to wagon but rather to the default `pip wheel` implementation stating that it will be "Skipping bdist_wheel for #PACKAGE#, due to being editable".
 
 
 ### Install Packages
 
-```shell
-wagon install -h
+```bash
+$ wagon install flask -v
+...
+
+$ wagon install Flask-0.12-py27-none-linux_x86_64.wgn -v
+Installing Flask-0.12-py27-none-linux_x86_64.wgn
+Retrieving source...
+Extracting tgz Flask-0.12-py27-none-linux_x86_64.wgn to /tmp/tmplXv6Fi...
+Source is: /tmp/tmplXv6Fi/Flask
+Validating Platform linux_x86_64 is supported...
+Installing Flask...
+Installing within current virtualenv: True...
+Executing: /home/nir0s/.virtualenvs/cfyt/bin/pip install Flask --use-wheel --no-index --find-links /tmp/tmplXv6Fi/Flask/wheels --pre...
+Collecting Flask
+Collecting itsdangerous>=0.21 (from Flask)
+Requirement already satisfied: click>=2.0 in /home/nir0s/.virtualenvs/cfyt/lib/python2.7/site-packages (from Flask)
+Requirement already satisfied: Jinja2>=2.4 in /home/nir0s/.virtualenvs/cfyt/lib/python2.7/site-packages (from Flask)
+Collecting Werkzeug>=0.7 (from Flask)
+Requirement already satisfied: markupsafe in /home/nir0s/.virtualenvs/cfyt/lib/python2.7/site-packages (from Jinja2>=2.4->Flask)
+Installing collected packages: itsdangerous, Werkzeug, Flask
+Successfully installed Flask-0.12 Werkzeug-0.11.15 itsdangerous-0.24
+
+...
 ```
 
-#### Examples
-
-```shell
-# install a package from a local archive tar file and upgrade if already 
-# installed. Also, ignore the platform check which would force a package 
-# (whether it is or isn't compiled for a specific platform) to be installed.
-wagon install ~/tars/cloudify_script_plugin-1.2-py27-none-any.wgn --upgrade --ignore-platform
-
-# install a package from a url into an existing virtualenv.
-wagon install http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn --virtualenv my_env
-
-# pass additional args to `pip install` (NOTE that conflicting arguments are not handled by wagon.)
-wagon install http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn -a '--no-cache-dir'
-```
-
-Note that `--pre` is appended to the installation command to enable installation of prerelease versions.
+NOTE: `--pre` is appended to the installation command to enable installation of prerelease versions.
 
 #### Installing Manually
 
 While wagon provides a generic way of installing wagon created archives, you might not want to use the installer as you might not wish to install wagon on your application servers. Installing the package manually via pip is as easy as running (for example):
 
-```shell
+```bash
 # For Linux (Windows wagon archives are zip files)
-tar -xzvf http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn
-pip install --no-index --find-links cloudify-script-plugin/wheels cloudify-script-plugin
+tar -xzvf http://me.com/tar -xzvf Flask-0.12-py27-none-linux_x86_64.wgn
+pip install --no-index --find-links Flask/wheels flask
 ```
 
 
 ### Validate Packages
-
-```sheel
-wagon validate -h
-```
 
 The `validate` function provides shallow validation of a Wagon archive. Basically, that all required wheels for a package are present and that the package is installable. It obviously does not check for a package's functionality.
 
@@ -146,31 +152,139 @@ Note that the `--validate` flag provided with the `create` function uses this sa
 
 Also note that validation must take place only on an OS distribution which supports the wagon archive if it contains C extensions. For instance, a win32 specific wagon archive will fail to validate on a Linux machine.
 
-#### Examples
+`virtualenv` must be installed for Wagon to be able to validate an archive to not pollute the current environment. You can run `pip install wagon[venv]` to install the relevant dependency.
 
-```shell
-# validate that an archive is a wagon compatible package
-wagon validate ~/tars/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn
-# validate from a url
-wagon validate http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn
+```bash
+$ wagon validate Flask-0.12-py27-none-linux_x86_64.wgn 
+...
+
+Validating Flask-0.12-py27-none-linux_x86_64.wgn
+Installing /tmp/tmpAWj0nl/Flask
+Installing Flask...
+Validation Passed!
+(cfyt) [nir0s@nir0s-x1 wagon]$ wagon validate Flask-0.12-py27-none-linux_x86_64.wgn -v
+Validating Flask-0.12-py27-none-linux_x86_64.wgn
+Retrieving source...
+Extracting tgz Flask-0.12-py27-none-linux_x86_64.wgn to /tmp/tmp2gqpy1...
+Source is: /tmp/tmp2gqpy1/Flask
+Verifying that all required files exist...
+Testing package installation...
+Creating Virtualenv /tmp/tmpdPNDIi...
+Executing: virtualenv /tmp/tmpdPNDIi...
+Using real prefix '/usr'
+New python executable in /tmp/tmpdPNDIi/bin/python2
+Also creating executable in /tmp/tmpdPNDIi/bin/python
+Installing setuptools, pip, wheel...done.
+Installing /tmp/tmp2gqpy1/Flask
+Retrieving source...
+Source is: /tmp/tmp2gqpy1/Flask
+Validating Platform linux_x86_64 is supported...
+Installing Flask...
+Executing: /tmp/tmpdPNDIi/bin/pip install Flask --use-wheel --no-index --find-links /tmp/tmp2gqpy1/Flask/wheels --pre...
+Collecting Flask
+Collecting itsdangerous>=0.21 (from Flask)
+Collecting click>=2.0 (from Flask)
+Collecting Jinja2>=2.4 (from Flask)
+Collecting Werkzeug>=0.7 (from Flask)
+Collecting MarkupSafe>=0.23 (from Jinja2>=2.4->Flask)
+Installing collected packages: itsdangerous, click, MarkupSafe, Jinja2, Werkzeug, Flask
+Successfully installed Flask-0.12 Jinja2-2.9.2 MarkupSafe-0.23 Werkzeug-0.11.15 click-6.7 itsdangerous-0.24
+Executing: /tmp/tmpdPNDIi/bin/pip freeze...
+Package Flask is installed in /tmp/tmpdPNDIi
+Validation Passed!
+
+...
 ```
 
 
 ### Show Metadata
 
-```sheel
-wagon showmeta -h
-```
-
 Given a Wagon archive, this will print its metadata.
 
-#### Examples
+```bash
+$ wagon show Flask-0.12-py27-none-linux_x86_64.wgn
+...
 
-```shell
-wagon showmeta http://me.com/cloudify_script_plugin-1.2-py27-none-any-none-none.wgn
+Retrieving Metadata for: Flask-0.12-py27-none-linux_x86_64.wgn
+{
+    "archive_name": "Flask-0.12-py27-none-linux_x86_64.wgn", 
+    "build_server_os_properties": {
+        "distribution": "antergos", 
+        "distribution_release": "archcode", 
+        "distribution_version": ""
+    }, 
+    "created_by_wagon_version": "0.6.0", 
+    "package_name": "Flask", 
+    "package_source": "flask", 
+    "package_version": "0.12", 
+    "supported_platform": "linux_x86_64", 
+    "supported_python_versions": [
+        "py27"
+    ], 
+    "wheels": [
+        "MarkupSafe-0.23-cp27-cp27mu-linux_x86_64.whl", 
+        "Werkzeug-0.11.15-py2.py3-none-any.whl", 
+        "Jinja2-2.9.2-py2.py3-none-any.whl", 
+        "click-6.7-py2.py3-none-any.whl", 
+        "itsdangerous-0.24-cp27-none-any.whl", 
+        "Flask-0.12-py2.py3-none-any.whl"
+    ]
+}
+
+...
 ```
 
+### Repair Wagon
 
+`auditwheel` is a tool (currently under development) provided by pypa to "repair" wheels to support multiple linux distributions. Information on auditwheel is provided [here](https://github.com/pypa/auditwheel).
+
+Wagon provides a way to repair a wagon by iterating over its wheels and fixing all of them.
+
+For more information, see [Linux Support for compiled wheels](Linux Support for compiled wheels) below.
+
+The following example was executed on a container provided for wheel-auditing purposes which you can be run like so:
+
+```bash
+$ docker run -it -v `pwd`:/io quay.io/pypa/manylinux1_x86_64 /bin/bash
+```
+
+```bash
+$ /opt/python/cp27-cp27m/bin/pip install wagon
+...
+
+$ /opt/python/cp27-cp27m/bin/wagon repair cloudify-4.0a10-py27-none-linux_x86_64.wgn -v
+...
+
+INFO - Repairing: cloudify-4.0a10-py27-none-linux_x86_64.wgn
+DEBUG - Retrieving source...
+DEBUG - Extracting tgz cloudify-4.0a10-py27-none-linux_x86_64.wgn to /tmp/tmpDZ4kNC...
+DEBUG - Source is: /tmp/tmpDZ4kNC/cloudify
+DEBUG - Executing: auditwheel repair /tmp/tmpDZ4kNC/cloudify/wheels/PyYAML-3.10-cp27-cp27m-linux_x86_64.whl -w /tmp/tmpDZ4kNC/cloudify/wheels...
+DEBUG - Repairing PyYAML-3.10-cp27-cp27m-linux_x86_64.whl
+DEBUG - Previous filename tags: linux_x86_64
+DEBUG - New filename tags: manylinux1_x86_64
+DEBUG - Previous WHEEL info tags: cp27-cp27m-linux_x86_64
+DEBUG - New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
+DEBUG - Executing: auditwheel repair /tmp/tmpDZ4kNC/cloudify/wheels/MarkupSafe-0.23-cp27-cp27m-linux_x86_64.whl -w /tmp/tmpDZ4kNC/cloudify/wheels...
+DEBUG - Repairing MarkupSafe-0.23-cp27-cp27m-linux_x86_64.whl
+DEBUG - Previous filename tags: linux_x86_64
+DEBUG - New filename tags: manylinux1_x86_64
+DEBUG - Previous WHEEL info tags: cp27-cp27m-linux_x86_64
+DEBUG - New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
+DEBUG - Executing: auditwheel repair /tmp/tmpDZ4kNC/cloudify/wheels/pycrypto-2.6.1-cp27-cp27m-linux_x86_64.whl -w /tmp/tmpDZ4kNC/cloudify/wheels...
+DEBUG - Repairing pycrypto-2.6.1-cp27-cp27m-linux_x86_64.whl
+DEBUG - Previous filename tags: linux_x86_64
+DEBUG - New filename tags: manylinux1_x86_64
+DEBUG - Previous WHEEL info tags: cp27-cp27m-linux_x86_64
+DEBUG - New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
+DEBUG - Generating Metadata...
+...
+DEBUG - Writing metadata to file: /tmp/tmpDZ4kNC/cloudify/package.json
+INFO - Creating tgz archive: /cloudify-4.0a10-py27-none-manylinux1_x86_64.wgn...
+INFO - Wagon created successfully at: /cloudify-4.0a10-py27-none-manylinux1_x86_64.wgn
+
+...
+```
 
 ## Naming and Versioning
 
@@ -227,19 +341,19 @@ A Metadata file is generated for the archive and looks somewhat like this:
 * The Metadata file resides in the tar.gz file under 'package.json'.
 * The installer uses the metadata file to check that the platform fits the machine the package is being installed on.
 * OS Properties only appear when creating compiled Linux packages (see Linux Distributions section). In case of a non-linux platform (e.g. win32, any), null values will be supplied for OS properties.
+* The distribution identification is done using `platform.linux_distribution`, which is deprecated and will be removed in Python 3.7. `https://github.com/nir0s/distro` is a successor of that functionality and can be installed by running `pip install wagon[dist]`. We currently use distro only if it is instsalled. In later versions of wagon, we will stop using `platform.linux_distribution` altogether.
 
 
 ## Archive naming convention and Platform
 
 The archive is named according to the Wheel naming convention described in [PEP0491](https://www.python.org/dev/peps/pep-0491/#file-name-convention).
 
-Example Output Archive: `cloudify_fabric_plugin-1.2.1-py27-none-any-none-none.wgn`
+Example Output Archive: `cloudify_fabric_plugin-1.2.1-py27-none-any.wgn`
 
 
 * `{python tag}`: The Python version is set by the Python running the packaging process. That means that while a package might run on both py27 and py33 (for example), since the packaging process took place using Python 2.7, only py27 will be appended to the name. A user can also explicitly provide the supported Python versions for the package via the `pyver` flag.
 * `{platform tag}`: Normally, the platform (e.g. `linux_x86_64`, `win32`) is set for each specific wheel. To know which platform the package with its dependencies can be installed on, all wheels are checked. If a specific wheel has a platform property other than `any`, that platform will be used as the platform of the package. Of course, we assume that there can't be wheels downloaded or created on a specific machine platform that belongs to two different platforms.
 * `{abi tag}`: Note that the ABI tag is currently ignored and will always be `none`. This might be changed in the future to support providing an ABI tag.
-* For Linux (see below), two additional tags are added: `{distribution tag}` and `{release tag}`. Note that these tags are NOT a part of the PEP.
 
 
 Important Note!
@@ -251,15 +365,15 @@ Wagons created with wheels which are built for `manylinux1` will support `manyli
 
 ## Linux Support for compiled wheels
 
-Example Output Archive: `cloudify_fabric_plugin-1.2.1-py27-none-linux_x86_64-ubuntu-trusty.wgn`
+Example Output Archive: `cloudify_fabric_plugin-1.2.1-py27-none-linux_x86_64.wgn`
 
-Wheels which require compilation of C extensions and are compiled on Linux are not uploaded to PyPI due to variations between compilation environments on different distributions and links to varying system libraries.
+Wheels which require compilation of C-extensions and are compiled on Linux are not uploaded to PyPI due to variations between compilation environments on different distributions and links to varying system libraries.
 
-To overcome that (partially), if running Wagon on Linux and the package requires compilation, the metadata and archive name both provide the distribution and release of the OS that the archive was created on (via platform.linux_distribution()). Statistically speaking, this should provide the user with the information they need to know which OS the package can be installed on. Obviously, this is not true for cases where non-generic compilation methods are used on the creating OS but otherwise should work, and should specifically always work when both compilation environment and Python version are similar on the creating and installing OS - which, we generally recommend.
+To overcome that (partially), if running Wagon on Linux and the package requires compilation, the metadata provides the distribution, version and release name of the OS that the archive was created on (via `platform.linux_distribution()` and `https://github.com/nir0s/distro`). Statistically speaking, this should provide the user with the information they need to know which OS the package can be installed on. Obviously, this is not true for cases where non-generic compilation methods are used on the creating OS but otherwise should work, and should specifically always work when both compilation environment and Python version are similar on the creating and installing OS - which, we generally recommend.
 
-What this practically means, is that in most cases, using the metadata to compare the distro, release and the Python version under which the package is installed would allow a user to use Wagon rather safely. Of course, Wagon provides no guarantee whatsoever as to whether this will actually work or not and users must test their archives.
+What this practically means, is that in most cases, using the metadata to compare the distro, distro version and the Python version under which the package is installed would allow a user to use Wagon rather safely. Of course, Wagon provides no guarantee whatsoever as to whether this will actually work or not and users must test their archives.
 
-That being said, Wagon is completely safe for creating and installing Pure Python package archives for any platform, and, due to the nature of Wheels, packages compiled for OS X or Windows.
+That being said, Wagon is completely safe for creating and installing Pure Python package archives for any platform, and, due to the nature of Wheels, packages compiled for OS X or Windows on corresponding architectures.
 
 
 ## Python API
@@ -330,9 +444,21 @@ print(metadata)
 ```
 
 
+### Repair
+
+```python
+
+import wagon
+
+source = 'http://my-wagons.com/flask-0.10.1-py27-none-linux_x86_64-Ubuntu-trusty.wgn'
+repaired_archive_path = wagon.repair(source=source, validate=True)
+```
+
+
 ## Testing
 
 NOTE: Running the tests require an internet connection
+NOTE: Some tests check if the `CI` env var is set. If not, they will not run.
 
 ```shell
 git clone git@github.com:cloudify-cosmo/wagon.git
@@ -346,5 +472,4 @@ tox
 ..are always welcome. We're looking to:
 
 * Provide the most statistically robust way of identification and installation of Linux compiled Wheels.
-* We would like to support creating `manylinux1` wagons for wheels not created as `manylinux1` by allowing wagon to use auditwheel to `repair` the wheels. See [auditwheel](http://github.com/pypa/auditwheel) for additional info.
 
