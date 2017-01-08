@@ -80,7 +80,7 @@ PROCESS_POLLING_INTERVAL = 0.1
 
 def setup_logger():
     handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter('%(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(message)s')
     handler.setFormatter(formatter)
     logger = logging.getLogger('wagon')
     logger.addHandler(handler)
@@ -1035,23 +1035,36 @@ def _add_verbose_argument(parser):
     return parser
 
 
-def _add_common(parser, func):
-    parser.add_argument('SOURCE')
+def _set_defaults(parser, func):
     parser = _add_verbose_argument(parser)
     parser.set_defaults(func=func)
     return parser
 
 
 def _add_create_command(parser):
+    description = ('Create a Wagon archive')
+
     command = parser.add_parser(
         'create',
-        help='Create a wagon from pip-installable sources')
+        description=description,
+        help=description)
+
+    source_help = (
+        'The source from which to create the archive. '
+        'Possible formats are:'
+        'PACKAGE_NAME, PACKAGE_NAME==PACKAGE_VERSION, '
+        'https://github.com/org/repo/archive/branch.extension, '
+        '/path/to/github/like/archive, '
+        '/path/to/package/where/setup.py/resides'
+    )
+    command.add_argument('SOURCE', help=source_help)
 
     command.add_argument(
         '-r',
         '--requirements-file',
         action='append',
-        help='Whether to also pack wheels from a requirements file')
+        help='Whether to also pack wheels from a requirements file. '
+             'This argument can be provided multiple times')
     command.add_argument(
         '-t',
         '--format',
@@ -1093,14 +1106,28 @@ def _add_create_command(parser):
         help='Allows to pass additional arguments to `pip wheel`. '
              '(e.g. --no-cache-dir -c constains.txt)')
 
-    _add_common(command, func=_create_wagon)
+    _set_defaults(command, func=_create_wagon)
+    return parser
+
+
+def _add_wagon_archive_source_argument(parser):
+    source_help = (
+        'The source from which to create the archive. '
+        'Possible formats are:'
+        'URL to wagon archive, '
+        '/path/to/wagon/archive'
+    )
+    parser.add_argument('SOURCE', help=source_help)
     return parser
 
 
 def _add_install_command(parser):
+    description = ('Install a Wagon archive')
+
     command = parser.add_parser(
         'install',
-        help='Install a Wagon')
+        description=description,
+        help=description)
 
     command.add_argument(
         '-r',
@@ -1127,35 +1154,55 @@ def _add_install_command(parser):
         help='Allows to pass additional arguments to `pip install`. '
              '(e.g. -i my_pypi_index --retries 5')
 
-    _add_common(command, func=_install_wagon)
+    _add_wagon_archive_source_argument(command)
+    _set_defaults(command, func=_install_wagon)
     return parser
 
 
 def _add_validate_command(parser):
+    description = (
+        "Validate an archive\n\nThis validates that the archive's "
+        "structure is one of a valid wagon and\nthat all required "
+        "wheels exist, after which it creates a virtualenv and\n"
+        "installs the package into it."
+    )
+
     command = parser.add_parser(
         'validate',
-        help=("Validate an archive\nThis validates that the archive's\n"
-              "structure is one of a valid wagon and that all requires\n"
-              "wheels exist, after which it creates a virtualenv\n"
-              "and installs the package into it."))
+        description=description,
+        help='Validate a wagon archive')
 
-    _add_common(command, func=_validate_wagon)
+    _add_wagon_archive_source_argument(command)
+    _set_defaults(command, func=_validate_wagon)
     return parser
 
 
 def _add_show_command(parser):
+    description = ('Print out the metadata of a wagon')
+
     command = parser.add_parser(
         'show',
-        help='Print out the metadata of a wagon')
+        description=description,
+        help=description)
 
-    _add_common(command, func=_show_wagon)
+    _add_wagon_archive_source_argument(command)
+    _set_defaults(command, func=_show_wagon)
     return parser
 
 
 def _add_repair_command(parser):
+    description = (
+        'Use auditwheel to repair all wheels in a wagon. \n\n'
+        'Note that this requires a specific environment where\n'
+        'auditwheel can work and you must install auditwheel\n'
+        'manually. For more information, '
+        'see https://github.com/pypa/auditwheel.'
+    )
+
     command = parser.add_parser(
         'repair',
-        help='Use auditwheel to repair all wheels in a wagon')
+        description=description,
+        help='Repair a Wagon archive')
 
     command.add_argument(
         '--validate',
@@ -1163,11 +1210,14 @@ def _add_repair_command(parser):
         action='store_true',
         help='Runs a postcreation validation on the archive')
 
-    _add_common(command, func=_repair_wagon)
+    _add_wagon_archive_source_argument(command)
+    _set_defaults(command, func=_repair_wagon)
     return parser
 
 
-class ErrorHandlingParser(argparse.ArgumentParser):
+# TODO: Find a way to both provide an error handler AND multiple formatter
+# classes.
+class CustomFormatter(argparse.ArgumentParser):
     def error(self, message):
         # We want to make sure that when there are missing or illegal arguments
         # we error out informatively.
@@ -1176,16 +1226,19 @@ class ErrorHandlingParser(argparse.ArgumentParser):
 
 
 def _assert_atleast_one_arg(parser):
-    # When running `wagon`, this will make sure we exit without erroring out
+    """When simply running `wagon`, this will make sure we exit without
+    erroring out.
+    """
     if len(sys.argv) == 1:
         parser.print_help()
         parser.exit(0)
 
 
 def parse_args():
-    parser = ErrorHandlingParser(
+    parser = CustomFormatter(
         description=DESCRIPTION,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
     parser = _add_verbose_argument(parser)
 
     subparsers = parser.add_subparsers()
