@@ -1167,10 +1167,25 @@ def _add_repair_command(parser):
     return parser
 
 
+class ErrorHandlingParser(argparse.ArgumentParser):
+    def error(self, message):
+        # We want to make sure that when there are missing or illegal arguments
+        # we error out informatively.
+        self.print_help()
+        sys.exit('\nerror: %s\n' % message)
+
+
+def _assert_atleast_one_arg(parser):
+    # When running `wagon`, this will make sure we exit without erroring out
+    if len(sys.argv) == 1:
+        parser.print_help()
+        parser.exit(0)
+
+
 def parse_args():
-    parser = argparse.ArgumentParser(
+    parser = ErrorHandlingParser(
         description=DESCRIPTION,
-        formatter_class=argparse.RawTextHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser = _add_verbose_argument(parser)
 
     subparsers = parser.add_subparsers()
@@ -1179,6 +1194,8 @@ def parse_args():
     subparsers = _add_validate_command(subparsers)
     subparsers = _add_show_command(subparsers)
     subparsers = _add_repair_command(subparsers)
+
+    _assert_atleast_one_arg(parser)
 
     return parser.parse_args()
 
