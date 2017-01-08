@@ -629,7 +629,7 @@ class TestCreate:
             TEST_PACKAGE_VERSION,
             self.python_versions,
             self.platform)
-        result = _invoke('wagon create {0} -v -f -t zip'.format(TEST_ZIP))
+        result = _invoke('wagon create {0} -v -f -t tar.gz'.format(TEST_ZIP))
         metadata = self._test(result)
         assert metadata['package_source'] == TEST_ZIP
 
@@ -818,7 +818,7 @@ class TestValidate:
         archive_name = os.path.basename(archive_path)
         tempdir = tempfile.mkdtemp()
         try:
-            wagon._untar(archive_name, tempdir)
+            wagon._unzip(archive_name, tempdir)
             wheels_dir = os.path.join(
                 tempdir, 'test-package', wagon.DEFAULT_WHEELS_PATH)
             for wheel in os.listdir(wheels_dir):
@@ -845,12 +845,13 @@ class TestValidate:
 class TestShowMetadata:
     def setup_method(self, test_method):
         self.archive_path = wagon.create(source=TEST_PACKAGE, force=True)
-        wagon._untar(self.archive_path, '.')
-        self.expected_metadata = wagon._get_metadata(TEST_PACKAGE_NAME)
+        # wagon._unzip(self.archive_path, '.')
+        self.extracted_source = wagon.get_source(self.archive_path)
+        self.expected_metadata = wagon._get_metadata(self.extracted_source)
 
     def teardown_method(self, test_method):
         os.remove(self.archive_path)
-        shutil.rmtree(TEST_PACKAGE_NAME, ignore_errors=True)
+        shutil.rmtree(self.extracted_source, ignore_errors=True)
 
     def test_show_metadata_for_archive(self):
         # merely invoke it directly for coverage sake

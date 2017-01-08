@@ -613,10 +613,10 @@ def get_source_name_and_version(source):
 
 
 def _create_wagon_archive(source_path, archive_path, archive_format='tar.gz'):
-    if archive_format.lower() == 'tar.gz':
-        _tar(source_path, archive_path)
-    elif archive_format.lower() == 'zip':
+    if archive_format.lower() == 'zip':
         _zip(source_path, archive_path)
+    elif archive_format.lower() == 'tar.gz':
+        _tar(source_path, archive_path)
     else:
         raise WagonError(
             'Unsupported archive format to create: {0} '
@@ -694,11 +694,8 @@ def create(source,
            python_versions=None,
            validate_archive=False,
            wheel_args='',
-           archive_format='tar.gz'):
+           archive_format='zip'):
     """Create a Wagon archive and returns its path.
-
-    This currently only creates tar.gz archives. The `install`
-    method assumes tar.gz when installing on Windows as well.
 
     Package name and version are extracted from the setup.py file
     of the `source` or from the PACKAGE_NAME==PACKAGE_VERSION if the source
@@ -1104,8 +1101,8 @@ def _add_create_command(parser):
         '-t',
         '--format',
         required=False,
-        default='tar.gz',
-        choices=(['tar.gz', 'zip']),
+        default='zip',
+        choices=(['zip', 'tar.gz']),
         help='Which file format to generate')
     command.add_argument(
         '-f',
