@@ -51,9 +51,10 @@ except ImportError:
 
 try:
     import virtualenv
-    VIRTUALENV_EXISTS = True
+    IS_VIRTUALENV_INSTALLED = True
 except ImportError:
-    VIRTUALENV_EXISTS = False
+    IS_VIRTUALENV_INSTALLED = False
+
 from wheel import pep425tags
 
 DESCRIPTION = \
@@ -107,7 +108,8 @@ def is_verbose():
     try:
         return verbose
     except NameError:
-        return False
+        verbose = False
+        return verbose
 
 
 class PipeReader(Thread):
@@ -135,7 +137,7 @@ def _run(cmd, suppress_errors=False, suppress_output=False):
     """Execute a command
     """
     if is_verbose():
-        logger.debug('Executing: "{0}"'.format(cmd))
+        logger.debug('Executing: "%s"', format(cmd))
     process = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -187,7 +189,7 @@ def _construct_wheel_command(wheels_path='package',
 
 
 def wheel(package,
-          requirement_files=False,
+          requirement_files=None,
           wheels_path='package',
           wheel_args=None):
     logger.info('Downloading Wheels for %s...', package)
@@ -199,8 +201,8 @@ def wheel(package,
             requirement_files)
         process = _run(wheel_command)
         if not process.returncode == 0:
-            raise WagonError('Could not download wheels for: {0} ({1})'.format(
-                requirement_files, process.aggr_stderr))
+            raise WagonError('Failed to download wheels for: {0}'.format(
+                requirement_files))
 
     wheel_command = _construct_wheel_command(
         wheels_path,
@@ -208,8 +210,7 @@ def wheel(package,
         package=package)
     process = _run(wheel_command)
     if not process.returncode == 0:
-        raise WagonError('Could not download wheels for: {0} ({1})'.format(
-            package, process.aggr_stderr))
+        raise WagonError('Failed to download wheels for: {0}'.format(package))
 
     wheels = _get_downloaded_wheels(wheels_path)
 
@@ -229,8 +230,6 @@ def _construct_pip_command(package,
     pip_command = [pip_executable, 'install']
     for req_file in requirement_files:
         pip_command.extend(['-r', req_file])
-    if install_args:
-        pip_command.append(install_args)
     pip_command.append(package)
     pip_command.extend(
         ['--use-wheel', '--no-index', '--find-links', wheels_path])
@@ -239,6 +238,8 @@ def _construct_pip_command(package,
     pip_command.append('--pre')
     if upgrade:
         pip_command.append('--upgrade')
+    if install_args:
+        pip_command.append(install_args)
 
     return ' '.join(pip_command)
 
@@ -262,7 +263,7 @@ def install_package(package,
 
     logger.info('Installing %s...', package)
     if venv and not os.path.isdir(venv):
-        raise WagonError('Virtualenv {0} does not exist'.format(venv))
+        raise WagonError('virtualenv {0} does not exist'.format(venv))
 
     pip_command = _construct_pip_command(
         package,
@@ -367,10 +368,10 @@ def _get_wheel_tags(wheel_name):
     return filename.split('-')
 
 
-def _get_package_name_from_wheel_name(wheel_name):
-    """Extract the platform of a wheel from its file name.
-    """
-    return _get_wheel_tags(wheel_name)[0]
+# def _get_package_name_from_wheel_name(wheel_name):
+#     """Extract the platform of a wheel from its file name.
+#     """
+#     return _get_wheel_tags(wheel_name)[0]
 
 
 def _get_platform_from_wheel_name(wheel_name):
@@ -438,10 +439,11 @@ def _get_env_bin_path(env_path):
     a virtualenv in which virtualenv isn't installed and so
     is not importable.
     """
-    if globals().get('virtualenv'):
-        return virtualenv.path_locations(env_path)[3]
+    if IS_VIRTUALENV_INSTALLED:
+        path = virtualenv.path_locations(env_path)[3]
     else:
-        return os.path.join(env_path, 'scripts' if IS_WIN else 'bin')
+        path = os.path.join(env_path, 'Scripts' if IS_WIN else 'bin')
+    return r'{0}'.format(path)
 
 
 def _get_pip_path(venv=None):
@@ -692,7 +694,7 @@ def create(source,
            python_versions=None,
            validate_archive=False,
            wheel_args='',
-           format='tar.gz'):
+           archive_format='tar.gz'):
     """Create a Wagon archive and returns its path.
 
     This currently only creates tar.gz archives. The `install`
@@ -711,6 +713,9 @@ def create(source,
     will be automatically extracted from either the GitHub archive URL
     or the local path provided provided in `source`.
     """
+    if validate_archive:
+        _assert_virtualenv_is_installed()
+
     logger.info('Creating archive for %s...', source)
     processed_source = get_source(source)
     if os.path.isdir(processed_source) and not \
@@ -756,7 +761,7 @@ def create(source,
         source,
         wheels)
 
-    _create_wagon_archive(workdir, archive_path, format)
+    _create_wagon_archive(workdir, archive_path, archive_format)
     if not keep_wheels:
         logger.debug('Removing work directory...')
         shutil.rmtree(tempdir, ignore_errors=True)
@@ -765,6 +770,21 @@ def create(source,
         validate(archive_path)
     logger.info('Wagon created successfully at: %s', archive_path)
     return archive_path
+
+
+def _is_platform_supported(supported_platform, machine_platform):
+    if not IS_LINUX and machine_platform != supported_platform:
+        return False
+    elif IS_LINUX:
+        if 'manylinux' not in supported_platform \
+                and machine_platform != supported_platform:
+            return False
+
+        machine_arch = machine_platform.split('_')[1]
+        supported_arch = supported_platform.split('_')[1]
+        if supported_arch != machine_arch:
+            return False
+    return True
 
 
 def install(source,
@@ -798,9 +818,10 @@ def install(source,
     processed_source = get_source(source)
     metadata = _get_metadata(processed_source)
 
-    def raise_unsupported_platform():
+    def raise_unsupported_platform(machine_platform):
+        # TODO: Print which platform is supported?
         raise WagonError(
-            'Platform unsupported for package ({0})'.format(
+            'Platform unsupported for wagon ({0})'.format(
                 machine_platform))
 
     try:
@@ -809,16 +830,9 @@ def install(source,
             logger.debug(
                 'Validating Platform %s is supported...', supported_platform)
             machine_platform = get_platform()
-            # machine_platform = 'weird_platform'
-
-            if not IS_LINUX and machine_platform != supported_platform:
-                raise_unsupported_platform()
-            elif IS_LINUX and supported_platform.split('_')[1] != \
-                    machine_platform.split('_')[1]:
-                raise_unsupported_platform()
-            elif IS_LINUX and 'manylinux' not in supported_platform \
-                    and machine_platform != supported_platform:
-                raise_unsupported_platform()
+            if not _is_platform_supported(
+                    supported_platform, machine_platform):
+                raise_unsupported_platform(machine_platform)
 
         wheels_path = os.path.join(processed_source, DEFAULT_WHEELS_PATH)
         install_package(
@@ -831,6 +845,14 @@ def install(source,
     finally:
         if processed_source != source:
             shutil.rmtree(processed_source)
+
+
+def _assert_virtualenv_is_installed():
+    if not IS_VIRTUALENV_INSTALLED:
+        raise WagonError(
+            'virtualenv is not installed and is required for the '
+            'validation process. Please make sure virtualenv is installed '
+            'and is in the path. (You can run `pip install wagon[venv]`')
 
 
 def validate(source):
@@ -846,6 +868,8 @@ def validate(source):
     checks that the required wheels exist vs. the list of wheels
     supplied in the `wheels` key.
     """
+    _assert_virtualenv_is_installed()
+
     logger.info('Validating %s', source)
     processed_source = get_source(source)
     metadata = _get_metadata(processed_source)
@@ -990,7 +1014,7 @@ def _create_wagon(args):
             python_versions=args.pyver,
             validate_archive=args.validate,
             wheel_args=args.wheel_args,
-            format=args.format)
+            archive_format=args.format)
     except WagonError as ex:
         sys.exit(ex)
 
