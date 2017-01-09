@@ -1,6 +1,5 @@
-nose
 mock
-nose-cov
-testtools
+pytest
+pytest-cov
 testfixtures
 virtualenv>=12.1
