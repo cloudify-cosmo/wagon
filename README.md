@@ -83,8 +83,36 @@ $ wagon create flask
 ...
 
 Creating archive for flask...
+Retrieving source...
+Source is: Flask
 Downloading Wheels for Flask...
+Collecting Flask
+Using cached Flask-0.12-py2.py3-none-any.whl
+Saved /tmp/tmpcYHwh0/Flask/wheels/Flask-0.12-py2.py3-none-any.whl
+Collecting itsdangerous>=0.21 (from Flask)
+Saved /tmp/tmpcYHwh0/Flask/wheels/itsdangerous-0.24-cp27-none-any.whl
+Collecting click>=2.0 (from Flask)
+Using cached click-6.7-py2.py3-none-any.whl
+Saved /tmp/tmpcYHwh0/Flask/wheels/click-6.7-py2.py3-none-any.whl
+Collecting Jinja2>=2.4 (from Flask)
+Using cached Jinja2-2.9.3-py2.py3-none-any.whl
+Saved /tmp/tmpcYHwh0/Flask/wheels/Jinja2-2.9.3-py2.py3-none-any.whl
+Collecting Werkzeug>=0.7 (from Flask)
+Using cached Werkzeug-0.11.15-py2.py3-none-any.whl
+Saved /tmp/tmpcYHwh0/Flask/wheels/Werkzeug-0.11.15-py2.py3-none-any.whl
+Collecting MarkupSafe>=0.23 (from Jinja2>=2.4->Flask)
+Saved /tmp/tmpcYHwh0/Flask/wheels/MarkupSafe-0.23-cp27-cp27mu-linux_x86_64.whl
+Skipping Flask, due to already being wheel.
+Skipping itsdangerous, due to already being wheel.
+Skipping click, due to already being wheel.
+Skipping Jinja2, due to already being wheel.
+Skipping Werkzeug, due to already being wheel.
+Skipping MarkupSafe, due to already being wheel.
+Platform is: linux_x86_64
+Generating Metadata...
+Writing metadata to file: /tmp/tmpcYHwh0/Flask/package.json
 Creating tgz archive: ./Flask-0.12-py27-none-linux_x86_64.wgn...
+Removing work directory...
 Wagon created successfully at: ./Flask-0.12-py27-none-linux_x86_64.wgn
 
 ...
@@ -105,18 +133,16 @@ So, for instance, providing a `dev-requirements` file which contains a `-e DEPEN
 ### Install Packages
 
 ```bash
-$ wagon install flask -v
+$ wagon install Flask-0.12-py27-none-linux_x86_64.wgn
 ...
 
-$ wagon install Flask-0.12-py27-none-linux_x86_64.wgn -v
 Installing Flask-0.12-py27-none-linux_x86_64.wgn
 Retrieving source...
 Extracting tgz Flask-0.12-py27-none-linux_x86_64.wgn to /tmp/tmplXv6Fi...
 Source is: /tmp/tmplXv6Fi/Flask
 Validating Platform linux_x86_64 is supported...
 Installing Flask...
-Installing within current virtualenv: True...
-Executing: /home/nir0s/.virtualenvs/cfyt/bin/pip install Flask --use-wheel --no-index --find-links /tmp/tmplXv6Fi/Flask/wheels --pre...
+Installing within current virtualenv
 Collecting Flask
 Collecting itsdangerous>=0.21 (from Flask)
 Requirement already satisfied: click>=2.0 in /home/nir0s/.virtualenvs/cfyt/lib/python2.7/site-packages (from Flask)
@@ -155,14 +181,9 @@ Also note that validation must take place only on an OS distribution which suppo
 `virtualenv` must be installed for Wagon to be able to validate an archive to not pollute the current environment. You can run `pip install wagon[venv]` to install the relevant dependency.
 
 ```bash
-$ wagon validate Flask-0.12-py27-none-linux_x86_64.wgn 
+$ wagon validate Flask-0.12-py27-none-linux_x86_64.wgn
 ...
 
-Validating Flask-0.12-py27-none-linux_x86_64.wgn
-Installing /tmp/tmpAWj0nl/Flask
-Installing Flask...
-Validation Passed!
-(cfyt) [nir0s@nir0s-x1 wagon]$ wagon validate Flask-0.12-py27-none-linux_x86_64.wgn -v
 Validating Flask-0.12-py27-none-linux_x86_64.wgn
 Retrieving source...
 Extracting tgz Flask-0.12-py27-none-linux_x86_64.wgn to /tmp/tmp2gqpy1...
@@ -170,7 +191,6 @@ Source is: /tmp/tmp2gqpy1/Flask
 Verifying that all required files exist...
 Testing package installation...
 Creating Virtualenv /tmp/tmpdPNDIi...
-Executing: virtualenv /tmp/tmpdPNDIi...
 Using real prefix '/usr'
 New python executable in /tmp/tmpdPNDIi/bin/python2
 Also creating executable in /tmp/tmpdPNDIi/bin/python
@@ -180,7 +200,6 @@ Retrieving source...
 Source is: /tmp/tmp2gqpy1/Flask
 Validating Platform linux_x86_64 is supported...
 Installing Flask...
-Executing: /tmp/tmpdPNDIi/bin/pip install Flask --use-wheel --no-index --find-links /tmp/tmp2gqpy1/Flask/wheels --pre...
 Collecting Flask
 Collecting itsdangerous>=0.21 (from Flask)
 Collecting click>=2.0 (from Flask)
@@ -189,7 +208,6 @@ Collecting Werkzeug>=0.7 (from Flask)
 Collecting MarkupSafe>=0.23 (from Jinja2>=2.4->Flask)
 Installing collected packages: itsdangerous, click, MarkupSafe, Jinja2, Werkzeug, Flask
 Successfully installed Flask-0.12 Jinja2-2.9.2 MarkupSafe-0.23 Werkzeug-0.11.15 click-6.7 itsdangerous-0.24
-Executing: /tmp/tmpdPNDIi/bin/pip freeze...
 Package Flask is installed in /tmp/tmpdPNDIi
 Validation Passed!
 
@@ -205,7 +223,6 @@ Given a Wagon archive, this will print its metadata.
 $ wagon show Flask-0.12-py27-none-linux_x86_64.wgn
 ...
 
-Retrieving Metadata for: Flask-0.12-py27-none-linux_x86_64.wgn
 {
     "archive_name": "Flask-0.12-py27-none-linux_x86_64.wgn", 
     "build_server_os_properties": {
@@ -255,33 +272,29 @@ $ /opt/python/cp27-cp27m/bin/pip install wagon
 $ /opt/python/cp27-cp27m/bin/wagon repair cloudify-4.0a10-py27-none-linux_x86_64.wgn -v
 ...
 
-INFO - Repairing: cloudify-4.0a10-py27-none-linux_x86_64.wgn
-DEBUG - Retrieving source...
-DEBUG - Extracting tgz cloudify-4.0a10-py27-none-linux_x86_64.wgn to /tmp/tmpDZ4kNC...
-DEBUG - Source is: /tmp/tmpDZ4kNC/cloudify
-DEBUG - Executing: auditwheel repair /tmp/tmpDZ4kNC/cloudify/wheels/PyYAML-3.10-cp27-cp27m-linux_x86_64.whl -w /tmp/tmpDZ4kNC/cloudify/wheels...
-DEBUG - Repairing PyYAML-3.10-cp27-cp27m-linux_x86_64.whl
-DEBUG - Previous filename tags: linux_x86_64
-DEBUG - New filename tags: manylinux1_x86_64
-DEBUG - Previous WHEEL info tags: cp27-cp27m-linux_x86_64
-DEBUG - New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
-DEBUG - Executing: auditwheel repair /tmp/tmpDZ4kNC/cloudify/wheels/MarkupSafe-0.23-cp27-cp27m-linux_x86_64.whl -w /tmp/tmpDZ4kNC/cloudify/wheels...
-DEBUG - Repairing MarkupSafe-0.23-cp27-cp27m-linux_x86_64.whl
-DEBUG - Previous filename tags: linux_x86_64
-DEBUG - New filename tags: manylinux1_x86_64
-DEBUG - Previous WHEEL info tags: cp27-cp27m-linux_x86_64
-DEBUG - New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
-DEBUG - Executing: auditwheel repair /tmp/tmpDZ4kNC/cloudify/wheels/pycrypto-2.6.1-cp27-cp27m-linux_x86_64.whl -w /tmp/tmpDZ4kNC/cloudify/wheels...
-DEBUG - Repairing pycrypto-2.6.1-cp27-cp27m-linux_x86_64.whl
-DEBUG - Previous filename tags: linux_x86_64
-DEBUG - New filename tags: manylinux1_x86_64
-DEBUG - Previous WHEEL info tags: cp27-cp27m-linux_x86_64
-DEBUG - New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
-DEBUG - Generating Metadata...
-...
-DEBUG - Writing metadata to file: /tmp/tmpDZ4kNC/cloudify/package.json
-INFO - Creating tgz archive: /cloudify-4.0a10-py27-none-manylinux1_x86_64.wgn...
-INFO - Wagon created successfully at: /cloudify-4.0a10-py27-none-manylinux1_x86_64.wgn
+Repairing: cloudify-4.0a10-py27-none-linux_x86_64.wgn
+Retrieving source...
+Extracting tgz cloudify-4.0a10-py27-none-linux_x86_64.wgn to /tmp/tmpDZ4kNC...
+Source is: /tmp/tmpDZ4kNC/cloudify
+Repairing PyYAML-3.10-cp27-cp27m-linux_x86_64.whl
+Previous filename tags: linux_x86_64
+New filename tags: manylinux1_x86_64
+Previous WHEEL info tags: cp27-cp27m-linux_x86_64
+New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
+Repairing MarkupSafe-0.23-cp27-cp27m-linux_x86_64.whl
+Previous filename tags: linux_x86_64
+New filename tags: manylinux1_x86_64
+Previous WHEEL info tags: cp27-cp27m-linux_x86_64
+New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
+Repairing pycrypto-2.6.1-cp27-cp27m-linux_x86_64.whl
+Previous filename tags: linux_x86_64
+New filename tags: manylinux1_x86_64
+Previous WHEEL info tags: cp27-cp27m-linux_x86_64
+New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
+Generating Metadata...
+Writing metadata to file: /tmp/tmpDZ4kNC/cloudify/package.json
+Creating tgz archive: /cloudify-4.0a10-py27-none-manylinux1_x86_64.wgn...
+Wagon created successfully at: /cloudify-4.0a10-py27-none-manylinux1_x86_64.wgn
 
 ...
 ```
@@ -388,6 +401,8 @@ You can pass a `verbose` True/False flag to each of these functions.
 import wagon
 
 source = 'flask==0.10.1'
+
+wagon.set_verbose(True)
 
 archive_path = wagon.create(
     source,

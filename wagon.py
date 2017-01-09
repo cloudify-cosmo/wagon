@@ -84,11 +84,30 @@ def setup_logger():
     handler.setFormatter(formatter)
     logger = logging.getLogger('wagon')
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     return logger
 
 
 logger = setup_logger()
+
+
+def set_verbose(is_verbose):
+    # TODO: This is a very naive implementation. We should really
+    # use a logging configuration based on different levels of
+    # verbosity.
+    # The default level should be something in the middle and
+    # different levels of `--verbose` and `--quiet` flags should be
+    # supported.
+    global verbose
+    verbose = is_verbose
+
+
+def is_verbose():
+    global verbose
+    try:
+        return verbose
+    except NameError:
+        return False
 
 
 class PipeReader(Thread):
@@ -115,7 +134,8 @@ class PipeReader(Thread):
 def _run(cmd, suppress_errors=False, suppress_output=False):
     """Execute a command
     """
-    logger.debug('Executing: {0}...'.format(cmd))
+    if is_verbose():
+        logger.debug('Executing: "{0}"'.format(cmd))
     process = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -253,8 +273,7 @@ def install_package(package,
         install_args)
 
     if IS_VIRTUALENV and not venv:
-        logger.info(
-            'Installing within current virtualenv: %s...', IS_VIRTUALENV)
+        logger.info('Installing within current virtualenv')
 
     result = _run(pip_command)
     if not result.returncode == 0:
@@ -296,7 +315,7 @@ def _download_file(url, destination):
             "Failed to download file. Request to {0} "
             "failed with HTTP Error: {1}".format(url, response.code))
     final_url = response.geturl()
-    if final_url != url:
+    if final_url != url and is_verbose():
         logger.debug('Redirected to %s', final_url)
     f = URLopener()
     f.retrieve(final_url, destination)
@@ -453,7 +472,8 @@ def _make_virtualenv():
 
 def _get_package_info_from_pypi(source):
     pypi_url = DEFAULT_INDEX_SOURCE_URL_TEMPLATE.format(source)
-    logger.debug('Getting metadata for %s from %s...', source, pypi_url)
+    if is_verbose():
+        logger.debug('Getting metadata for %s from %s...', source, pypi_url)
     package_data = json.loads(_http_request(pypi_url))
     return package_data['info']
 
@@ -529,7 +549,8 @@ def _generate_metadata_file(workdir,
             }})
 
     formatted_metadata = json.dumps(metadata, indent=4, sort_keys=True)
-    logger.debug('Metadata is: %s', formatted_metadata)
+    if is_verbose():
+        logger.debug('Metadata is: %s', formatted_metadata)
     output_path = os.path.join(workdir, METADATA_FILE_NAME)
     with open(output_path, 'w') as f:
         logger.debug('Writing metadata to file: %s', output_path)
@@ -663,10 +684,6 @@ def _get_metadata(source_path):
     return metadata
 
 
-def _set_verbosity(verbose):
-    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-
-
 def create(source,
            requirement_files=None,
            force=False,
@@ -675,8 +692,7 @@ def create(source,
            python_versions=None,
            validate_archive=False,
            wheel_args='',
-           format='tar.gz',
-           verbose=False):
+           format='tar.gz'):
     """Create a Wagon archive and returns its path.
 
     This currently only creates tar.gz archives. The `install`
@@ -695,8 +711,6 @@ def create(source,
     will be automatically extracted from either the GitHub archive URL
     or the local path provided provided in `source`.
     """
-    _set_verbosity(verbose)
-
     logger.info('Creating archive for %s...', source)
     processed_source = get_source(source)
     if os.path.isdir(processed_source) and not \
@@ -721,7 +735,8 @@ def create(source,
             shutil.rmtree(processed_source, ignore_errors=True)
 
     platform = _get_platform_for_set_of_wheels(wheels_path)
-    logger.debug('Platform is: %s', platform)
+    if is_verbose():
+        logger.debug('Platform is: %s', platform)
     python_versions = _set_python_versions(python_versions)
 
     if not os.path.isdir(archive_destination_dir):
@@ -747,7 +762,7 @@ def create(source,
         shutil.rmtree(tempdir, ignore_errors=True)
 
     if validate_archive:
-        validate(archive_path, verbose)
+        validate(archive_path)
     logger.info('Wagon created successfully at: %s', archive_path)
     return archive_path
 
@@ -757,8 +772,7 @@ def install(source,
             requirement_files=None,
             upgrade=False,
             ignore_platform=False,
-            install_args='',
-            verbose=False):
+            install_args=''):
     """Install a Wagon archive.
 
     This can install in a provided `venv` or in the current
@@ -778,8 +792,6 @@ def install(source,
         architecture doesn't match (e.g. manylinux1_x86_64 vs. linux_i686)
         wheel not manylinux and no platform match (linux_x86_64 vs. linux_i686)
     """
-    _set_verbosity(verbose)
-
     requirement_files = requirement_files or []
 
     logger.info('Installing %s', source)
@@ -821,7 +833,7 @@ def install(source,
             shutil.rmtree(processed_source)
 
 
-def validate(source, verbose=False):
+def validate(source):
     """Validate a Wagon archive. Return True if succeeds, False otherwise.
     It also prints a list of all validation errors.
 
@@ -834,8 +846,6 @@ def validate(source, verbose=False):
     checks that the required wheels exist vs. the list of wheels
     supplied in the `wheels` key.
     """
-    _set_verbosity(verbose)
-
     logger.info('Validating %s', source)
     processed_source = get_source(source)
     metadata = _get_metadata(processed_source)
@@ -852,7 +862,7 @@ def validate(source, verbose=False):
     logger.debug('Testing package installation...')
     tmpenv = _make_virtualenv()
     try:
-        install(source=processed_source, venv=tmpenv, verbose=verbose)
+        install(source=processed_source, venv=tmpenv)
         if not _check_installed(metadata['package_name'], tmpenv):
             validation_errors.append(
                 '{0} failed to install (Reason unknown)'.format(
@@ -872,12 +882,11 @@ def validate(source, verbose=False):
     return validation_errors
 
 
-def show(source, verbose=False):
+def show(source):
     """Merely returns the metadata for the provided archive.
     """
-    _set_verbosity(verbose)
-
-    logger.info('Retrieving Metadata for: %s', source)
+    if is_verbose():
+        logger.info('Retrieving Metadata for: %s', source)
     processed_source = get_source(source)
     metadata = _get_metadata(processed_source)
     shutil.rmtree(processed_source)
@@ -927,7 +936,7 @@ def _assert_auditwheel_exists():
             'Please see https://github.com/pypa/auditwheel for more info.')
 
 
-def repair(source, validate_archive=False, verbose=False):
+def repair(source, validate_archive=False):
     """Use auditwheel (https://github.com/pypa/auditwheel)
     to attempt and repair all wheels in a wagon.
 
@@ -938,7 +947,6 @@ def repair(source, validate_archive=False, verbose=False):
     3. Update the metadata with the new wheel names and platform
     4. Repack the wagon
     """
-    _set_verbosity(verbose)
     _assert_auditwheel_exists()
 
     logger.info('Repairing: %s', source)
@@ -965,12 +973,13 @@ def repair(source, validate_archive=False, verbose=False):
     _create_wagon_archive(processed_source, archive_path)
 
     if validate_archive:
-        validate(archive_path, verbose)
+        validate(archive_path)
     logger.info('Wagon created successfully at: %s', archive_path)
     return archive_path
 
 
 def _create_wagon(args):
+    set_verbose(args.verbose)
     try:
         create(
             source=args.SOURCE,
@@ -981,47 +990,49 @@ def _create_wagon(args):
             python_versions=args.pyver,
             validate_archive=args.validate,
             wheel_args=args.wheel_args,
-            format=args.format,
-            verbose=args.verbose)
+            format=args.format)
     except WagonError as ex:
         sys.exit(ex)
 
 
 def _install_wagon(args):
+    set_verbose(args.verbose)
     try:
         install(
             source=args.SOURCE,
             requirement_files=args.requirements_file,
             upgrade=args.upgrade,
             ignore_platform=args.ignore_platform,
-            install_args=args.install_args,
-            verbose=args.verbose)
+            install_args=args.install_args)
     except WagonError as ex:
         sys.exit(ex)
 
 
 def _validate_wagon(args):
+    set_verbose(args.verbose)
     try:
-        if len(validate(args.SOURCE, args.verbose)) > 0:
+        if len(validate(args.SOURCE)) > 0:
             sys.exit(1)
     except WagonError as ex:
         sys.exit(ex)
 
 
 def _show_wagon(args):
+    set_verbose(args.verbose)
+    # We set this to reduce logging so that only the metadata is shown
+    # without additional logging.
+    logger.setLevel(logging.DEBUG if is_verbose() else logging.INFO)
     try:
-        metadata = show(args.SOURCE, args.verbose)
+        metadata = show(args.SOURCE)
         print(json.dumps(metadata, indent=4, sort_keys=True))
     except WagonError as ex:
         sys.exit(ex)
 
 
 def _repair_wagon(args):
+    set_verbose(args.verbose)
     try:
-        repair(
-            args.SOURCE,
-            args.validate,
-            args.verbose)
+        repair(args.SOURCE, args.validate)
     except WagonError as ex:
         sys.exit(ex)
 
