@@ -31,16 +31,17 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='0.5.1',
+    version='0.6.0',
     url='https://github.com/cloudify-cosmo/wagon',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
-    license='LICENSE',
+    license='Apache 2.0',
     platforms='All',
-    description='Creates Python Wheel based archives with dependencies.',
+    description='Creates Python Wheel based archives with dependencies',
     long_description=read('README.rst'),
     py_modules=['wagon'],
     include_package_data=True,
+    zip_safe=False,
     entry_points={'console_scripts': ['wagon = wagon:main']},
     install_requires=[
         "wheel>=0.24.0",
@@ -50,8 +51,8 @@ setup(
         'venv': ['virtualenv>=12.1'],
     },
     classifiers=[
+        'Development Status :: 4 - Beta',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
@@ -65,6 +66,7 @@ setup(
         'Intended Audience :: Information Technology',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: Apache Software License',
+        'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX :: Linux',
         'Operating System :: Microsoft',
         'Topic :: Software Development :: Libraries :: Python Modules',
