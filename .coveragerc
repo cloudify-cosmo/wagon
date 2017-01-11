@@ -2,12 +2,17 @@
 branch = True
 source =
     wagon.py
+omit =
+    .tox/*/lib/python*/site-packages/wagon.py
 
 [paths]
 source =
-   distro.py
-   .tox/*/lib/python*/site-packages/wagon.py
+    wagon.py
 
 [report]
 exclude_lines =
     if __name__ == .__main__.:
+    except ImportError:
+    def repair
+    def _repair_wheels
+    def _repair_wagon

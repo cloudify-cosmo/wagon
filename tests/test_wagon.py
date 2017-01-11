@@ -18,13 +18,19 @@ import sys
 import json
 import shutil
 import tarfile
+import platform
 import tempfile
 import subprocess
+import distutils.spawn  # NOQA
 from contextlib import closing
 
 import mock
 import pytest
 import virtualenv  # NOQA
+try:
+    import distro
+except ImportError:
+    pass
 
 import wagon
 
@@ -46,7 +52,7 @@ def _invoke(command):
         shell=True)
     stdout, stderr = process.communicate()
     process.stdout, process.stderr = \
-        stdout.decode('ascii'), stderr.decode('ascii')
+        stdout.decode('utf8'), stderr.decode('utf8')
     return process
 
 
@@ -56,7 +62,6 @@ def _parse(command):
 
 
 class TestBase:
-
     def test_run(self):
         proc = wagon._run('uname')
         assert proc.returncode == 0
@@ -111,7 +116,7 @@ class TestBase:
         with open(os.path.join(tempdir, 'content.file'), 'w') as f:
             f.write('CONTENT')
         wagon._tar(tempdir, 'tar.file')
-        shutil.rmtree(tempdir)
+        shutil.rmtree(tempdir, ignore_errors=True)
         assert tarfile.is_tarfile('tar.file')
         with closing(tarfile.open('tar.file', 'r:gz')) as tar:
             members = tar.getnames()
@@ -128,7 +133,7 @@ class TestBase:
             assert "Permission denied" in str(ex.value)
             assert "/file" in str(ex.value)
         finally:
-            shutil.rmtree(tmpdir)
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_tar_missing_source(self):
         with pytest.raises(OSError) as ex:
@@ -147,15 +152,31 @@ class TestBase:
             pip_path = wagon._get_pip_path(virtualenv_path)
             assert os.path.isfile(pip_path)
         finally:
-            shutil.rmtree(virtualenv_path)
+            shutil.rmtree(virtualenv_path, ignore_errors=True)
 
     def test_wheel_nonexisting_package(self):
         try:
             with pytest.raises(wagon.WagonError) as ex:
                 wagon.wheel('cloudify-script-plug==1.3')
-            assert 'Could not download wheels for:' in str(ex)
+            assert 'Failed to download wheels for:' in str(ex)
         finally:
-            shutil.rmtree('package')
+            shutil.rmtree('package', ignore_errors=True)
+
+    def test_wheel_nonexisting_package_in_requirements_file(self):
+        fd, requirements_file_path = tempfile.mkstemp()
+        os.close(fd)
+        with open(requirements_file_path, 'w') as requirements_file:
+            requirements_file.write('non_existing_package')
+
+        try:
+            with pytest.raises(wagon.WagonError) as ex:
+                wagon.wheel(
+                    package='wheel',
+                    requirement_files=[requirements_file_path])
+            assert 'Failed to download wheels for:' in str(ex)
+        finally:
+            shutil.rmtree('package', ignore_errors=True)
+            os.remove(requirements_file_path)
 
     @pytest.mark.skipif(not wagon.IS_WIN and not wagon.IS_LINUX,
                         reason='Not testing on all platforms')
@@ -174,7 +195,7 @@ class TestBase:
             result = wagon._check_installed(TEST_PACKAGE_NAME, virtualenv_path)
             assert not result
         finally:
-            shutil.rmtree(virtualenv_path)
+            shutil.rmtree(virtualenv_path, ignore_errors=True)
 
     def test_install_package_failed(self):
         with pytest.raises(wagon.WagonError) as ex:
@@ -224,9 +245,133 @@ class TestBase:
             assert temp_wheel_filename in wheels
             assert temp_non_wheel_filename not in wheels
         finally:
-            shutil.rmtree(tempdir)
+            shutil.rmtree(tempdir, ignore_errors=True)
 
-    def test_cli_too_few_arguments(self):
+    def test_construct_pip_command(self):
+        sys_exec = wagon._get_pip_path(None)
+        package_name = 'package'
+        wheels_path = 'wheels_path'
+
+        generated_command = wagon._construct_pip_command(
+            package=package_name,
+            wheels_path=wheels_path,
+            venv=None,
+            requirement_files=None,
+            upgrade=False,
+            install_args=None)
+        expected_command = \
+            ('{0} install {1} --use-wheel --no-index --find-links '
+             '{2} --pre'.format(sys_exec, package_name, wheels_path))
+
+        assert generated_command == expected_command
+
+    def test_construct_pip_command_with_additions(self):
+
+        sys_exec = wagon._get_pip_path(None)
+        package_name = 'package'
+        wheels_path = 'wheels_path'
+        requirement_files = ['/path/to/requirements_file', 'other']
+        args = '--isolated'
+
+        generated_command = wagon._construct_pip_command(
+            package=package_name,
+            wheels_path=wheels_path,
+            venv=None,
+            requirement_files=requirement_files,
+            upgrade=True,
+            install_args='--isolated')
+        expected_command = \
+            ('{0} install -r {1} {2} --use-wheel --no-index --find-links '
+             '{3} --pre --upgrade {4}'.format(
+                 sys_exec,
+                 ' -r '.join(requirement_files),
+                 package_name,
+                 wheels_path,
+                 args))
+
+        assert generated_command == expected_command
+
+    def test_install_package_in_missing_venv(self):
+        non_existing_venv = 'non_existing_venv'
+        with pytest.raises(wagon.WagonError) as ex:
+            wagon.install_package(
+                'package', wheels_path='path', venv=non_existing_venv)
+        assert 'virtualenv {0} does not exist'.format(non_existing_venv) \
+            in str(ex.value)
+
+    @pytest.mark.skipif(not wagon.IS_LINUX, reason='Irrelevant on non-Linux')
+    def test_get_platform_properties(self):
+        os_properties = wagon._get_os_properties()
+        assert os_properties == \
+            distro.linux_distribution(full_distribution_name=False)
+
+    @mock.patch('wagon.IS_DISTRO_INSTALLED', False)
+    @pytest.mark.skipif(not wagon.IS_LINUX, reason='Irrelevant on non-Linux')
+    def test_get_platform_properties_without_distro(self):
+        os_properties = wagon._get_os_properties()
+        assert os_properties == \
+            platform.linux_distribution(full_distribution_name=False)
+
+    def _test_get_env_bin_path(self):
+        tmp_env = wagon._make_virtualenv()
+        try:
+            env_bin_path = wagon._get_env_bin_path(tmp_env)
+            assert env_bin_path == virtualenv.path_locations(tmp_env)[3]
+        finally:
+            shutil.rmtree(tmp_env, ignore_errors=True)
+
+    def test_get_env_bin_path(self):
+        self._test_get_env_bin_path()
+
+    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
+    def test_get_env_bin_path_without_virtualenv(self):
+        self._test_get_env_bin_path()
+
+    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
+    def test_assert_virtualenv_is_not_installed(self):
+        with pytest.raises(wagon.WagonError) as ex:
+            wagon._assert_virtualenv_is_installed()
+        assert 'virtualenv is not installed' in str(ex.value)
+
+    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', True)
+    def test_assert_virtualenv_is_installed(self):
+        wagon._assert_virtualenv_is_installed()
+
+    @mock.patch('wagon.find_executable', return_value=False)
+    def test_assert_auditwheel_does_not_exist(self, _):
+        with pytest.raises(wagon.WagonError) as ex:
+            wagon._assert_auditwheel_exists()
+        assert 'Could not find auditwheel.' in str(ex.value)
+
+    @mock.patch('wagon.find_executable', return_value=True)
+    def test_assert_auditwheel_exists(self, _):
+        wagon._assert_auditwheel_exists()
+
+
+class TestCli:
+
+    def test_output_run_wagon_command_only(self):
+        """Make sure we printout the help text when running `wagon`
+
+        On Windows, invoking wagon outputs something like:
+            usage: wagon.py [-h] [-v]
+        While on Linux:
+            usage: wagon [-h] [-v]
+        """
+        result = _invoke('wagon')
+        assert 'usage: wagon' in result.stdout
+
+    def test_errorcode_run_wagon_command_only(self):
+        """Make sure we exit gracefully when running `wagon`.
+
+        This could be done in the test that tests the output but is
+        done to provide code coverage.
+        """
+        with pytest.raises(SystemExit) as ex:
+            _parse('wagon')
+        assert str(ex.value) == '0'
+
+    def test_too_few_arguments(self):
         with pytest.raises(SystemExit) as ex:
             _parse('wagon create')
 
@@ -235,11 +380,135 @@ class TestBase:
         else:
             assert 'too few arguments' in str(ex.value)
 
-    def test_cli_bad_argument(self):
+    def test_bad_argument(self):
         with pytest.raises(SystemExit) as ex:
             _parse('wagon create flask --non-existing-argument')
         assert 'error: unrecognized arguments: --non-existing-argument' \
             in str(ex.value)
+
+
+class TestGetPlatformForWheels:
+    def test_get_platform_for_set_of_wheels(self, dir_with_wheels):
+        wheel_platform = wagon._get_platform_for_set_of_wheels(dir_with_wheels)
+        assert wheel_platform == 'linux_x86_64'
+
+    def _test_replatformed_wheels(self, expected_platform, dir_with_wheels):
+        _replatform_wheels(dir_with_wheels, expected_platform)
+        wheel_platform = wagon._get_platform_for_set_of_wheels(dir_with_wheels)
+        assert wheel_platform == expected_platform
+
+    def test_get_platform_for_set_of_wheels_win32(self, dir_with_wheels):
+        expected_platform = 'win32'
+        self._test_replatformed_wheels(expected_platform, dir_with_wheels)
+
+    def test_get_platform_for_set_of_wheels_manylinux1(self, dir_with_wheels):
+        expected_platform = 'manylinux1'
+        self._test_replatformed_wheels(expected_platform, dir_with_wheels)
+
+    def test_get_platform_for_set_of_wheels_any(self, dir_with_wheels):
+        expected_platform = 'any'
+        self._test_replatformed_wheels(expected_platform, dir_with_wheels)
+
+    def test_get_platform_for_set_of_wheels_still_linux(self, dir_with_wheels):
+        _replatform_wheels(dir_with_wheels, 'manylinux1', once=True)
+        wheel_platform = wagon._get_platform_for_set_of_wheels(dir_with_wheels)
+        assert wheel_platform == 'linux_x86_64'
+
+
+class TestIsPlatformSupported:
+    def test_supported_platform_linux_on_linux(self):
+        assert wagon._is_platform_supported(
+            supported_platform='linux_x86_64',
+            machine_platform='linux_x86_64')
+
+    @mock.patch('wagon.IS_LINUX', False)
+    def test_supported_platform_win32_on_win32(self):
+        assert wagon._is_platform_supported(
+            supported_platform='win32',
+            machine_platform='win32')
+
+    @mock.patch('wagon.IS_LINUX', False)
+    def test_supported_platform_darwin_on_darwin(self):
+        assert wagon._is_platform_supported(
+            supported_platform='darwin',
+            machine_platform='darwin')
+
+    # This can't be tested on non-Linux as our code assumes that if
+    # we're not on Linux, any mis-match between platforms will return False
+    @pytest.mark.skipif(not wagon.IS_LINUX, reason='Irrelevant on non-Linux')
+    def test_supported_platform_manylinux_on_linux(self):
+        assert wagon._is_platform_supported(
+            supported_platform='manylinux1_x86_64',
+            machine_platform='linux_x86_64')
+
+    def test_unsupported_platform_manylinux64_on_linux32(self):
+        assert not wagon._is_platform_supported(
+            supported_platform='manylinux1_x86_64',
+            machine_platform='linux_i686')
+
+    @mock.patch('wagon.IS_LINUX', False)
+    def test_unsupported_platform_manylinux_on_win32(self):
+        assert not wagon._is_platform_supported(
+            supported_platform='manylinux1_x86_64',
+            machine_platform='win32')
+
+    def test_unsupported_platform_linux64_on_linux32(self):
+        assert not wagon._is_platform_supported(
+            supported_platform='linux_x86_64',
+            machine_platform='linux_i686')
+
+    @mock.patch('wagon.IS_LINUX', False)
+    def test_unsupported_platform_win32_on_darwin(self):
+        assert not wagon._is_platform_supported(
+            supported_platform='win32',
+            machine_platform='darwin')
+
+    @mock.patch('wagon.IS_LINUX', False)
+    def test_unsupported_platform_linux_on_win32(self):
+        assert not wagon._is_platform_supported(
+            supported_platform='linux_x86_64',
+            machine_platform='win32')
+
+    def test_unsupported_platform_win32_on_linux(self):
+        assert not wagon._is_platform_supported(
+            supported_platform='win32',
+            machine_platform='linux_x86_64')
+
+
+def _replatform_wheels(dir_with_wheels, destination_platform, once=False):
+    """Iterate over all wheels in a dir and change their platform
+
+    If once is True, only one wheel will be changed.
+    """
+    for wheel in os.listdir(dir_with_wheels):
+        wheel_platform = wagon._get_platform_from_wheel_name(wheel)
+        if wheel_platform != wagon.ALL_PLATFORMS_TAG:
+            new_wheel = wheel.replace(
+                wagon._get_platform_from_wheel_name(wheel),
+                destination_platform)
+            os.remove(os.path.join(dir_with_wheels, wheel))
+            with open(os.path.join(dir_with_wheels, new_wheel), 'w') as whl:
+                whl.write('wheel_content')
+            if once:
+                break
+
+
+@pytest.fixture
+def dir_with_wheels():
+    wheels = [
+        "MarkupSafe-0.23-cp27-cp27mu-linux_x86_64.whl",
+        "Werkzeug-0.11.15-py2.py3-none-any.whl",
+        "Jinja2-2.9.4-py2.py3-none-any.whl",
+        "click-6.7-py2.py3-none-any.whl",
+        "itsdangerous-0.24-cp27-none-linux_x86_64.whl",
+        "Flask-0.12-py2.py3-none-any.whl"
+    ]
+    dir_with_wheels = tempfile.mkdtemp()
+    for wheel in wheels:
+        with open(os.path.join(dir_with_wheels, wheel), 'w') as whl:
+            whl.write('wheel_content')
+    yield dir_with_wheels
+    shutil.rmtree(dir_with_wheels, ignore_errors=True)
 
 
 class TestGetSource:
@@ -266,7 +535,7 @@ class TestGetSource:
                 wagon.create(source_input)
             assert 'Source directory must contain a setup.py file' in str(ex)
         finally:
-            shutil.rmtree(source_input)
+            shutil.rmtree(source_input, ignore_errors=True)
 
     def test_source_pypi_no_version(self):
         source_input = TEST_PACKAGE_NAME
@@ -291,7 +560,6 @@ class TestCreateBadSources:
 
 
 class TestCreate:
-
     def setup_method(self, test_method):
         if wagon.IS_WIN:
             self.platform = 'win32'
@@ -311,7 +579,7 @@ class TestCreate:
         if os.path.isfile(self.archive_name):
             os.remove(self.archive_name)
         if os.path.isdir(self.package_name):
-            shutil.rmtree(self.package_name)
+            shutil.rmtree(self.package_name, ignore_errors=True)
 
     def _test(self, result, expected_number_of_wheels=5):
         assert result.returncode == 0
@@ -333,8 +601,8 @@ class TestCreate:
         assert len(metadata['wheels']) == expected_number_of_wheels
 
         if wagon.IS_LINUX and self.platform != 'any':
-            distro, version, release = wagon._get_os_properties()
-            assert distro.lower() == \
+            distribution, version, release = wagon._get_os_properties()
+            assert distribution.lower() == \
                 metadata['build_server_os_properties']['distribution']
             assert version.lower() == \
                 metadata['build_server_os_properties']['distribution_version']
@@ -378,7 +646,7 @@ class TestCreate:
 
     def test_create_archive_in_destination_dir_from_pypi_latest(self):
         temp_dir = tempfile.mkdtemp()
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
         package = 'wheel'
         try:
             self.platform = 'any'
@@ -397,7 +665,7 @@ class TestCreate:
             self.platform = 'linux_x86_64'
             assert pypi_version == metadata['package_version']
         finally:
-            shutil.rmtree(temp_dir)
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_create_with_requirements(self):
         test_package = os.path.join('tests', 'resources', 'test-package')
@@ -458,9 +726,14 @@ class TestCreate:
             _parse('wagon create non_existing_package -v -f')
         assert 'Failed to retrieve info for package' in str(ex)
 
+    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
+    def test_create_with_validation_no_virtualenv_installed(self):
+        with pytest.raises(wagon.WagonError) as ex:
+            wagon.create(TEST_PACKAGE, validate_archive=True)
+        assert 'virtualenv is not installed' in str(ex.value)
+
 
 class TestInstall:
-
     def setup_method(self, test_method):
         wagon._run('virtualenv test_env')
         self.archive_path = wagon.create(
@@ -470,7 +743,7 @@ class TestInstall:
     def teardown_method(self, test_method):
         os.remove(self.archive_path)
         if os.path.isdir('test_env'):
-            shutil.rmtree('test_env')
+            shutil.rmtree('test_env', ignore_errors=True)
 
     # TODO: Important before releasing 0.6.0!
     @pytest.mark.skipif(not os.environ.get('CI'),
@@ -488,7 +761,7 @@ class TestInstall:
     def test_fail_install_unsupported_platform(self, _):
         with pytest.raises(SystemExit) as ex:
             _parse("wagon install {0} -v -u".format(self.archive_path))
-        assert 'Platform unsupported for package (weird_platform)' in str(ex)
+        assert 'Platform unsupported for wagon (weird_platform)' in str(ex)
 
 
 class TestValidate:
@@ -518,8 +791,20 @@ class TestValidate:
         finally:
             os.remove(invalid_wagon)
 
+    @mock.patch('wagon.validate', return_value=['...'])
+    def test_exit_on_failed_validation(self, _):
+        with pytest.raises(SystemExit) as ex:
+            _parse('wagon validate {0} -v'.format(self.archive_path))
+        assert str(ex.value) == '1'
+
     @mock.patch('wagon._check_installed', return_value=False)
     def test_fail_validate_package_not_installed(self, _):
+        result = wagon.validate(self.archive_path)
+        assert 'failed to install' in result[0]
+        assert len(result) == 1
+
+    @mock.patch('wagon._check_installed', return_value=False)
+    def test_fail_validate_in_nonexisting_venv(self, _):
         result = wagon.validate(self.archive_path)
         assert 'failed to install' in result[0]
         assert len(result) == 1
@@ -546,9 +831,15 @@ class TestValidate:
             result = wagon.validate(archive_name)
             assert len(result) == 1
         finally:
-            shutil.rmtree(tempdir)
+            shutil.rmtree(tempdir, ignore_errors=True)
             if os.path.isfile(archive_name):
                 os.remove(archive_name)
+
+    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
+    def test_create_with_validation_no_virtualenv_installed(self):
+        with pytest.raises(wagon.WagonError) as ex:
+            wagon.validate(self.archive_path)
+        assert 'virtualenv is not installed' in str(ex.value)
 
 
 class TestShowMetadata:
@@ -559,11 +850,11 @@ class TestShowMetadata:
 
     def teardown_method(self, test_method):
         os.remove(self.archive_path)
-        shutil.rmtree(TEST_PACKAGE_NAME)
+        shutil.rmtree(TEST_PACKAGE_NAME, ignore_errors=True)
 
     def test_show_metadata_for_archive(self):
         # merely invoke it directly for coverage sake
-        _parse('wagon show {0}'.format(self.archive_path))
+        _parse('wagon show {0} -v'.format(self.archive_path))
         result = _invoke('wagon show {0}'.format(self.archive_path))
         assert result.returncode == 0
         # Remove the first line

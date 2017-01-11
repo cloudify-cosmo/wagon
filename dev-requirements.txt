@@ -1,5 +1,5 @@
 mock
 pytest
 pytest-cov
-testfixtures
+distro>=0.6.0
 virtualenv>=12.1

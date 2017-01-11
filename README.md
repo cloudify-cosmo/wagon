@@ -255,6 +255,9 @@ $ wagon show Flask-0.12-py27-none-linux_x86_64.wgn
 
 `auditwheel` is a tool (currently under development) provided by pypa to "repair" wheels to support multiple linux distributions. Information on auditwheel is provided [here](https://github.com/pypa/auditwheel).
 
+NOTE! The repair command is EXPERIMENTAL is Wagon. It isn't fully tested and relies on `auditwheel`, which is, in itself, somewhat experimental. Read [https://www.python.org/dev/peps/pep-0513/](https://www.python.org/dev/peps/pep-0513/) for more info.
+
+
 Wagon provides a way to repair a wagon by iterating over its wheels and fixing all of them.
 
 For more information, see [Linux Support for compiled wheels](Linux Support for compiled wheels) below.
