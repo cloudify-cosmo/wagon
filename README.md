@@ -18,10 +18,12 @@ NOTE: To accommodate for the inconsistencies between wagon and pip, and to allow
 
 NOTE: `Wagon 0.5.0` has breaking changes over its previous versions in terms of CLI and API. While a wagon's structure is the same and there shouldn't be a problem installing wagons created with v0.5.0 using previous versions and vice versa, users using the API must adjust it. Please report any issues with backward compatibility if any are found.
 
+NOTE: Up until `Wagon 0.5.0`, `tar.gz` was the default format for Wagon archives. Starting with `Wagon 0.6.0`, the default is `zip` (to correspond with wheels). Note that you can still pass a format via the `--format` flag to create a `tar-gz` archive. Identification of the different archive formats between versions should still work (i.e A wagon created using `<=0.5.0` should be installable by `>=0.6.0` and vice versa)
+
 
 ## Incentive
 
-Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz archives and so we needed a tool to create such entities; hence, Wagon.
+Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz/zip archives and so we needed a tool to create such entities; hence, Wagon.
 
 
 ## Requirements 
@@ -39,7 +41,7 @@ Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.pytho
 
 ## Installation
 
-Wagon supports Linux, Windows and OSX on Python 2.6, 2.7 and 3.4+
+Wagon supports Linux, Windows and OSX on Python 2.6, 2.7 and 3.3+
 
 ```shell
 pip install wagon
@@ -93,19 +95,7 @@ Saved /tmp/tmpcYHwh0/Flask/wheels/itsdangerous-0.24-cp27-none-any.whl
 Collecting click>=2.0 (from Flask)
 Using cached click-6.7-py2.py3-none-any.whl
 Saved /tmp/tmpcYHwh0/Flask/wheels/click-6.7-py2.py3-none-any.whl
-Collecting Jinja2>=2.4 (from Flask)
-Using cached Jinja2-2.9.3-py2.py3-none-any.whl
-Saved /tmp/tmpcYHwh0/Flask/wheels/Jinja2-2.9.3-py2.py3-none-any.whl
-Collecting Werkzeug>=0.7 (from Flask)
-Using cached Werkzeug-0.11.15-py2.py3-none-any.whl
-Saved /tmp/tmpcYHwh0/Flask/wheels/Werkzeug-0.11.15-py2.py3-none-any.whl
-Collecting MarkupSafe>=0.23 (from Jinja2>=2.4->Flask)
-Saved /tmp/tmpcYHwh0/Flask/wheels/MarkupSafe-0.23-cp27-cp27mu-linux_x86_64.whl
-Skipping Flask, due to already being wheel.
-Skipping itsdangerous, due to already being wheel.
-Skipping click, due to already being wheel.
-Skipping Jinja2, due to already being wheel.
-Skipping Werkzeug, due to already being wheel.
+...
 Skipping MarkupSafe, due to already being wheel.
 Platform is: linux_x86_64
 Generating Metadata...
@@ -144,10 +134,7 @@ Installing Flask...
 Installing within current virtualenv
 Collecting Flask
 Collecting itsdangerous>=0.21 (from Flask)
-Requirement already satisfied: click>=2.0 in /home/nir0s/.virtualenvs/cfyt/lib/python2.7/site-packages (from Flask)
-Requirement already satisfied: Jinja2>=2.4 in /home/nir0s/.virtualenvs/cfyt/lib/python2.7/site-packages (from Flask)
-Collecting Werkzeug>=0.7 (from Flask)
-Requirement already satisfied: markupsafe in /home/nir0s/.virtualenvs/cfyt/lib/python2.7/site-packages (from Jinja2>=2.4->Flask)
+...
 Installing collected packages: itsdangerous, Werkzeug, Flask
 Successfully installed Flask-0.12 Werkzeug-0.11.15 itsdangerous-0.24
 
@@ -200,11 +187,7 @@ Source is: /tmp/tmp2gqpy1/Flask
 Validating Platform linux_x86_64 is supported...
 Installing Flask...
 Collecting Flask
-Collecting itsdangerous>=0.21 (from Flask)
-Collecting click>=2.0 (from Flask)
-Collecting Jinja2>=2.4 (from Flask)
-Collecting Werkzeug>=0.7 (from Flask)
-Collecting MarkupSafe>=0.23 (from Jinja2>=2.4->Flask)
+...
 Installing collected packages: itsdangerous, click, MarkupSafe, Jinja2, Werkzeug, Flask
 Successfully installed Flask-0.12 Jinja2-2.9.2 MarkupSafe-0.23 Werkzeug-0.11.15 click-6.7 itsdangerous-0.24
 Package Flask is installed in /tmp/tmpdPNDIi
@@ -283,16 +266,7 @@ Previous filename tags: linux_x86_64
 New filename tags: manylinux1_x86_64
 Previous WHEEL info tags: cp27-cp27m-linux_x86_64
 New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
-Repairing MarkupSafe-0.23-cp27-cp27m-linux_x86_64.whl
-Previous filename tags: linux_x86_64
-New filename tags: manylinux1_x86_64
-Previous WHEEL info tags: cp27-cp27m-linux_x86_64
-New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
-Repairing pycrypto-2.6.1-cp27-cp27m-linux_x86_64.whl
-Previous filename tags: linux_x86_64
-New filename tags: manylinux1_x86_64
-Previous WHEEL info tags: cp27-cp27m-linux_x86_64
-New WHEEL info tags: cp27-cp27m-manylinux1_x86_64
+...
 Generating Metadata...
 Writing metadata to file: /tmp/tmpDZ4kNC/cloudify/package.json
 Creating tgz archive: /cloudify-4.0a10-py27-none-manylinux1_x86_64.wgn...
@@ -313,7 +287,7 @@ For local path and URL sources, the name and version are automatically extracted
 
 NOTE: This means that when supplying a local path, you must supply a path to the root of where your setup.py file resides.
 
-NOTE: If using a URL, it must be a URL to a tar.gz file structured like a GitHub tar.gz archive (e.g. https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/master.tar.gz)
+NOTE: If using a URL, it must be a URL to a tar.gz/zip file structured like a GitHub tar.gz/zip archive (e.g. https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/master.tar.gz)
 
 
 ## Metadata File and Wheels
@@ -352,8 +326,8 @@ A Metadata file is generated for the archive and looks somewhat like this:
 }
 ```
 
-* The wheels to be installed reside in the tar.gz file under 'wheels/*.whl'.
-* The Metadata file resides in the tar.gz file under 'package.json'.
+* The wheels to be installed reside in the zip file under 'wheels/*.whl'.
+* The Metadata file resides in the archive file under 'package.json'.
 * The installer uses the metadata file to check that the platform fits the machine the package is being installed on.
 * OS Properties only appear when creating compiled Linux packages (see Linux Distributions section). In case of a non-linux platform (e.g. win32, any), null values will be supplied for OS properties.
 * The distribution identification is done using `platform.linux_distribution`, which is deprecated and will be removed in Python 3.7. `https://github.com/nir0s/distro` is a successor of that functionality and can be installed by running `pip install wagon[dist]`. We currently use distro only if it is instsalled. In later versions of wagon, we will stop using `platform.linux_distribution` altogether.
@@ -369,13 +343,6 @@ Example Output Archive: `cloudify_fabric_plugin-1.2.1-py27-none-any.wgn`
 * `{python tag}`: The Python version is set by the Python running the packaging process. That means that while a package might run on both py27 and py33 (for example), since the packaging process took place using Python 2.7, only py27 will be appended to the name. A user can also explicitly provide the supported Python versions for the package via the `pyver` flag.
 * `{platform tag}`: Normally, the platform (e.g. `linux_x86_64`, `win32`) is set for each specific wheel. To know which platform the package with its dependencies can be installed on, all wheels are checked. If a specific wheel has a platform property other than `any`, that platform will be used as the platform of the package. Of course, we assume that there can't be wheels downloaded or created on a specific machine platform that belongs to two different platforms.
 * `{abi tag}`: Note that the ABI tag is currently ignored and will always be `none`. This might be changed in the future to support providing an ABI tag.
-
-
-Important Note!
-
-When the `{platform tag}` is `linux_x86_64`, the `distribution` and `release` tags might still be none. This is due to the fact that the implementation of identifying the distribution and release is not robust enough. In this situation, it might be impossible to know which distribution the wagon can be installed on. Thankfully, the most common distributions (RHEL, Centos, Ubuntu, Debian) are easily identified.
-
-Wagons created with wheels which are built for `manylinux1` will support `manylinux1` themselves.
 
 
 ## Linux Support for compiled wheels
@@ -415,8 +382,7 @@ archive_path = wagon.create(
     python_versions=None,
     validate_archive=False,
     wheel_args='',
-    format='tar.gz',
-    verbose=False)
+    archive_format='tar.gz')
 ```
 
 ### Install
@@ -429,12 +395,11 @@ source = 'http://my-wagons.com/flask-0.10.1-py27-none-linux_x86_64-Ubuntu-trusty
 
 wagon.install(
     source,
-    virtualenv=None,
+    venv=None,
     requirement_files=None,
     upgrade=False,
     ignore_platform=False,
-    install_args='',
-    verbose=False)
+    install_args='')
 ```
 
 ### Validate
