@@ -55,7 +55,7 @@ test:
 publish:
 	python setup.py sdist bdist_wheel
 	twine upload -s dist/$(PACKAGENAME)-*
-	@echo "$@ done; uploaded the ld package to PyPI."
+	@echo "$@ done."
 
 .PHONY: clean
 clean:
