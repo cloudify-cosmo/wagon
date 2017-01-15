@@ -92,7 +92,7 @@ def setup_logger():
 logger = setup_logger()
 
 
-def set_verbose(is_verbose):
+def set_verbose():
     # TODO: This is a very naive implementation. We should really
     # use a logging configuration based on different levels of
     # verbosity.
@@ -100,7 +100,7 @@ def set_verbose(is_verbose):
     # different levels of `--verbose` and `--quiet` flags should be
     # supported.
     global verbose
-    verbose = is_verbose
+    verbose = True
 
 
 def is_verbose():
@@ -928,7 +928,8 @@ def _repair_wheels(workdir, metadata):
 
     # Note that at this point, _get_downloaded_wheels will return
     # a different set of wheels which have been repaired.
-    for wheel in _get_downloaded_wheels(wheels_path):
+    updated_wheels = _get_downloaded_wheels(wheels_path)
+    for wheel in updated_wheels:
         manylinux1_platform = _get_platform_from_wheel_name(wheel)
         if manylinux1_platform.startswith('manylinux1'):
             # It's enough to get the new platform from a single
@@ -936,7 +937,7 @@ def _repair_wheels(workdir, metadata):
             break
 
     # TODO: Return this and update in another function
-    metadata['wheels'] = _get_downloaded_wheels(wheels_path)
+    metadata['wheels'] = updated_wheels
     metadata['supported_platform'] = manylinux1_platform
 
     distribution, version, release = _get_os_properties()
@@ -1000,7 +1001,6 @@ def repair(source, validate_archive=False):
 
 
 def _create_wagon(args):
-    set_verbose(args.verbose)
     try:
         create(
             source=args.SOURCE,
@@ -1017,7 +1017,6 @@ def _create_wagon(args):
 
 
 def _install_wagon(args):
-    set_verbose(args.verbose)
     try:
         install(
             source=args.SOURCE,
@@ -1030,7 +1029,6 @@ def _install_wagon(args):
 
 
 def _validate_wagon(args):
-    set_verbose(args.verbose)
     try:
         if len(validate(args.SOURCE)) > 0:
             sys.exit(1)
@@ -1039,7 +1037,6 @@ def _validate_wagon(args):
 
 
 def _show_wagon(args):
-    set_verbose(args.verbose)
     # We set this to reduce logging so that only the metadata is shown
     # without additional logging.
     logger.setLevel(logging.DEBUG if is_verbose() else logging.INFO)
@@ -1051,7 +1048,6 @@ def _show_wagon(args):
 
 
 def _repair_wagon(args):
-    set_verbose(args.verbose)
     try:
         repair(args.SOURCE, args.validate)
     except WagonError as ex:
@@ -1287,6 +1283,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if args.verbose:
+        set_verbose()
     args.func(args)
 
 
