@@ -1,3 +1,29 @@
+**0.6.0 (2017.01.15)**
+
+* Include any changes done in v0.5.1
+* (Issue #71) Remove `-e` flag for the `install` command as it is not consistent with pip. You can still install from within a virtualenv or by passing a full path to `wagon` within the venv.
+* (Issue #66) Remove non-standard `distribution` and `release` tags from wagon archive name to be consistent with wheel's naming convention. That information is still stored in the wagon archive's metadata
+* (Issue #81) Create `zip` instead of `tar.gz` by default to be consistent with `pip wheel`
+* (Issue #52) Add WIP `repair` command which will use auditwheel to repair a wagon for `manylinux1`
+* (Issue #64) Move `virtualenv` to extra requirements as it is only required by `validate` and should be explicitly installed. See README
+* Fix `distribution` key name in metadata, which was faulty
+* Add `distro` (https://github.com/nir0s/distro) linux distro identification support as `platform.linux_distribution()` is deprecated and will be removed in Python 3.7
+* (Issue #80) Improve UX of help messages
+* (Issue #72) Set verbosity only once by using the `wagon.set_verbose()` function instead of setting it up every time in each API call
+* (Issue #72) Remove log-level from log messages to be consistent with pip
+* (Issue #72) Change default log level to DEBUG
+* (Issue #87) Officially support py33, py36 and pypy
+* (Issue #89) Replace nose with pytest
+* Update python classifiers
+* Add MANIFEST.in file (Which includes LICENSE)
+
+** 0.5.1 (unreleased)
+
+* (Issue #59) Fix common platform for multiple wheels incorrectly identified when there are both `manylinux1` and `linux_` wheels.
+* (Issue #60) Make platform check more robust
+* (Issue #61) No longer fail to install `manylinux1` on linux platforms
+
+
 **0.5.0 (unreleased)**
 
 * Python 3 support (tested on 3.4 and 3.5)
