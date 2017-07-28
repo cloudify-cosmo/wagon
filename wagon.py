@@ -840,8 +840,15 @@ def install(source,
             upgrade,
             install_args)
     finally:
+        # Install can only be done on local or remote archives.
+        # This means that a temporary directory is always created
+        # with the sources to install within it. This is why we can allow
+        # ourselves to delete the parent dir without worrying.
+        # TODO: Make this even less dangerous by changing `get_source`
+        # to return the directory to delete instead. Much safer.
         if processed_source != source:
-            shutil.rmtree(processed_source)
+            shutil.rmtree(os.path.dirname(
+                processed_source), ignore_errors=True)
 
 
 def _assert_virtualenv_is_installed():
