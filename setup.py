@@ -44,7 +44,7 @@ setup(
     zip_safe=False,
     entry_points={'console_scripts': ['wagon = wagon:main']},
     install_requires=[
-        "wheel>=0.24.0",
+        "wheel==0.29.0",
     ],
     extras_require={
         'dist': ['distro>=0.6.0'],
