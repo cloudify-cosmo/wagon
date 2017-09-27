@@ -698,7 +698,7 @@ class TestCreate:
             elif python_version[0] == 2 and python_version[1] == 7:
                 expected_number_of_wheels = 6
             elif python_version[0] == 2 and python_version[1] == 6:
-                expected_number_of_wheels = 7
+                expected_number_of_wheels = 6
             metadata = self._test(
                 result=result,
                 expected_number_of_wheels=expected_number_of_wheels)
