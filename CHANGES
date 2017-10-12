@@ -1,3 +1,13 @@
+**0.7.0 (2017.10.12)**
+
+* Drop support for Python 2.6 and Python 3.3 (as per Wheel's official support since 0.30.0)
+
+**0.6.1 (2017.09.30)**
+
+THIS VERSION IS THE LATEST VERSION OF WAGON TO SUPPORT PYTHON 2.6, 3.2 and 3.3!
+
+* Wheel>0.30.0 dropped support for Python 2.6, 3.2 and 3.3. To use Wagon with any of these versions of Python, Wagon 0.6.1 should be used.
+
 **0.6.0 (2017.01.15)**
 
 * Include any changes done in v0.5.1

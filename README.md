@@ -14,12 +14,9 @@ A wagon (also spelt waggon in British and Commonwealth English) is a heavy four-
 
 or.. it is just a set of (Python) Wheels.
 
+NOTE: wagon>=0.7.0 drops support for Python 2.6, 3.2 and 3.3 since Wheel itself no longer supports these versions. Please use wagon<=0.6.1 if you still need to support those versions.
+
 NOTE: To accommodate for the inconsistencies between wagon and pip, and to allow for additional required functionality, we will have to perform breaking changes until we can release v1.0.0. Please make sure you hardcode your wagon versions up until then.
-
-NOTE: `Wagon 0.5.0` has breaking changes over its previous versions in terms of CLI and API. While a wagon's structure is the same and there shouldn't be a problem installing wagons created with v0.5.0 using previous versions and vice versa, users using the API must adjust it. Please report any issues with backward compatibility if any are found.
-
-NOTE: Up until `Wagon 0.5.0`, `tar.gz` was the default format for Wagon archives. Starting with `Wagon 0.6.0`, the default is `zip` (to correspond with wheels). Note that you can still pass a format via the `--format` flag to create a `tar-gz` archive. Identification of the different archive formats between versions should still work (i.e A wagon created using `<=0.5.0` should be installable by `>=0.6.0` and vice versa)
-
 
 ## Incentive
 
@@ -29,7 +26,7 @@ Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.pytho
 ## Requirements 
 
 * Wagon requires pip 1.4+ to work as this is the first version of pip to support Wheels.
-* Wagon supports Linux, Windows and OSX on Python 2.6, 2.7 and 3.3+. Python 2.5 will not be supported as it is not supported by pip. Python 2.6.x support will be dropped once we feel sure it is no longer widely used.
+* Wagon supports Linux, Windows and OSX on Python 2.7 and 3.4+. Python 2.5 will not be supported as it is not supported by pip. Python 2.6.x is not longer supported as wheel itself doesn't support it.
 * Wagon is currently tested on both Linux and Windows (via Travis and AppVeyor).
 * To be able to create Wagons of Wheels which include C extensions on Windows, you must have the [C++ Compiler for Python](http://www.microsoft.com/en-us/download/details.aspx?id=44266) installed.
 * To be able to create Wagons of Wheels which include C extensions on Linux or OSX, you must have the required compiler installed depending on your base distro. Usually:
