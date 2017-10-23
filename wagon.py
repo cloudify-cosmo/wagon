@@ -452,7 +452,8 @@ def _get_pip_path(venv=None):
 def _check_installed(package, venv=None):
     pip_executable = _get_pip_path(venv)
     process = _run('{0} freeze'.format(pip_executable), suppress_output=True)
-    if '{0}=='.format(package) in process.aggr_stdout:
+    pkgs = ['{0}=='.format(package), '{0}=='.format(package.replace('_', '-'))]
+    if any(package_name in process.aggr_stdout for package_name in pkgs):
         logger.debug('Package %s is installed in %s', package, venv)
         return True
     logger.debug('Package %s is not installed in %s', package, venv)
