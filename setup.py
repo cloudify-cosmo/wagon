@@ -18,10 +18,6 @@ import sys
 import codecs
 from setuptools import setup
 
-if sys.version_info[:2] < (2, 7):
-    # TODO: Replace with `python_requires` in `setup`
-    sys.exit('Wagon requires Python 2.7 or higher.')
-
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -51,6 +47,7 @@ setup(
         'dist': ['distro>=0.6.0'],
         'venv': ['virtualenv>=12.1'],
     },
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Programming Language :: Python',
