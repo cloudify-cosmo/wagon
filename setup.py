@@ -19,6 +19,7 @@ import codecs
 from setuptools import setup
 
 if sys.version_info[:2] < (2, 7):
+    # TODO: Replace with `python_requires` in `setup`
     sys.exit('Wagon requires Python 2.7 or higher.')
 
 here = os.path.abspath(os.path.dirname(__file__))
