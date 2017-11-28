@@ -368,12 +368,6 @@ def _get_wheel_tags(wheel_name):
     return filename.split('-')
 
 
-# def _get_package_name_from_wheel_name(wheel_name):
-#     """Extract the platform of a wheel from its file name.
-#     """
-#     return _get_wheel_tags(wheel_name)[0]
-
-
 def _get_platform_from_wheel_name(wheel_name):
     """Extract the platform of a wheel from its file name.
     """

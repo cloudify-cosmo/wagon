@@ -18,9 +18,6 @@ import sys
 import codecs
 from setuptools import setup
 
-if sys.version_info[:2] < (2, 6):
-    sys.exit('Wagon requires Python 2.6 or higher.')
-
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -31,7 +28,7 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='0.6.1',
+    version='0.7.0',
     url='https://github.com/cloudify-cosmo/wagon',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
@@ -44,19 +41,19 @@ setup(
     zip_safe=False,
     entry_points={'console_scripts': ['wagon = wagon:main']},
     install_requires=[
-        "wheel==0.29.0",
+        "wheel",
     ],
     extras_require={
         'dist': ['distro>=0.6.0'],
         'venv': ['virtualenv>=12.1'],
     },
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
