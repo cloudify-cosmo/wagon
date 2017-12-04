@@ -689,7 +689,9 @@ def create(source,
            python_versions=None,
            validate_archive=False,
            wheel_args='',
-           archive_format='zip'):
+           archive_format='zip',
+           package_name=None,
+           package_version=None):
     """Create a Wagon archive and returns its path.
 
     Package name and version are extracted from the setup.py file
@@ -714,8 +716,14 @@ def create(source,
             os.path.isfile(os.path.join(processed_source, 'setup.py')):
         raise WagonError(
             'Source directory must contain a setup.py file')
-    package_name, package_version = get_source_name_and_version(
-        processed_source)
+    package_name_from_source, package_version_from_source = \
+            get_source_name_and_version(processed_source)
+
+    # User can override package name and package version with arguments.
+    if not package_name:
+        package_name = package_name_from_source
+    if not package_version:
+        package_version = package_version_from_source
 
     tempdir = tempfile.mkdtemp()
     workdir = os.path.join(tempdir, package_name)
@@ -1013,7 +1021,9 @@ def _create_wagon(args):
             python_versions=args.pyver,
             validate_archive=args.validate,
             wheel_args=args.wheel_args,
-            archive_format=args.format)
+            archive_format=args.format,
+            package_name=args.package_name or None,
+            package_version=args.package_version or None)
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1102,6 +1112,18 @@ def _add_create_command(parser):
         default='zip',
         choices=(['zip', 'tar.gz']),
         help='Which file format to generate')
+    command.add_argument(
+        '-N',
+        '--package-name',
+        required=False,
+        help='Provide metadata override for the package name '
+        'that is found in the source code.')
+    command.add_argument(
+        '-V',
+        '--package-version',
+        required=False,
+        help='Provide metadata override for the package version '
+        'that is found in the source code.')
     command.add_argument(
         '-f',
         '--force',
