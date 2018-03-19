@@ -23,7 +23,7 @@ NOTE: To accommodate for the inconsistencies between wagon and pip, and to allow
 Cloudify Plugins are packaged as sets of Python [Wheels](https://packaging.python.org/en/latest/distributing.html#wheels) in tar.gz/zip archives and so we needed a tool to create such entities; hence, Wagon.
 
 
-## Requirements 
+## Requirements
 
 * Wagon requires pip 1.4+ to work as this is the first version of pip to support Wheels.
 * Wagon supports Linux, Windows and OSX on Python 2.7 and 3.4+. Python 2.5 will not be supported as it is not supported by pip. Python 2.6.x is not longer supported as wheel itself doesn't support it.
@@ -197,26 +197,26 @@ $ wagon show Flask-0.12-py27-none-linux_x86_64.wgn
 ...
 
 {
-    "archive_name": "Flask-0.12-py27-none-linux_x86_64.wgn", 
+    "archive_name": "Flask-0.12-py27-none-linux_x86_64.wgn",
     "build_server_os_properties": {
-        "distribution": "antergos", 
-        "distribution_release": "archcode", 
+        "distribution": "antergos",
+        "distribution_release": "archcode",
         "distribution_version": ""
-    }, 
-    "created_by_wagon_version": "0.6.0", 
-    "package_name": "Flask", 
-    "package_source": "flask", 
-    "package_version": "0.12", 
-    "supported_platform": "linux_x86_64", 
+    },
+    "created_by_wagon_version": "0.6.0",
+    "package_name": "Flask",
+    "package_source": "flask",
+    "package_version": "0.12",
+    "supported_platform": "linux_x86_64",
     "supported_python_versions": [
         "py27"
-    ], 
+    ],
     "wheels": [
-        "MarkupSafe-0.23-cp27-cp27mu-linux_x86_64.whl", 
-        "Werkzeug-0.11.15-py2.py3-none-any.whl", 
-        "Jinja2-2.9.2-py2.py3-none-any.whl", 
-        "click-6.7-py2.py3-none-any.whl", 
-        "itsdangerous-0.24-cp27-none-any.whl", 
+        "MarkupSafe-0.23-cp27-cp27mu-linux_x86_64.whl",
+        "Werkzeug-0.11.15-py2.py3-none-any.whl",
+        "Jinja2-2.9.2-py2.py3-none-any.whl",
+        "click-6.7-py2.py3-none-any.whl",
+        "itsdangerous-0.24-cp27-none-any.whl",
         "Flask-0.12-py2.py3-none-any.whl"
     ]
 }
@@ -232,7 +232,7 @@ Wagon provides a way to repair a wagon by iterating over its wheels and fixing a
 
 NOTE! The repair command is EXPERIMENTAL in Wagon. It isn't fully tested and relies on `auditwheel`, which is, in itself, somewhat experimental. Read [https://www.python.org/dev/peps/pep-0513/](https://www.python.org/dev/peps/pep-0513/) for more info.
 
-For more information, see [Linux Support for compiled wheels](Linux Support for compiled wheels) below.
+For more information, see [Linux Support for compiled wheels](linux-support-for-compiled-wheels) below.
 
 The following example was executed on a container provided for wheel-auditing purposes which you can be run like so:
 
