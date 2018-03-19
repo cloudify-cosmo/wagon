@@ -451,8 +451,7 @@ def _get_pip_path(venv=None):
     if venv:
         return os.path.join(_get_env_bin_path(venv), pip)
     else:
-        return os.path.join(
-            os.path.dirname(sys.executable), 'scripts' if IS_WIN else '', pip)
+        return os.path.join(os.path.dirname(sys.executable), pip)
 
 
 def _check_installed(package, venv=None):
