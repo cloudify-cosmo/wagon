@@ -104,7 +104,7 @@ Wagon created successfully at: ./Flask-0.12-py27-none-linux_x86_64.wgn
 
 #### Requirement Files
 
-NOTE: Beginning with `Wagon 0.5.0`, Wagon no longer looks up requirement files within archives or in the local directory when creating wagons. You must expclitly spceify requirement files.
+NOTE: Beginning with `Wagon 0.5.0`, Wagon no longer looks up requirement files within archives or in the local directory when creating wagons. You must expclitly specify requirement files.
 
 You can provide multiple requirement files to be resolved by using the `-r` flag (multiple times).
 
