@@ -232,7 +232,7 @@ Wagon provides a way to repair a wagon by iterating over its wheels and fixing a
 
 NOTE! The repair command is EXPERIMENTAL in Wagon. It isn't fully tested and relies on `auditwheel`, which is, in itself, somewhat experimental. Read [https://www.python.org/dev/peps/pep-0513/](https://www.python.org/dev/peps/pep-0513/) for more info.
 
-For more information, see [Linux Support for compiled wheels](linux-support-for-compiled-wheels) below.
+For more information, see [Linux Support for compiled wheels](#linux-support-for-compiled-wheels) below.
 
 The following example was executed on a container provided for wheel-auditing purposes which you can be run like so:
 
