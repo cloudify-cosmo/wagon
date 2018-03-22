@@ -79,6 +79,10 @@ ALL_PLATFORMS_TAG = 'any'
 PROCESS_POLLING_INTERVAL = 0.1
 
 
+def _get_current_venv():
+    return os.environ.get('VIRTUAL_ENV')
+
+
 def setup_logger():
     handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('%(message)s')
@@ -172,7 +176,7 @@ def _construct_wheel_command(wheels_path='package',
                              wheel_args=None,
                              requirement_files=None,
                              package=None):
-    pip_executable = _get_pip_path(os.environ.get('VIRTUAL_ENV'))
+    pip_executable = _get_pip_path(_get_current_venv())
 
     wheel_cmd = [pip_executable, 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
@@ -449,9 +453,29 @@ def _get_env_bin_path(env_path):
 def _get_pip_path(venv=None):
     pip = 'pip.exe' if IS_WIN else 'pip'
     if venv:
-        return os.path.join(_get_env_bin_path(venv), pip)
+        pip_path = os.path.join(_get_env_bin_path(venv), pip)
     else:
-        return os.path.join(os.path.dirname(sys.executable), pip)
+        # If we get here, then a virtualenv is NOT activated.
+        # However, it is possible that the python interpreter has been
+        # invoked directly inside a virtualenv, without it being activated.
+
+        pip_path = os.path.join(os.path.dirname(sys.executable), pip)
+
+        # On Windows, in the base Python installation, "python.exe" is in the
+        # Python installation dir (say, C:\Python27) and "pip.exe" is
+        # in the "Scripts" subdirectory. In a virtualenv on Windows,
+        # "python.exe" and "pip.exe" are both in "VENV_ROOT/Scripts".
+
+        if IS_WIN and not os.path.exists(pip_path):
+            logger.debug("Couldn't find pip in {0}; this is "
+                         "Windows, so will try the Scripts subdirectory"
+                         .format(pip_path))
+            pip_path = os.path.join(os.path.dirname(sys.executable),
+                                    'Scripts', pip)
+
+    logger.debug("Concluded pip path: {0} (exists: {1})"
+                 .format(pip_path, os.path.exists(pip_path)))
+    return pip_path
 
 
 def _check_installed(package, venv=None):
@@ -1026,6 +1050,7 @@ def _install_wagon(args):
     try:
         install(
             source=args.SOURCE,
+            venv=_get_current_venv(),
             requirement_files=args.requirements_file,
             upgrade=args.upgrade,
             ignore_platform=args.ignore_platform,
