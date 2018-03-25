@@ -636,7 +636,7 @@ class TestCreate:
         os.write(fd, b'virtualenv==13.1.2')
         result = _invoke(
             ['wagon', 'create', TEST_PACKAGE, '-v', '-f',
-             '--wheel-args=-r {0}'.format(reqs_file_path),
+             '--wheel-args=-r"{0}"'.format(reqs_file_path),
              '--keep-wheels'])
         metadata = self._test(result=result, expected_number_of_wheels=6)
         assert metadata['package_source'] == TEST_PACKAGE
@@ -689,7 +689,7 @@ class TestCreate:
             requirements_file.write('wheel')
         result = _invoke(
             ['wagon', 'create', source, '-v', '-f', '--validate',
-             '--wheel-args=-r {0}'.format(requirements_file_path)])
+             '--wheel-args=-r"{0}"'.format(requirements_file_path)])
         try:
             python_version = sys.version_info
             if python_version[0] == 3:
