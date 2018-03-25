@@ -229,7 +229,7 @@ class TestBase:
     @pytest.mark.skipif(not wagon.IS_WIN, reason='Irrelevant on non-Windows')
     @mock.patch('sys.executable', new='C:\Python27\python.exe')
     def test_pip_path_on_windows(self):
-        assert wagon._get_pip_path(venv='') == 'C:\Python27\scripts\pip.exe'
+        assert wagon._get_pip_path(venv='') == 'C:\Python27\Scripts\pip.exe'
 
     def test_get_downloaded_wheels(self):
         tempdir = tempfile.mkdtemp()
