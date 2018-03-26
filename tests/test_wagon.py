@@ -48,8 +48,7 @@ def _invoke(command):
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True)
+        stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     process.stdout, process.stderr = \
         stdout.decode('utf8'), stderr.decode('utf8')
@@ -63,12 +62,12 @@ def _parse(command):
 
 class TestBase:
     def test_run(self):
-        proc = wagon._run('uname')
+        proc = wagon._run(['uname'])
         assert proc.returncode == 0
 
     def test_run_bad_command(self):
-        proc = wagon._run('suname')
-        proc.returncode == (1 if wagon.IS_WIN else 127)
+        with pytest.raises(OSError):
+            wagon._run(['suname'])
 
     def test_download_file(self):
         fd, path = tempfile.mkstemp()
@@ -230,7 +229,7 @@ class TestBase:
     @pytest.mark.skipif(not wagon.IS_WIN, reason='Irrelevant on non-Windows')
     @mock.patch('sys.executable', new='C:\Python27\python.exe')
     def test_pip_path_on_windows(self):
-        assert wagon._get_pip_path(venv='') == 'C:\Python27\scripts\pip.exe'
+        assert wagon._get_pip_path(venv='') == 'C:\Python27\Scripts\pip.exe'
 
     def test_get_downloaded_wheels(self):
         tempdir = tempfile.mkdtemp()
@@ -259,9 +258,9 @@ class TestBase:
             requirement_files=None,
             upgrade=False,
             install_args=None)
-        expected_command = \
-            ('{0} install {1} --use-wheel --no-index --find-links '
-             '{2} --pre'.format(sys_exec, package_name, wheels_path))
+        expected_command = [sys_exec, 'install', package_name, '--use-wheel',
+                            '--no-index', '--find-links', wheels_path,
+                            '--pre']
 
         assert generated_command == expected_command
 
@@ -271,7 +270,7 @@ class TestBase:
         package_name = 'package'
         wheels_path = 'wheels_path'
         requirement_files = ['/path/to/requirements_file', 'other']
-        args = '--isolated'
+        args = ['--isolated']
 
         generated_command = wagon._construct_pip_command(
             package=package_name,
@@ -280,14 +279,12 @@ class TestBase:
             requirement_files=requirement_files,
             upgrade=True,
             install_args='--isolated')
-        expected_command = \
-            ('{0} install -r {1} {2} --use-wheel --no-index --find-links '
-             '{3} --pre --upgrade {4}'.format(
-                 sys_exec,
-                 ' -r '.join(requirement_files),
-                 package_name,
-                 wheels_path,
-                 args))
+        expected_command = [sys_exec, 'install', '-r',
+                            '/path/to/requirements_file', '-r', 'other',
+                            package_name, '--use-wheel', '--no-index',
+                            '--find-links',
+                            wheels_path, '--pre', '--upgrade']
+        expected_command.extend(args)
 
         assert generated_command == expected_command
 
@@ -358,7 +355,7 @@ class TestCli:
         While on Linux:
             usage: wagon [-h] [-v]
         """
-        result = _invoke('wagon')
+        result = _invoke(['wagon'])
         assert 'usage: wagon' in result.stdout
 
     def test_errorcode_run_wagon_command_only(self):
@@ -619,7 +616,7 @@ class TestCreate:
         return metadata
 
     def test_create_archive_from_pypi_with_version(self):
-        result = _invoke('wagon create {0} -v -f '.format(TEST_PACKAGE))
+        result = _invoke(['wagon', 'create', TEST_PACKAGE, '-v', '-f'])
         metadata = self._test(result)
         assert metadata['package_source'] == TEST_PACKAGE
 
@@ -629,7 +626,8 @@ class TestCreate:
             TEST_PACKAGE_VERSION,
             self.python_versions,
             self.platform)
-        result = _invoke('wagon create {0} -v -f -t tar.gz'.format(TEST_ZIP))
+        result = _invoke(['wagon', 'create', TEST_ZIP, '-v', '-f', '-t',
+                          'tar.gz'])
         metadata = self._test(result)
         assert metadata['package_source'] == TEST_ZIP
 
@@ -637,8 +635,9 @@ class TestCreate:
         fd, reqs_file_path = tempfile.mkstemp()
         os.write(fd, b'virtualenv==13.1.2')
         result = _invoke(
-            'wagon create {0} -v -f --wheel-args="-r {1}" --keep-wheels'
-            .format(TEST_PACKAGE, reqs_file_path))
+            ['wagon', 'create', TEST_PACKAGE, '-v', '-f',
+             '--wheel-args=-r"{0}"'.format(reqs_file_path),
+             '--keep-wheels'])
         metadata = self._test(result=result, expected_number_of_wheels=6)
         assert metadata['package_source'] == TEST_PACKAGE
         assert 'virtualenv-13.1.2-py2.py3-none-any.whl' in metadata['wheels']
@@ -658,8 +657,8 @@ class TestCreate:
                     pypi_version,
                     self.python_versions,
                     self.platform)
-            result = _invoke('wagon create {0} -v -f -o {1}'.format(
-                package, temp_dir))
+            result = _invoke(['wagon', 'create', package, '-v', '-f', '-o',
+                              temp_dir])
             assert result.returncode == 0
             metadata = wagon.show(os.path.join(temp_dir, self.archive_name))
             self.platform = 'linux_x86_64'
@@ -689,8 +688,8 @@ class TestCreate:
         with open(requirements_file_path, 'w') as requirements_file:
             requirements_file.write('wheel')
         result = _invoke(
-            'wagon create {0} -v -f --validate --wheel-args="-r {1}"'
-            .format(source, requirements_file_path))
+            ['wagon', 'create', source, '-v', '-f', '--validate',
+             '--wheel-args=-r"{0}"'.format(requirements_file_path)])
         try:
             python_version = sys.version_info
             if python_version[0] == 3:
@@ -699,6 +698,10 @@ class TestCreate:
                 expected_number_of_wheels = 6
             elif python_version[0] == 2 and python_version[1] == 6:
                 expected_number_of_wheels = 6
+            else:
+                raise Exception('Unhandled Python version: {0}'.format(
+                    python_version
+                ))
             metadata = self._test(
                 result=result,
                 expected_number_of_wheels=expected_number_of_wheels)
@@ -735,7 +738,7 @@ class TestCreate:
 
 class TestInstall:
     def setup_method(self, test_method):
-        wagon._run('virtualenv test_env')
+        wagon._run(['virtualenv', 'test_env'])
         self.archive_path = wagon.create(
             source=TEST_PACKAGE,
             force=True)
@@ -754,7 +757,8 @@ class TestInstall:
         assert wagon._check_installed(TEST_PACKAGE_NAME)
 
     def test_fail_install(self):
-        result = _invoke("wagon install non_existing_archive -v -u")
+        result = _invoke(['wagon', 'install', 'non_existing_archive', '-v',
+                          '-u'])
         assert result.returncode == 1
 
     @mock.patch('wagon.get_platform', return_value='weird_platform')
@@ -773,7 +777,7 @@ class TestValidate:
             os.remove(self.archive_path)
 
     def test_validate_package(self):
-        result = _invoke('wagon validate {0} -v'.format(self.archive_path))
+        result = _invoke(['wagon', 'validate', self.archive_path, '-v'])
         assert result.returncode == 0
 
     def test_fail_validate_invalid_wagon(self):
@@ -856,7 +860,7 @@ class TestShowMetadata:
     def test_show_metadata_for_archive(self):
         # merely invoke it directly for coverage sake
         _parse('wagon show {0} -v'.format(self.archive_path))
-        result = _invoke('wagon show {0}'.format(self.archive_path))
+        result = _invoke(['wagon', 'show', self.archive_path])
         assert result.returncode == 0
         # Remove the first line
         resulting_metadata = json.loads(result.stdout)
