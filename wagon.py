@@ -27,6 +27,7 @@ import logging
 import platform
 import argparse
 import tempfile
+import shlex
 import subprocess
 import pkg_resources
 from io import StringIO
@@ -77,6 +78,10 @@ IS_LINUX = PLATFORM.startswith('linux')
 ALL_PLATFORMS_TAG = 'any'
 
 PROCESS_POLLING_INTERVAL = 0.1
+
+
+def _get_current_venv():
+    return os.environ.get('VIRTUAL_ENV')
 
 
 def setup_logger():
@@ -136,10 +141,9 @@ class PipeReader(Thread):
 def _run(cmd, suppress_errors=False, suppress_output=False):
     """Execute a command
     """
-    if is_verbose():
-        logger.debug('Executing: "%s"', format(cmd))
+    logger.debug('Executing: %s', format(cmd))
     process = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     stderr_log_level = logging.NOTSET if suppress_errors else logging.ERROR
     stdout_log_level = logging.NOTSET if suppress_output else logging.DEBUG
@@ -172,20 +176,21 @@ def _construct_wheel_command(wheels_path='package',
                              wheel_args=None,
                              requirement_files=None,
                              package=None):
-    pip_executable = _get_pip_path(os.environ.get('VIRTUAL_ENV'))
+    pip_executable = _get_pip_path(_get_current_venv())
 
     wheel_cmd = [pip_executable, 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
     if wheel_args:
-        wheel_cmd.append(wheel_args)
+        wheel_cmd.extend(wheel_args)
 
     if requirement_files:
         for req_file in requirement_files:
             wheel_cmd.extend(['-r', req_file])
     if package:
         wheel_cmd.append(package)
-    return ' '.join(wheel_cmd)
+
+    return wheel_cmd
 
 
 def wheel(package,
@@ -241,7 +246,7 @@ def _construct_pip_command(package,
     if install_args:
         pip_command.append(install_args)
 
-    return ' '.join(pip_command)
+    return pip_command
 
 
 def install_package(package,
@@ -449,15 +454,34 @@ def _get_env_bin_path(env_path):
 def _get_pip_path(venv=None):
     pip = 'pip.exe' if IS_WIN else 'pip'
     if venv:
-        return os.path.join(_get_env_bin_path(venv), pip)
+        pip_path = os.path.join(_get_env_bin_path(venv), pip)
     else:
-        return os.path.join(
-            os.path.dirname(sys.executable), 'scripts' if IS_WIN else '', pip)
+        # If we get here, then a virtualenv is NOT activated.
+        # However, it is possible that the python interpreter has been
+        # invoked directly inside a virtualenv, without it being activated.
+
+        pip_path = os.path.join(os.path.dirname(sys.executable), pip)
+
+        # On Windows, in the base Python installation, "python.exe" is in the
+        # Python installation dir (say, C:\Python27) and "pip.exe" is
+        # in the "Scripts" subdirectory. In a virtualenv on Windows,
+        # "python.exe" and "pip.exe" are both in "VENV_ROOT/Scripts".
+
+        if IS_WIN and not os.path.exists(pip_path):
+            logger.debug("Couldn't find pip in {0}; this is "
+                         "Windows, so will try the Scripts subdirectory"
+                         .format(pip_path))
+            pip_path = os.path.join(os.path.dirname(sys.executable),
+                                    'Scripts', pip)
+
+    logger.debug("Concluded pip path: {0} (exists: {1})"
+                 .format(pip_path, os.path.exists(pip_path)))
+    return pip_path
 
 
 def _check_installed(package, venv=None):
     pip_executable = _get_pip_path(venv)
-    process = _run('{0} freeze'.format(pip_executable), suppress_output=True)
+    process = _run([pip_executable, 'freeze'], suppress_output=True)
     if '{0}=='.format(package) in process.aggr_stdout:
         logger.debug('Package %s is installed in %s', package, venv)
         return True
@@ -468,7 +492,7 @@ def _check_installed(package, venv=None):
 def _make_virtualenv():
     virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
-    _run('virtualenv {0}'.format(virtualenv_dir))
+    _run(['virtualenv', virtualenv_dir])
     return virtualenv_dir
 
 
@@ -494,8 +518,8 @@ def _set_python_versions(python_versions=None):
 def _get_name_and_version_from_setup(source_path):
 
     def get_arg(arg_type, setuppy_path):
-        return _run('{0} {1} --{2}'.format(
-            sys.executable, setuppy_path, arg_type)).aggr_stdout.strip()
+        return _run([sys.executable, setuppy_path,
+                     '--{0}'.format(arg_type)]).aggr_stdout.strip()
 
     logger.debug('setup.py file found. Retrieving name and version...')
     setuppy_path = os.path.join(source_path, 'setup.py')
@@ -693,7 +717,7 @@ def create(source,
            archive_destination_dir='.',
            python_versions=None,
            validate_archive=False,
-           wheel_args='',
+           wheel_args=None,
            archive_format='zip'):
     """Create a Wagon archive and returns its path.
 
@@ -927,8 +951,8 @@ def _repair_wheels(workdir, metadata):
     for wheel in _get_downloaded_wheels(wheels_path):
         if _get_platform_from_wheel_name(wheel).startswith('linux'):
             wheel_path = os.path.join(wheels_path, wheel)
-            outcome = _run('auditwheel repair {0} -w {1}'.format(
-                wheel_path, wheels_path))
+            outcome = _run(['auditwheel', 'repair', wheel_path, '-w',
+                            wheels_path])
             if outcome.returncode != 0:
                 raise WagonError('Failed to repair wagon')
             os.remove(wheel_path)
@@ -1008,6 +1032,8 @@ def repair(source, validate_archive=False):
 
 
 def _create_wagon(args):
+    split_wheel_args = shlex.split(args.wheel_args) if args.wheel_args else []
+
     try:
         create(
             source=args.SOURCE,
@@ -1017,7 +1043,7 @@ def _create_wagon(args):
             archive_destination_dir=args.output_directory,
             python_versions=args.pyver,
             validate_archive=args.validate,
-            wheel_args=args.wheel_args,
+            wheel_args=split_wheel_args,
             archive_format=args.format)
     except WagonError as ex:
         sys.exit(ex)
@@ -1027,6 +1053,7 @@ def _install_wagon(args):
     try:
         install(
             source=args.SOURCE,
+            venv=_get_current_venv(),
             requirement_files=args.requirements_file,
             upgrade=args.upgrade,
             ignore_platform=args.ignore_platform,

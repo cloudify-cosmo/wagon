@@ -31,7 +31,7 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='0.6.1',
+    version='0.6.2',
     url='https://github.com/cloudify-cosmo/wagon',
     author='Gigaspaces',
     author_email='cosmo-admin@gigaspaces.com',
@@ -47,7 +47,7 @@ setup(
         "wheel==0.29.0",
     ],
     extras_require={
-        'dist': ['distro>=0.6.0'],
+        'dist': ['distro==1.0.4'],
         'venv': ['virtualenv>=12.1'],
     },
     classifiers=[

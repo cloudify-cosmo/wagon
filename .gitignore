@@ -56,3 +56,6 @@ docs/_build/
 .idea/*
 
 *COMMIT_MSG
+
+.pytest_cache/
+
