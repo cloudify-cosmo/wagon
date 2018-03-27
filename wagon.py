@@ -244,7 +244,7 @@ def _construct_pip_command(package,
     if upgrade:
         pip_command.append('--upgrade')
     if install_args:
-        pip_command.append(install_args)
+        pip_command.extend(install_args)
 
     return pip_command
 
