@@ -278,7 +278,7 @@ class TestBase:
             venv=None,
             requirement_files=requirement_files,
             upgrade=True,
-            install_args='--isolated')
+            install_args=['--isolated'])
         expected_command = [sys_exec, 'install', '-r',
                             '/path/to/requirements_file', '-r', 'other',
                             package_name, '--use-wheel', '--no-index',
