@@ -14,8 +14,6 @@ A wagon (also spelt waggon in British and Commonwealth English) is a heavy four-
 
 or.. it is just a set of (Python) Wheels.
 
-NOTE: wagon>=0.7.0 drops support for Python 2.6, 3.2 and 3.3 since Wheel itself no longer supports these versions. Please use wagon<=0.6.1 if you still need to support those versions.
-
 NOTE: To accommodate for the inconsistencies between wagon and pip, and to allow for additional required functionality, we will have to perform breaking changes until we can release v1.0.0. Please make sure you hardcode your wagon versions up until then.
 
 ## Incentive
@@ -44,6 +42,12 @@ pip install wagon
 # latest development version
 pip install http://github.com/cloudify-cosmo/wagon/archive/master.tar.gz
 ```
+
+### Backward Compatilibity
+
+NOTE: pip 10.x breaks wagon<=0.7.0 due to the removal of the `--use-wheel`. If you're using pip>=10.x, please make sure you use wagon>=0.8.0. Also, if you're using pip<=7.x, use wagon<=0.7.0.
+
+NOTE: wagon>=0.7.0 drops support for Python 2.6, 3.2 and 3.3 since Wheel itself no longer supports these versions. Please use wagon<=0.6.1 if you still need to support those versions.
 
 
 ## Usage
