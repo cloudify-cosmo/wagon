@@ -3,6 +3,9 @@
 BACKWARD COMPATIBILITY:
 * This version breaks support for pip<=7.x as it replaces the `--use-wheel` flag with the `--no-binary` flag removed in pip 10.
 
+ENHANCEMENTS:
+* Allow to add the build-tag tag to the archive name [[#123](https://github.com/cloudify-cosmo/wagon/pull/123)]
+
 BUG FIXES:
 * Fix pip 10 compat [[#122](https://github.com/cloudify-cosmo/wagon/pull/122)]
 
