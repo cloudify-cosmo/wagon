@@ -1,15 +1,24 @@
-**0.7.0 (2017.10.12)**
+## 0.8.0 (UNRELEASED)
+
+BACKWARD COMPATIBILITY:
+* This version breaks support for pip<=7.x as it replaces the `--use-wheel` flag with the `--no-binary` flag removed in pip 10.
+
+BUG FIXES:
+* Fix pip 10 compat [[#122](https://github.com/cloudify-cosmo/wagon/pull/122)]
+
+
+## 0.7.0 (2017.10.12)
 
 * Drop support for Python 2.6 and Python 3.3 (as per Wheel's official support since 0.30.0)
 * Fix #112
 
-**0.6.1 (2017.09.30)**
+## 0.6.1 (2017.09.30)
 
 THIS VERSION IS THE LATEST VERSION OF WAGON TO SUPPORT PYTHON 2.6, 3.2 and 3.3!
 
 * Wheel>0.30.0 dropped support for Python 2.6, 3.2 and 3.3. To use Wagon with any of these versions of Python, Wagon 0.6.1 should be used.
 
-**0.6.0 (2017.01.15)**
+## 0.6.0 (2017.01.15)
 
 * Include any changes done in v0.5.1
 * (Issue #71) Remove `-e` flag for the `install` command as it is not consistent with pip. You can still install from within a virtualenv or by passing a full path to `wagon` within the venv.
@@ -28,14 +37,14 @@ THIS VERSION IS THE LATEST VERSION OF WAGON TO SUPPORT PYTHON 2.6, 3.2 and 3.3!
 * Update python classifiers
 * Add MANIFEST.in file (Which includes LICENSE)
 
-** 0.5.1 (unreleased)
+## 0.5.1 (UNRELEASED)
 
 * (Issue #59) Fix common platform for multiple wheels incorrectly identified when there are both `manylinux1` and `linux_` wheels.
 * (Issue #60) Make platform check more robust
 * (Issue #61) No longer fail to install `manylinux1` on linux platforms
 
 
-**0.5.0 (unreleased)**
+## 0.5.0 (UNRELEASE)
 
 * Python 3 support (tested on 3.4 and 3.5)
 * Remove the excluded packages feature. You should use pip constraint files instead.
@@ -50,15 +59,15 @@ THIS VERSION IS THE LATEST VERSION OF WAGON TO SUPPORT PYTHON 2.6, 3.2 and 3.3!
 * Add Classifiers to setup.py
 * Remove autodetection of requirement files within an archive or a folder from which you create a wagon. This was a stupid idea in the first place - what was I thinking? Anyway, You can, as before, explicitly provide requirement files via the `-r` flag multiple times.
 
-**0.3.2 (2016-06-15)**
+## 0.3.2 (2016-06-15)
 
 * Fix Wrong pip path on Windows.
 
-**0.3.1 (2016-05-26)**
+## 0.3.1 (2016-05-26)
 
 * Previously, Wagon would use the Python, pip and wheel executables that were in the path, or, if using a virtualenv, those within it. That is, you couldn't use another python that's not in the path. That's now fixed as we're now using the python, pip and wheel relative to the sys.executable path.
 
-**0.3.0 (2015-11-02)**
+## 0.3.0 (2015-11-02)
 
 * Add a `--format` flag allowing to also choose the zip format for the wagon. Default is tar.gz.
 * Wagons now have the .wgn extension.
@@ -66,40 +75,40 @@ THIS VERSION IS THE LATEST VERSION OF WAGON TO SUPPORT PYTHON 2.6, 3.2 and 3.3!
 * Allow passing arbitrary pip args to the `create` and `install` commands via the `-a` flag. e.g. `wagon create flask -a '--retries 5'`.
 * To pack up internal requirement files, you can now simply provide the `-r` flag instead of `-r .` which will look for requirement files within the path/archive. To explicitly provide additional requirement files, you can use the additional pip args feature.
 
-**0.2.5 (2015-10-22)**
+## .2.5 (2015-10-22)
 
 * Wagon now officially supports Windows (and is tested via AppVeyor)
 * { platform } tag is now generated using wheel's implementation for consistency's sake.
 
-**0.2.4 (2015-10-21)**
+## 0.2.4 (2015-10-21)
 
 * Allow passing arbitrary pip args to wagon create via the wheel-args flag.
 * Allow passing arbitrary pip args to wagon install via the install-args flag.
 
-**0.2.3 (2015-10-18)**
+## 0.2.3 (2015-10-18)
 
 * Fixed attempting to install a package's dependencies from a dev-requirements file by using the -r flag failed.
 
-**0.2.2 (2015-10-14)**
+## 0.2.2 (2015-10-14)
 
 * The default logger will no longer override the user's logger when importing wagon.
 * Module -> Package (everywhere). Most importantly, the metadata now include package_name and package_version instead of module_name and module_version (what the hell was I thinking?).
 
-**0.2.1 (2015-10-09)**
+## 0.2.1 (2015-10-09)
 
 * Add support for excluding specific packages via the --exclude (-x) flag which can be supplied multiple times. This will be reflected in the metadata.
 * Add wagon showmeta -s SOURCE_ARCHIVE which prints out the metadata of a wagon archive.
 * OS properties in the metadata are now null when all either creating an archive on OS X or Windows or if the platform is any.
 * Archive name now contains the distro and release if creating an archive on Linux which contains non-Pure-Python wheels; but, when irrelevant, archive name will be somewhat like this: cloudify_fabric_plugin-1.2.1-py27-none-any-none-none.tar.gz
 
-**0.2.0 (2015-09-24)**
+## 0.2.0 (2015-09-24)
 
 * Added support for user supplied Python versions.
 * Added support for an --ignore-platform flag when installing a module.
 * Archive name now includes distro and release for Linux compiled archives so that they're identifiable.
 * Much more documentation
 
-**0.1.2 (2015-09-24)**
+## 0.1.2 (2015-09-24)
 
 * Rename Wheelr to Wagon
 * Add creation and installation validation.
