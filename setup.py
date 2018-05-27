@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 import os
-import sys
 import codecs
 from setuptools import setup
 
@@ -30,8 +29,8 @@ setup(
     name='wagon',
     version='0.8.0',
     url='https://github.com/cloudify-cosmo/wagon',
-    author='Gigaspaces',
-    author_email='cosmo-admin@gigaspaces.com',
+    author='Cloudify Platform Ltd.',
+    author_email='nir36g@gmail.com',
     license='Apache 2.0',
     platforms='All',
     description='Creates Python Wheel based archives with dependencies',
