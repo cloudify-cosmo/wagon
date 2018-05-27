@@ -574,6 +574,7 @@ class TestCreate:
             self.python_versions,
             self.platform)
         self.wagon_version = wagon._get_wagon_version()
+        self.build_tag = ''
 
     def teardown_method(self, test_method):
         if os.path.isfile(self.archive_name):
@@ -596,6 +597,7 @@ class TestCreate:
 
         assert self.wagon_version == metadata['created_by_wagon_version']
         assert self.package_version == metadata['package_version']
+        assert self.build_tag == metadata['package_build_tag']
         assert self.package_name == metadata['package_name']
         assert self.platform == metadata['supported_platform']
         assert len(metadata['wheels']) == expected_number_of_wheels
@@ -609,12 +611,17 @@ class TestCreate:
             assert release.lower() == \
                 metadata['build_server_os_properties']['distribution_release']
 
-        assert (
-            '{0}-{1}-{2}-none-{3}'.format(
-                self.package_name.replace('-', '_'),
-                self.package_version,
-                '.'.join(self.python_versions),
-                self.platform) in metadata['archive_name'])
+        archive_name_parts = [
+            self.package_name.replace('-', '_'),
+            self.package_version,
+            '.'.join(self.python_versions),
+            'none',
+            self.platform
+        ]
+        if self.build_tag:
+            archive_name_parts.insert(2, self.build_tag)
+
+        assert ('-'.join(archive_name_parts) in metadata['archive_name'])
 
         return metadata
 
@@ -622,6 +629,26 @@ class TestCreate:
         result = _invoke('wagon create {0} -v -f '.format(TEST_PACKAGE))
         metadata = self._test(result)
         assert metadata['package_source'] == TEST_PACKAGE
+
+    def test_create_archive_from_pypi_with_build_tag(self):
+        self.build_tag = '1b'
+        previous_archive_name = self.archive_name
+        self.archive_name = wagon._set_archive_name(
+            self.package_name,
+            self.package_version,
+            self.python_versions,
+            self.platform,
+            self.build_tag)
+
+        try:
+            result = _invoke('wagon create {0} -v -f --build-tag {1}'.format(
+                TEST_PACKAGE, self.build_tag))
+            metadata = self._test(result)
+            assert metadata['package_source'] == TEST_PACKAGE
+            assert metadata['package_build_tag'] == '1b'
+        finally:
+            self.build_tag = ''
+            self.archive_name = previous_archive_name
 
     def test_create_zip_formatted_wagon_from_zip(self):
         self.archive_name = wagon._set_archive_name(

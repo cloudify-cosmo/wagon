@@ -516,6 +516,7 @@ def _generate_metadata_file(workdir,
                             python_versions,
                             package_name,
                             package_version,
+                            build_tag,
                             package_source,
                             wheels):
     """Generate a metadata file for the package.
@@ -533,6 +534,7 @@ def _generate_metadata_file(workdir,
         },
         'package_name': package_name,
         'package_version': package_version,
+        'package_build_tag': build_tag,
         'package_source': package_source,
         'wheels': wheels,
     }
@@ -557,7 +559,8 @@ def _generate_metadata_file(workdir,
 def _set_archive_name(package_name,
                       package_version,
                       python_versions,
-                      platform):
+                      platform,
+                      build_tag=''):
     """Set the format of the output archive file.
 
     We should aspire for the name of the archive to be
@@ -576,6 +579,10 @@ def _set_archive_name(package_name,
         'none',
         platform,
     ]
+
+    if build_tag:
+        archive_name_tags.insert(2, build_tag)
+
     archive_name = '{0}.wgn'.format('-'.join(archive_name_tags))
     return archive_name
 
@@ -689,7 +696,8 @@ def create(source,
            python_versions=None,
            validate_archive=False,
            wheel_args='',
-           archive_format='zip'):
+           archive_format='zip',
+           build_tag=''):
     """Create a Wagon archive and returns its path.
 
     Package name and version are extracted from the setup.py file
@@ -739,7 +747,7 @@ def create(source,
     if not os.path.isdir(archive_destination_dir):
         os.makedirs(archive_destination_dir)
     archive_name = _set_archive_name(
-        package_name, package_version, python_versions, platform)
+        package_name, package_version, python_versions, platform, build_tag)
     archive_path = os.path.join(archive_destination_dir, archive_name)
 
     _handle_output_file(archive_path, force)
@@ -750,6 +758,7 @@ def create(source,
         python_versions,
         package_name,
         package_version,
+        build_tag,
         source,
         wheels)
 
@@ -982,7 +991,8 @@ def repair(source, validate_archive=False):
         new_metadata['package_name'],
         new_metadata['package_version'],
         new_metadata['supported_python_versions'],
-        new_metadata['supported_platform'])
+        new_metadata['supported_platform'],
+        new_metadata['build_tag'])
 
     _generate_metadata_file(
         processed_source,
@@ -991,6 +1001,7 @@ def repair(source, validate_archive=False):
         new_metadata['supported_python_versions'],
         new_metadata['package_name'],
         new_metadata['package_version'],
+        new_metadata['build_tag'],
         new_metadata['package_source'],
         new_metadata['wheels'])
     archive_path = os.path.join(os.getcwd(), archive_name)
@@ -1013,7 +1024,8 @@ def _create_wagon(args):
             python_versions=args.pyver,
             validate_archive=args.validate,
             wheel_args=args.wheel_args,
-            archive_format=args.format)
+            archive_format=args.format,
+            build_tag=args.build_tag)
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1124,6 +1136,10 @@ def _add_create_command(parser):
         action='append',
         help='Explicit Python versions supported (e.g. py2, py3). '
              'This argument can be provided multiple times')
+    command.add_argument(
+        '--build-tag',
+        default='',
+        help='A build number for the archive')
     command.add_argument(
         '--validate',
         default=False,
