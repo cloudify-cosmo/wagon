@@ -564,7 +564,7 @@ class TestCreate:
         if wagon.IS_WIN:
             self.platform = 'win32'
         else:
-            self.platform = 'linux_x86_64'
+            self.platform = 'manylinux1_x86_64'
         self.python_versions = [wagon._get_python_version()]
         self.package_version = TEST_PACKAGE_VERSION
         self.package_name = TEST_PACKAGE_NAME
