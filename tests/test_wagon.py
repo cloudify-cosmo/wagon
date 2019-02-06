@@ -260,7 +260,7 @@ class TestBase:
             upgrade=False,
             install_args=None)
         expected_command = \
-            ('{0} install {1} --only-binary --no-index --find-links '
+            ('{0} install {1} --only-binary :all: --no-index --find-links '
              '{2} --pre'.format(sys_exec, package_name, wheels_path))
 
         assert generated_command == expected_command
@@ -281,8 +281,8 @@ class TestBase:
             upgrade=True,
             install_args='--isolated')
         expected_command = \
-            ('{0} install -r {1} {2} --only-binary --no-index --find-links '
-             '{3} --pre --upgrade {4}'.format(
+            ('{0} install -r {1} {2} --only-binary :all: --no-index '
+             '--find-links {3} --pre --upgrade {4}'.format(
                  sys_exec,
                  ' -r '.join(requirement_files),
                  package_name,

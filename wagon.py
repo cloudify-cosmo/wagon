@@ -232,7 +232,7 @@ def _construct_pip_command(package,
         pip_command.extend(['-r', req_file])
     pip_command.append(package)
     pip_command.extend(
-        ['--only-binary', '--no-index', '--find-links', wheels_path])
+        ['--only-binary', ':all:', '--no-index', '--find-links', wheels_path])
     # pre allows installing both prereleases and regular releases depending
     # on the wheels provided.
     pip_command.append('--pre')
