@@ -668,9 +668,11 @@ def get_source(source):
                 'Failed to extract {0}. Please verify that the '
                 'provided file is a valid zip or tar.gz '
                 'archive'.format(source))
-
-        source = os.path.join(
-            destination, [d for d in next(os.walk(destination))[1]][0])
+        dirnames = next(os.walk(destination))[1]
+        if not dirnames:
+            raise WagonError('Expected to find a directory in the archive '
+                             '{0}, and none were found.'.format(source))
+        source = os.path.join(destination, dirnames[0])
         return source
 
     logger.debug('Retrieving source...')
@@ -691,7 +693,11 @@ def get_source(source):
                 schema))
     elif os.path.isfile(source):
         tmpdir = tempfile.mkdtemp()
-        source = extract_source(source, tmpdir)
+        try:
+            source = extract_source(source, tmpdir)
+        except WagonError as e:
+            shutil.rmtree(tmpdir)
+            raise e
     elif os.path.isdir(os.path.expanduser(source)):
         source = os.path.expanduser(source)
     elif '==' in source:

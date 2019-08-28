@@ -524,6 +524,29 @@ class TestGetSource:
         finally:
             os.remove(source_input)
 
+    def test_raises_source_archive_has_no_dir(self):
+        source_dir = tempfile.mkdtemp()
+        source_file = os.path.join(source_dir, 'some_file')
+        with open(source_file, 'w') as f:
+            f.write('something')
+        source_zip_file = source_file + '.zip'
+        wagon._zip(source_file, source_zip_file)
+
+        internal_temp_dir = tempfile.mkdtemp()
+        mkdtemp_patcher = mock.patch('wagon.tempfile.mkdtemp')
+        mkdtemp_mock = mkdtemp_patcher.start()
+        mkdtemp_mock.return_value = internal_temp_dir
+
+        try:
+            with pytest.raises(wagon.WagonError) as ex:
+                wagon.get_source(source_zip_file)
+            assert 'Expected to find a directory in the archive' in str(ex)
+            assert not os.path.exists(internal_temp_dir)
+        finally:
+            mkdtemp_patcher.stop()
+            shutil.rmtree(internal_temp_dir, ignore_errors=True)
+            shutil.rmtree(source_dir, ignore_errors=True)
+
     def test_source_directory_not_a_package(self):
         source_input = tempfile.mkdtemp()
 
