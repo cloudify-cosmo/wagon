@@ -258,7 +258,7 @@ class TestBase:
             requirement_files=None,
             upgrade=False,
             install_args=None)
-        expected_command = [sys_exec, 'install', package_name, '--use-wheel',
+        expected_command = [sys_exec, 'install', package_name, '--only-binary',
                             '--no-index', '--find-links', wheels_path,
                             '--pre']
 
@@ -281,7 +281,7 @@ class TestBase:
             install_args=['--isolated'])
         expected_command = [sys_exec, 'install', '-r',
                             '/path/to/requirements_file', '-r', 'other',
-                            package_name, '--use-wheel', '--no-index',
+                            package_name, '--only-binary', '--no-index',
                             '--find-links',
                             wheels_path, '--pre', '--upgrade']
         expected_command.extend(args)
