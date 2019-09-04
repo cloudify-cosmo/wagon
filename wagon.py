@@ -493,6 +493,10 @@ def _make_virtualenv():
     virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
     _run(['virtualenv', virtualenv_dir])
+    logger.debug('Downgrading PIP to version <9...')
+    pip_executable = _get_pip_path(virtualenv_dir)
+    pip_command = [pip_executable, 'install', 'pip<9']
+    _run(pip_command)
     return virtualenv_dir
 
 

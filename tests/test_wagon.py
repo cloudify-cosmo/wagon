@@ -710,8 +710,6 @@ class TestCreate:
         os.close(fd)
         with open(requirements_file_path, 'w') as requirements_file:
             requirements_file.write('wheel')
-        # TODO CY-1632: copy this command -vvv- and try to pip install
-        #  yourself to see why the return code is 1
         result = _invoke(
             ['wagon', 'create', source, '-v', '-f', '--validate',
              '--wheel-args=-r"{0}"'.format(requirements_file_path)])
