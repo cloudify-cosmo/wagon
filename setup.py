@@ -48,7 +48,7 @@ setup(
     ],
     extras_require={
         'dist': ['distro==1.0.4'],
-        'venv': ['virtualenv>=12.1'],
+        'venv': ['virtualenv>=12.1, <15.1.0'],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
