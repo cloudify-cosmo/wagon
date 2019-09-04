@@ -237,7 +237,7 @@ def _construct_pip_command(package,
         pip_command.extend(['-r', req_file])
     pip_command.append(package)
     pip_command.extend(
-        ['--use-wheel', '--no-index', '--find-links', wheels_path])
+        ['--only-binary', '--no-index', '--find-links', wheels_path])
     # pre allows installing both prereleases and regular releases depending
     # on the wheels provided.
     pip_command.append('--pre')
@@ -493,10 +493,6 @@ def _make_virtualenv():
     virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
     _run(['virtualenv', virtualenv_dir])
-    logger.debug('Downgrading PIP to version <9...')
-    pip_executable = _get_pip_path(virtualenv_dir)
-    pip_command = [pip_executable, 'install', 'pip<9']
-    _run(pip_command)
     return virtualenv_dir
 
 
