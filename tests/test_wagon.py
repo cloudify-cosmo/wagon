@@ -705,6 +705,8 @@ class TestCreate:
         assert 'test_package' in wheel_names
 
     def test_create_archive_from_path_and_validate(self):
+        # TODO CY-1632: make sure that a pip<9 is installed (--use-wheel is
+        #  deprecated)
         source = wagon.get_source(TEST_TAR)
         fd, requirements_file_path = tempfile.mkstemp()
         os.close(fd)
