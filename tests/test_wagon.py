@@ -82,7 +82,7 @@ class TestBase:
     def test_download_file_missing(self):
         with pytest.raises(wagon.WagonError) as ex:
             wagon._download_file('http://www.google.com/x.tar.gz', 'file')
-        assert "Failed to download file" in str(ex)
+        assert "Failed to download file" in str(ex.value)
 
     def test_download_bad_url(self):
         if IS_PY3:
