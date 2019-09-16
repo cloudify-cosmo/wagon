@@ -31,10 +31,10 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='0.6.3',
+    version='0.6.4-dev',
     url='https://github.com/cloudify-cosmo/wagon',
-    author='Gigaspaces',
-    author_email='cosmo-admin@gigaspaces.com',
+    author='Cloudify',
+    author_email='cosmo-admin@cloudify.co',
     license='Apache 2.0',
     platforms='All',
     description='Creates Python Wheel based archives with dependencies',
