@@ -108,7 +108,7 @@ class TestBase:
     def test_download_no_permissions(self):
         with pytest.raises(IOError) as ex:
             wagon._download_file(TEST_TAR, '/file')
-        assert 'Permission denied' in str(ex)
+        assert 'Permission denied' in str(ex.value)
 
     def test_tar(self):
         tempdir = tempfile.mkdtemp()
@@ -157,7 +157,7 @@ class TestBase:
         try:
             with pytest.raises(wagon.WagonError) as ex:
                 wagon.wheel('cloudify-script-plug==1.3')
-            assert 'Failed to download wheels for:' in str(ex)
+            assert 'Failed to download wheels for:' in str(ex.value)
         finally:
             shutil.rmtree('package', ignore_errors=True)
 
@@ -172,7 +172,7 @@ class TestBase:
                 wagon.wheel(
                     package='wheel',
                     requirement_files=[requirements_file_path])
-            assert 'Failed to download wheels for:' in str(ex)
+            assert 'Failed to download wheels for:' in str(ex.value)
         finally:
             shutil.rmtree('package', ignore_errors=True)
             os.remove(requirements_file_path)
@@ -186,7 +186,7 @@ class TestBase:
     def test_get_version_from_pypi_bad_source(self):
         with pytest.raises(wagon.WagonError) as ex:
             wagon._get_package_info_from_pypi('NONEXISTING_PACKAGE')
-        assert 'Failed to retrieve info for package' in str(ex)
+        assert 'Failed to retrieve info for package' in str(ex.value)
 
     def test_check_package_not_installed(self):
         virtualenv_path = wagon._make_virtualenv()
@@ -199,7 +199,7 @@ class TestBase:
     def test_install_package_failed(self):
         with pytest.raises(wagon.WagonError) as ex:
             wagon.install_package('x', 'y')
-        assert 'Could not install package:' in str(ex)
+        assert 'Could not install package:' in str(ex.value)
 
     def test_archive_unsupported_format(self):
         with pytest.raises(wagon.WagonError) as ex:
@@ -207,7 +207,7 @@ class TestBase:
                 'source_dir',
                 'output_archive',
                 'unsupported_format')
-        assert 'Unsupported archive format to create' in str(ex)
+        assert 'Unsupported archive format to create' in str(ex.value)
 
     def test_single_python_version(self):
         versions = wagon._set_python_versions()
@@ -520,7 +520,7 @@ class TestGetSource:
         try:
             with pytest.raises(wagon.WagonError) as ex:
                 wagon.get_source(source_input)
-            assert 'Failed to extract' in str(ex)
+            assert 'Failed to extract' in str(ex.value)
         finally:
             os.remove(source_input)
 
@@ -540,7 +540,8 @@ class TestGetSource:
         try:
             with pytest.raises(wagon.WagonError) as ex:
                 wagon.get_source(source_zip_file)
-            assert 'Expected to find a directory in the archive' in str(ex)
+            assert 'Expected to find a directory in the archive' \
+                   in str(ex.value)
             assert not os.path.exists(internal_temp_dir)
         finally:
             mkdtemp_patcher.stop()
@@ -553,7 +554,8 @@ class TestGetSource:
         try:
             with pytest.raises(wagon.WagonError) as ex:
                 wagon.create(source_input)
-            assert 'Source directory must contain a setup.py file' in str(ex)
+            assert 'Source directory must contain a setup.py file' \
+                   in str(ex.value)
         finally:
             shutil.rmtree(source_input, ignore_errors=True)
 
@@ -576,7 +578,7 @@ class TestCreateBadSources:
     def test_unsupported_url_schema(self):
         with pytest.raises(wagon.WagonError) as ex:
             wagon.create(source='ftp://x')
-        assert 'Source URL type' in str(ex)
+        assert 'Source URL type' in str(ex.value)
 
 
 class TestCreate:
@@ -739,7 +741,7 @@ class TestCreate:
         assert os.path.isfile(self.archive_name)
         with pytest.raises(wagon.WagonError) as ex:
             wagon.create(TEST_PACKAGE)
-        assert 'Destination archive already exists:' in str(ex)
+        assert 'Destination archive already exists:' in str(ex.value)
 
     def test_create_archive_already_exists_force(self):
         wagon.create(TEST_PACKAGE)
@@ -750,7 +752,7 @@ class TestCreate:
     def test_fail_create(self):
         with pytest.raises(SystemExit) as ex:
             _parse('wagon create non_existing_package -v -f')
-        assert 'Failed to retrieve info for package' in str(ex)
+        assert 'Failed to retrieve info for package' in str(ex.value)
 
     @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
     def test_create_with_validation_no_virtualenv_installed(self):
@@ -788,7 +790,8 @@ class TestInstall:
     def test_fail_install_unsupported_platform(self, _):
         with pytest.raises(SystemExit) as ex:
             _parse("wagon install {0} -v -u".format(self.archive_path))
-        assert 'Platform unsupported for wagon (weird_platform)' in str(ex)
+        assert 'Platform unsupported for wagon (weird_platform)' \
+               in str(ex.value)
 
 
 class TestValidate:
@@ -814,7 +817,8 @@ class TestValidate:
         try:
             with pytest.raises(SystemExit) as ex:
                 _parse('wagon validate {0}'.format(invalid_wagon))
-            assert 'Failed to extract {0}'.format(invalid_wagon) in str(ex)
+            assert 'Failed to extract {0}'.format(invalid_wagon) \
+                   in str(ex.value)
         finally:
             os.remove(invalid_wagon)
 
@@ -892,4 +896,4 @@ class TestShowMetadata:
     def test_fail_show_metadata_for_non_existing_archive(self):
         with pytest.raises(SystemExit) as ex:
             _parse('wagon show non_existing_archive')
-        assert 'Failed to retrieve info for package' in str(ex)
+        assert 'Failed to retrieve info for package' in str(ex.value)
