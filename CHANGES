@@ -1,3 +1,7 @@
+**0.6.4 (2020.02.10)**
+
+* Pin virtualenv version to below 20.0.0
+
 **0.6.0 (2017.01.15)**
 
 * Include any changes done in v0.5.1
