@@ -137,9 +137,9 @@ def _run(cmd, suppress_errors=False, suppress_output=False):
     """Execute a command
     """
     if is_verbose():
-        logger.debug('Executing: "%s"', format(cmd))
+        logger.debug('Executing: %r', cmd)
     process = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     stderr_log_level = logging.NOTSET if suppress_errors else logging.ERROR
     stdout_log_level = logging.NOTSET if suppress_output else logging.DEBUG
@@ -185,7 +185,7 @@ def _construct_wheel_command(wheels_path='package',
             wheel_cmd.extend(['-r', req_file])
     if package:
         wheel_cmd.append(package)
-    return ' '.join(wheel_cmd)
+    return wheel_cmd
 
 
 def wheel(package,
@@ -241,7 +241,7 @@ def _construct_pip_command(package,
     if install_args:
         pip_command.append(install_args)
 
-    return ' '.join(pip_command)
+    return pip_command
 
 
 def install_package(package,
@@ -451,7 +451,7 @@ def _get_pip_path(venv=None):
 
 def _check_installed(package, venv=None):
     pip_executable = _get_pip_path(venv)
-    process = _run('{0} freeze'.format(pip_executable), suppress_output=True)
+    process = _run([pip_executable, 'freeze'], suppress_output=True)
     pkgs = ['{0}=='.format(package), '{0}=='.format(package.replace('_', '-'))]
     if any(package_name in process.aggr_stdout for package_name in pkgs):
         logger.debug('Package %s is installed in %s', package, venv)
@@ -463,7 +463,7 @@ def _check_installed(package, venv=None):
 def _make_virtualenv():
     virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
-    _run('virtualenv {0}'.format(virtualenv_dir))
+    _run(['virtualenv', virtualenv_dir])
     return virtualenv_dir
 
 
@@ -489,8 +489,9 @@ def _set_python_versions(python_versions=None):
 def _get_name_and_version_from_setup(source_path):
 
     def get_arg(arg_type, setuppy_path):
-        return _run('{0} {1} --{2}'.format(
-            sys.executable, setuppy_path, arg_type)).aggr_stdout.strip()
+        return _run([
+            sys.executable, setuppy_path, '--' + arg_type
+        ]).aggr_stdout.strip()
 
     logger.debug('setup.py file found. Retrieving name and version...')
     setuppy_path = os.path.join(source_path, 'setup.py')
@@ -931,8 +932,8 @@ def _repair_wheels(workdir, metadata):
     for wheel in _get_downloaded_wheels(wheels_path):
         if _get_platform_from_wheel_name(wheel).startswith('linux'):
             wheel_path = os.path.join(wheels_path, wheel)
-            outcome = _run('auditwheel repair {0} -w {1}'.format(
-                wheel_path, wheels_path))
+            outcome = _run(
+                ['auditwheel', 'repair', wheel_path, '-w', wheels_path])
             if outcome.returncode != 0:
                 raise WagonError('Failed to repair wagon')
             os.remove(wheel_path)
