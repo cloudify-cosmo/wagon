@@ -49,12 +49,6 @@ try:
 except ImportError:
     IS_DISTRO_INSTALLED = False
 
-try:
-    import virtualenv
-    IS_VIRTUALENV_INSTALLED = True
-except ImportError:
-    IS_VIRTUALENV_INSTALLED = False
-
 from wheel import pep425tags
 
 DESCRIPTION = \
@@ -172,9 +166,7 @@ def _construct_wheel_command(wheels_path='package',
                              wheel_args=None,
                              requirement_files=None,
                              package=None):
-    pip_executable = _get_pip_path(os.environ.get('VIRTUAL_ENV'))
-
-    wheel_cmd = [pip_executable, 'wheel']
+    wheel_cmd = [_get_python_path(), '-m', 'pip', 'wheel']
     wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
     wheel_cmd.append('--find-links={0}'.format(wheels_path))
     if wheel_args:
@@ -225,9 +217,7 @@ def _construct_pip_command(package,
                            install_args=None):
     requirement_files = requirement_files or []
 
-    pip_executable = _get_pip_path(venv)
-
-    pip_command = [pip_executable, 'install']
+    pip_command = [_get_python_path(), '-m', 'pip', 'install']
     for req_file in requirement_files:
         pip_command.extend(['-r', req_file])
     pip_command.append(package)
@@ -425,33 +415,17 @@ def _get_os_properties():
     return platform.linux_distribution(full_distribution_name=False)
 
 
-def _get_env_bin_path(env_path):
-    """Return the bin path for a virtualenv
-
-    This provides a fallback for a situation in which you're trying
-    to use the script and create a virtualenv from within
-    a virtualenv in which virtualenv isn't installed and so
-    is not importable.
-    """
-    if IS_VIRTUALENV_INSTALLED:
-        path = virtualenv.path_locations(env_path)[3]
+def _get_python_path(venv=None):
+    if not venv:
+        return sys.executable
+    if IS_WIN:
+        return os.path.join(venv, 'Scripts', 'python.exe')
     else:
-        path = os.path.join(env_path, 'Scripts' if IS_WIN else 'bin')
-    return r'{0}'.format(path)
-
-
-def _get_pip_path(venv=None):
-    pip = 'pip.exe' if IS_WIN else 'pip'
-    if venv:
-        return os.path.join(_get_env_bin_path(venv), pip)
-    else:
-        return os.path.join(
-            os.path.dirname(sys.executable), 'scripts' if IS_WIN else '', pip)
+        return os.path.join(venv, 'bin', 'python')
 
 
 def _check_installed(package, venv=None):
-    pip_executable = _get_pip_path(venv)
-    process = _run([pip_executable, 'freeze'], suppress_output=True)
+    process = _run([_get_python_path(venv), 'freeze'], suppress_output=True)
     pkgs = ['{0}=='.format(package), '{0}=='.format(package.replace('_', '-'))]
     if any(package_name in process.aggr_stdout for package_name in pkgs):
         logger.debug('Package %s is installed in %s', package, venv)
@@ -463,7 +437,7 @@ def _check_installed(package, venv=None):
 def _make_virtualenv():
     virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
-    _run(['virtualenv', virtualenv_dir])
+    _run([sys.executable, '-m', 'virtualenv', virtualenv_dir])
     return virtualenv_dir
 
 
@@ -857,7 +831,9 @@ def install(source,
 
 
 def _assert_virtualenv_is_installed():
-    if not IS_VIRTUALENV_INSTALLED:
+    try:
+        import virtualenv  # NOQA
+    except ImportError:
         raise WagonError(
             'virtualenv is not installed and is required for the '
             'validation process. Please make sure virtualenv is installed '
