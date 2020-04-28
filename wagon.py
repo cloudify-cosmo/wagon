@@ -25,11 +25,11 @@ import shutil
 import tarfile
 import zipfile
 import logging
-import platform
 import argparse
 import tempfile
 import subprocess
 import pkg_resources
+import distutils.util
 from io import StringIO
 from threading import Thread
 from contextlib import closing
@@ -45,12 +45,10 @@ except ImportError:
     from urllib import URLopener
 
 try:
-    import distro
-    IS_DISTRO_INSTALLED = True
+    from distro import linux_distribution
 except ImportError:
-    IS_DISTRO_INSTALLED = False
+    from platform import linux_distribution
 
-from wheel import pep425tags
 
 DESCRIPTION = \
     '''Create and install wheel based packages with their dependencies'''
@@ -410,7 +408,7 @@ def _get_python_version():
 
 
 def get_platform():
-    return pep425tags.get_platform()
+    return distutils.util.get_platform().replace('.', '_').replace('-', '_')
 
 
 def _get_os_properties():
@@ -420,9 +418,7 @@ def _get_os_properties():
     and will be removed in Python 3.7. By that time, distro will become
     mandatory.
     """
-    if IS_DISTRO_INSTALLED:
-        return distro.linux_distribution(full_distribution_name=False)
-    return platform.linux_distribution(full_distribution_name=False)
+    return linux_distribution(full_distribution_name=False)
 
 
 def _get_python_path(venv=None):
