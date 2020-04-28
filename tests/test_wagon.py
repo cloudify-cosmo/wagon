@@ -18,7 +18,6 @@ import sys
 import json
 import shutil
 import tarfile
-import platform
 import tempfile
 import subprocess
 import distutils.spawn  # NOQA
@@ -27,10 +26,6 @@ from contextlib import closing
 import mock
 import pytest
 import virtualenv  # NOQA
-try:
-    import distro
-except ImportError:
-    pass
 
 import wagon
 
@@ -51,6 +46,7 @@ def _invoke(command):
         stderr=subprocess.PIPE,
         shell=True)
     stdout, stderr = process.communicate()
+    process.command = command
     process.stdout, process.stderr = \
         stdout.decode('utf8'), stderr.decode('utf8')
     return process
@@ -65,10 +61,6 @@ class TestBase:
     def test_run(self):
         proc = wagon._run('uname')
         assert proc.returncode == 0
-
-    def test_run_bad_command(self):
-        proc = wagon._run('suname')
-        proc.returncode == (1 if wagon.IS_WIN else 127)
 
     def test_download_file(self):
         fd, path = tempfile.mkstemp()
@@ -105,12 +97,6 @@ class TestBase:
             wagon._download_file(TEST_TAR, 'x/file')
         assert 'No such file or directory' in str(ex.value)
 
-    @pytest.mark.skipif(wagon.IS_WIN, reason='Irrelevant on Windows')
-    def test_download_no_permissions(self):
-        with pytest.raises(IOError) as ex:
-            wagon._download_file(TEST_TAR, '/file')
-        assert 'Permission denied' in str(ex)
-
     def test_tar(self):
         tempdir = tempfile.mkdtemp()
         with open(os.path.join(tempdir, 'content.file'), 'w') as f:
@@ -123,17 +109,6 @@ class TestBase:
             dirname = os.path.split(tempdir)[1]
             assert '{0}/content.file'.format(dirname) in members
         os.remove('tar.file')
-
-    @pytest.mark.skipif(wagon.IS_WIN, reason='Irrelevant on Windows')
-    def test_tar_no_permissions(self):
-        tmpdir = tempfile.mkdtemp()
-        try:
-            with pytest.raises(IOError) as ex:
-                wagon._tar(tmpdir, '/file')
-            assert "Permission denied" in str(ex.value)
-            assert "/file" in str(ex.value)
-        finally:
-            shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_tar_missing_source(self):
         with pytest.raises(OSError) as ex:
@@ -149,8 +124,8 @@ class TestBase:
     def test_make_virtualenv(self):
         virtualenv_path = wagon._make_virtualenv()
         try:
-            pip_path = wagon._get_pip_path(virtualenv_path)
-            assert os.path.isfile(pip_path)
+            python_path = wagon._get_python_path(virtualenv_path)
+            assert os.path.isfile(python_path)
         finally:
             shutil.rmtree(virtualenv_path, ignore_errors=True)
 
@@ -222,16 +197,6 @@ class TestBase:
         expected_versions = ['py27', 'py26']
         assert versions == expected_versions
 
-    @pytest.mark.skipif(wagon.IS_WIN, reason='Irrelevant on Windows')
-    @mock.patch('sys.executable', new='/a/b/c/python')
-    def test_pip_path_on_not_windows(self):
-        assert wagon._get_pip_path(venv='') == '/a/b/c/pip'
-
-    @pytest.mark.skipif(not wagon.IS_WIN, reason='Irrelevant on non-Windows')
-    @mock.patch('sys.executable', new='C:\Python27\python.exe')
-    def test_pip_path_on_windows(self):
-        assert wagon._get_pip_path(venv='') == 'C:\Python27\scripts\pip.exe'
-
     def test_get_downloaded_wheels(self):
         tempdir = tempfile.mkdtemp()
         fd, temp_wheel = tempfile.mkstemp(suffix='.whl', dir=tempdir)
@@ -248,7 +213,6 @@ class TestBase:
             shutil.rmtree(tempdir, ignore_errors=True)
 
     def test_construct_pip_command(self):
-        sys_exec = wagon._get_pip_path(None)
         package_name = 'package'
         wheels_path = 'wheels_path'
 
@@ -259,15 +223,16 @@ class TestBase:
             requirement_files=None,
             upgrade=False,
             install_args=None)
-        expected_command = \
-            ('{0} install {1} --only-binary --no-index --find-links '
-             '{2} --pre'.format(sys_exec, package_name, wheels_path))
+        expected_command = wagon._pip() + [
+            'install', package_name,
+            '--no-index', '--find-links', wheels_path,
+            '--pre'
+        ]
 
         assert generated_command == expected_command
 
     def test_construct_pip_command_with_additions(self):
 
-        sys_exec = wagon._get_pip_path(None)
         package_name = 'package'
         wheels_path = 'wheels_path'
         requirement_files = ['/path/to/requirements_file', 'other']
@@ -280,14 +245,13 @@ class TestBase:
             requirement_files=requirement_files,
             upgrade=True,
             install_args='--isolated')
-        expected_command = \
-            ('{0} install -r {1} {2} --only-binary --no-index --find-links '
-             '{3} --pre --upgrade {4}'.format(
-                 sys_exec,
-                 ' -r '.join(requirement_files),
-                 package_name,
-                 wheels_path,
-                 args))
+        expected_command = wagon._pip() + [
+            'install',
+            '-r', requirement_files[0], '-r', requirement_files[1],
+            package_name,
+            '--no-index', '--find-links', wheels_path,
+            '--pre', '--upgrade', args
+        ]
 
         assert generated_command == expected_command
 
@@ -298,44 +262,6 @@ class TestBase:
                 'package', wheels_path='path', venv=non_existing_venv)
         assert 'virtualenv {0} does not exist'.format(non_existing_venv) \
             in str(ex.value)
-
-    @pytest.mark.skipif(not wagon.IS_LINUX, reason='Irrelevant on non-Linux')
-    def test_get_platform_properties(self):
-        os_properties = wagon._get_os_properties()
-        assert os_properties == \
-            distro.linux_distribution(full_distribution_name=False)
-
-    @mock.patch('wagon.IS_DISTRO_INSTALLED', False)
-    @pytest.mark.skipif(not wagon.IS_LINUX, reason='Irrelevant on non-Linux')
-    def test_get_platform_properties_without_distro(self):
-        os_properties = wagon._get_os_properties()
-        assert os_properties == \
-            platform.linux_distribution(full_distribution_name=False)
-
-    def _test_get_env_bin_path(self):
-        tmp_env = wagon._make_virtualenv()
-        try:
-            env_bin_path = wagon._get_env_bin_path(tmp_env)
-            assert env_bin_path == virtualenv.path_locations(tmp_env)[3]
-        finally:
-            shutil.rmtree(tmp_env, ignore_errors=True)
-
-    def test_get_env_bin_path(self):
-        self._test_get_env_bin_path()
-
-    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
-    def test_get_env_bin_path_without_virtualenv(self):
-        self._test_get_env_bin_path()
-
-    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
-    def test_assert_virtualenv_is_not_installed(self):
-        with pytest.raises(wagon.WagonError) as ex:
-            wagon._assert_virtualenv_is_installed()
-        assert 'virtualenv is not installed' in str(ex.value)
-
-    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', True)
-    def test_assert_virtualenv_is_installed(self):
-        wagon._assert_virtualenv_is_installed()
 
     @mock.patch('wagon.find_executable', return_value=False)
     def test_assert_auditwheel_does_not_exist(self, _):
@@ -564,7 +490,7 @@ class TestCreate:
         if wagon.IS_WIN:
             self.platform = 'win32'
         else:
-            self.platform = 'linux_x86_64'
+            self.platform = 'manylinux1_x86_64'
         self.python_versions = [wagon._get_python_version()]
         self.package_version = TEST_PACKAGE_VERSION
         self.package_name = TEST_PACKAGE_NAME
@@ -583,7 +509,10 @@ class TestCreate:
             shutil.rmtree(self.package_name, ignore_errors=True)
 
     def _test(self, result, expected_number_of_wheels=5):
-        assert result.returncode == 0
+        assert result.returncode == 0, (
+            'Error running {0!r}: {1}\n{2}'
+            .format(result.command, result.stdout, result.stderr)
+        )
         assert os.path.isfile(self.archive_name)
 
         try:
@@ -661,15 +590,14 @@ class TestCreate:
         assert metadata['package_source'] == TEST_ZIP
 
     def test_create_archive_from_pypi_with_additional_wheel_args(self):
-        fd, reqs_file_path = tempfile.mkstemp()
-        os.write(fd, b'virtualenv==13.1.2')
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(b'virtualenv==13.1.2')
         result = _invoke(
             'wagon create {0} -v -f --wheel-args="-r {1}" --keep-wheels'
-            .format(TEST_PACKAGE, reqs_file_path))
+            .format(TEST_PACKAGE, f.name))
         metadata = self._test(result=result, expected_number_of_wheels=6)
         assert metadata['package_source'] == TEST_PACKAGE
         assert 'virtualenv-13.1.2-py2.py3-none-any.whl' in metadata['wheels']
-        os.close(fd)
 
     def test_create_archive_in_destination_dir_from_pypi_latest(self):
         temp_dir = tempfile.mkdtemp()
@@ -753,16 +681,11 @@ class TestCreate:
             _parse('wagon create non_existing_package -v -f')
         assert 'Failed to retrieve info for package' in str(ex)
 
-    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
-    def test_create_with_validation_no_virtualenv_installed(self):
-        with pytest.raises(wagon.WagonError) as ex:
-            wagon.create(TEST_PACKAGE, validate_archive=True)
-        assert 'virtualenv is not installed' in str(ex.value)
-
 
 class TestInstall:
     def setup_method(self, test_method):
-        wagon._run('virtualenv test_env')
+        shutil.rmtree('test_env', ignore_errors=True)
+        wagon._make_virtualenv('test_env')
         self.archive_path = wagon.create(
             source=TEST_PACKAGE,
             force=True)
@@ -772,13 +695,19 @@ class TestInstall:
         if os.path.isdir('test_env'):
             shutil.rmtree('test_env', ignore_errors=True)
 
-    # TODO: Important before releasing 0.6.0!
-    @pytest.mark.skipif(not os.environ.get('CI'),
-                        reason='Can only run in CI env')
-    def test_install_package_from_local_archive(self):
-        assert not wagon._check_installed(TEST_PACKAGE_NAME)
-        _parse("wagon install {0} -v -u".format(self.archive_path))
-        assert wagon._check_installed(TEST_PACKAGE_NAME)
+    def test_install_package_from_local_archive(self, tmpdir):
+        # make a virtualenv and install wagon there, and use that venv for
+        # testing installation
+        venv = 'test_env'
+        assert not wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
+        python = wagon._get_python_path(venv)
+        wagon._run(wagon._pip() + [
+            'install', os.path.dirname(wagon.__file__)
+        ])
+        assert not wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
+        _invoke("{0} -m wagon install {1} -v -u"
+                .format(python, self.archive_path))
+        assert wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
 
     def test_fail_install(self):
         result = _invoke("wagon install non_existing_archive -v -u")
@@ -801,7 +730,10 @@ class TestValidate:
 
     def test_validate_package(self):
         result = _invoke('wagon validate {0} -v'.format(self.archive_path))
-        assert result.returncode == 0
+        assert result.returncode == 0, (
+            'Error running {0!r}: {1}\n{2}'
+            .format(result.command, result.stdout, result.stderr)
+        )
 
     def test_fail_validate_invalid_wagon(self):
         fd, invalid_wagon = tempfile.mkstemp()
@@ -861,12 +793,6 @@ class TestValidate:
             shutil.rmtree(tempdir, ignore_errors=True)
             if os.path.isfile(archive_name):
                 os.remove(archive_name)
-
-    @mock.patch('wagon.IS_VIRTUALENV_INSTALLED', False)
-    def test_create_with_validation_no_virtualenv_installed(self):
-        with pytest.raises(wagon.WagonError) as ex:
-            wagon.validate(self.archive_path)
-        assert 'virtualenv is not installed' in str(ex.value)
 
 
 class TestShowMetadata:
