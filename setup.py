@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 import os
-import sys
 import codecs
 from setuptools import setup
 
@@ -47,7 +46,7 @@ setup(
         'dist': ['distro>=0.6.0'],
         'venv': ['virtualenv>=12.1'],
     },
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
+    python_requires='>=2.6,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Programming Language :: Python',
