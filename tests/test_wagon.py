@@ -39,12 +39,12 @@ TEST_PACKAGE_PLATFORM = 'linux_x86_64'
 TEST_PACKAGE = '{0}=={1}'.format(TEST_PACKAGE_NAME, TEST_PACKAGE_VERSION)
 
 
-def _invoke(command):
+def _wagon(command):
     process = subprocess.Popen(
-        command,
+        [sys.executable, '-m', 'wagon'] + command,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True)
+        stderr=subprocess.PIPE
+    )
     stdout, stderr = process.communicate()
     process.command = command
     process.stdout, process.stderr = \
@@ -284,7 +284,7 @@ class TestCli:
         While on Linux:
             usage: wagon [-h] [-v]
         """
-        result = _invoke('wagon')
+        result = _wagon([])
         assert 'usage: wagon' in result.stdout
 
     def test_errorcode_run_wagon_command_only(self):
@@ -555,13 +555,12 @@ class TestCreate:
         return metadata
 
     def test_create_archive_from_pypi_with_version(self):
-        result = _invoke('wagon create {0} -v -f '.format(TEST_PACKAGE))
+        result = _wagon(['create', TEST_PACKAGE, '-v', '-f'])
         metadata = self._test(result)
         assert metadata['package_source'] == TEST_PACKAGE
 
     def test_create_archive_from_pypi_with_build_tag(self):
         self.build_tag = '1b'
-        previous_archive_name = self.archive_name
         self.archive_name = wagon._set_archive_name(
             self.package_name,
             self.package_version,
@@ -569,15 +568,11 @@ class TestCreate:
             self.platform,
             self.build_tag)
 
-        try:
-            result = _invoke('wagon create {0} -v -f --build-tag {1}'.format(
-                TEST_PACKAGE, self.build_tag))
-            metadata = self._test(result)
-            assert metadata['package_source'] == TEST_PACKAGE
-            assert metadata['package_build_tag'] == '1b'
-        finally:
-            self.build_tag = ''
-            self.archive_name = previous_archive_name
+        result = _wagon(['create', TEST_PACKAGE, '-v', '-f',
+                         '--build-tag', self.build_tag])
+        metadata = self._test(result)
+        assert metadata['package_source'] == TEST_PACKAGE
+        assert metadata['package_build_tag'] == '1b'
 
     def test_create_zip_formatted_wagon_from_zip(self):
         self.archive_name = wagon._set_archive_name(
@@ -585,16 +580,18 @@ class TestCreate:
             TEST_PACKAGE_VERSION,
             self.python_versions,
             self.platform)
-        result = _invoke('wagon create {0} -v -f -t tar.gz'.format(TEST_ZIP))
+        result = _wagon(['create', TEST_ZIP, '-v', '-f', '-t', 'tar.gz'])
         metadata = self._test(result)
         assert metadata['package_source'] == TEST_ZIP
 
     def test_create_archive_from_pypi_with_additional_wheel_args(self):
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(b'virtualenv==13.1.2')
-        result = _invoke(
-            'wagon create {0} -v -f --wheel-args="-r {1}" --keep-wheels'
-            .format(TEST_PACKAGE, f.name))
+        result = _wagon([
+            'create', TEST_PACKAGE, '-v', '-f',
+            '--wheel-args=-r {0}'.format(f.name),
+            '--keep-wheels'
+        ])
         metadata = self._test(result=result, expected_number_of_wheels=6)
         assert metadata['package_source'] == TEST_PACKAGE
         assert 'virtualenv-13.1.2-py2.py3-none-any.whl' in metadata['wheels']
@@ -613,8 +610,7 @@ class TestCreate:
                     pypi_version,
                     self.python_versions,
                     self.platform)
-            result = _invoke('wagon create {0} -v -f -o {1}'.format(
-                package, temp_dir))
+            result = _wagon(['create', package, '-v', '-f', '-o', temp_dir])
             assert result.returncode == 0
             metadata = wagon.show(os.path.join(temp_dir, self.archive_name))
             self.platform = 'linux_x86_64'
@@ -643,9 +639,10 @@ class TestCreate:
         os.close(fd)
         with open(requirements_file_path, 'w') as requirements_file:
             requirements_file.write('wheel')
-        result = _invoke(
-            'wagon create {0} -v -f --validate --wheel-args="-r {1}"'
-            .format(source, requirements_file_path))
+        result = _wagon([
+            'create', source, '-v', '-f', '--validate',
+            '--wheel-args=-r {0}'.format(requirements_file_path)
+        ])
         try:
             python_version = sys.version_info
             if python_version[0] == 3:
@@ -705,12 +702,13 @@ class TestInstall:
             'install', os.path.dirname(wagon.__file__)
         ])
         assert not wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
-        _invoke("{0} -m wagon install {1} -v -u"
-                .format(python, self.archive_path))
+        wagon._run([
+            python, '-m', 'wagon', 'install', self.archive_path, '-v', '-u'
+        ])
         assert wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
 
     def test_fail_install(self):
-        result = _invoke("wagon install non_existing_archive -v -u")
+        result = _wagon(['install', 'non_existing_archive', '-v', '-u'])
         assert result.returncode == 1
 
     @mock.patch('wagon.get_platform', return_value='weird_platform')
@@ -729,7 +727,7 @@ class TestValidate:
             os.remove(self.archive_path)
 
     def test_validate_package(self):
-        result = _invoke('wagon validate {0} -v'.format(self.archive_path))
+        result = _wagon(['validate', self.archive_path, '-v'])
         assert result.returncode == 0, (
             'Error running {0!r}: {1}\n{2}'
             .format(result.command, result.stdout, result.stderr)
@@ -809,7 +807,7 @@ class TestShowMetadata:
     def test_show_metadata_for_archive(self):
         # merely invoke it directly for coverage sake
         _parse('wagon show {0} -v'.format(self.archive_path))
-        result = _invoke('wagon show {0}'.format(self.archive_path))
+        result = _wagon(['show', self.archive_path])
         assert result.returncode == 0
         # Remove the first line
         resulting_metadata = json.loads(result.stdout)
