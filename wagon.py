@@ -20,6 +20,7 @@ import os
 import sys
 import time
 import json
+import shlex
 import shutil
 import tarfile
 import zipfile
@@ -166,15 +167,20 @@ def _construct_wheel_command(wheels_path='package',
                              wheel_args=None,
                              requirement_files=None,
                              package=None):
-    wheel_cmd = [_get_python_path(), '-m', 'pip', 'wheel']
-    wheel_cmd.append('--wheel-dir={0}'.format(wheels_path))
-    wheel_cmd.append('--find-links={0}'.format(wheels_path))
+    wheel_cmd = _pip() + [
+        'wheel',
+        '--wheel-dir', wheels_path,
+        '--find-links', wheels_path
+    ]
     if wheel_args:
-        wheel_cmd.append(wheel_args)
+        if not isinstance(wheel_args, list):
+            wheel_args = shlex.split(wheel_args, posix=not IS_WIN)
+        wheel_cmd += wheel_args
 
     if requirement_files:
         for req_file in requirement_files:
-            wheel_cmd.extend(['-r', req_file])
+            wheel_cmd += ['-r', req_file]
+
     if package:
         wheel_cmd.append(package)
     return wheel_cmd
@@ -209,6 +215,14 @@ def wheel(package,
     return wheels
 
 
+def _pip(venv=None):
+    pip_module = 'pip'
+    if sys.version_info[:2] == (2, 6):
+        # in 2.6, packages aren't executable
+        pip_module = 'pip.__main__'
+    return [_get_python_path(venv), '-m', pip_module]
+
+
 def _construct_pip_command(package,
                            wheels_path,
                            venv,
@@ -217,20 +231,16 @@ def _construct_pip_command(package,
                            install_args=None):
     requirement_files = requirement_files or []
 
-    pip_command = [_get_python_path(), '-m', 'pip', 'install']
+    pip_command = _pip(venv) + ['install']
     for req_file in requirement_files:
         pip_command.extend(['-r', req_file])
-    pip_command.append(package)
-    pip_command.extend(
-        ['--only-binary', '--no-index', '--find-links', wheels_path])
-    # pre allows installing both prereleases and regular releases depending
-    # on the wheels provided.
-    pip_command.append('--pre')
+    pip_command += [
+        package, '--no-index', '--find-links', wheels_path, '--pre'
+    ]
     if upgrade:
         pip_command.append('--upgrade')
     if install_args:
         pip_command.append(install_args)
-
     return pip_command
 
 
@@ -425,7 +435,7 @@ def _get_python_path(venv=None):
 
 
 def _check_installed(package, venv=None):
-    process = _run([_get_python_path(venv), 'freeze'], suppress_output=True)
+    process = _run(_pip(venv) + ['freeze'])
     pkgs = ['{0}=='.format(package), '{0}=='.format(package.replace('_', '-'))]
     if any(package_name in process.aggr_stdout for package_name in pkgs):
         logger.debug('Package %s is installed in %s', package, venv)
@@ -434,8 +444,9 @@ def _check_installed(package, venv=None):
     return False
 
 
-def _make_virtualenv():
-    virtualenv_dir = tempfile.mkdtemp()
+def _make_virtualenv(virtualenv_dir=None):
+    if not virtualenv_dir:
+        virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
     _run([sys.executable, '-m', 'virtualenv', virtualenv_dir])
     return virtualenv_dir
