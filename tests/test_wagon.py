@@ -255,6 +255,20 @@ class TestBase:
 
         assert generated_command == expected_command
 
+    def test_construct_pip_command_with_multiple_install_args(self):
+        package_name = 'package'
+        wheels_path = 'wheels_path'
+
+        generated_command = wagon._construct_pip_command(
+            package=package_name,
+            wheels_path=wheels_path,
+            venv=None,
+            requirement_files=None,
+            upgrade=False,
+            install_args=['--arg1', '--arg2'])
+        assert '--arg1' in generated_command
+        assert '--arg2' in generated_command
+
     def test_install_package_in_missing_venv(self):
         non_existing_venv = 'non_existing_venv'
         with pytest.raises(wagon.WagonError) as ex:

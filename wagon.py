@@ -237,7 +237,9 @@ def _construct_pip_command(package,
     if upgrade:
         pip_command.append('--upgrade')
     if install_args:
-        pip_command.append(install_args)
+        if not isinstance(install_args, list):
+            install_args = shlex.split(install_args, posix=not IS_WIN)
+        pip_command += install_args
     return pip_command
 
 
