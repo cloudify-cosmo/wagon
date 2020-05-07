@@ -46,7 +46,10 @@ except ImportError:
 try:
     from distro import linux_distribution
 except ImportError:
-    from platform import linux_distribution
+    try:
+        from platform import linux_distribution
+    except ImportError:
+        linux_distribution = None
 
 
 DESCRIPTION = \
@@ -698,6 +701,7 @@ def create(source,
     """
     if validate_archive:
         _assert_virtualenv_is_installed()
+    _assert_linux_distribution_exists()
 
     logger.info('Creating archive for %s...', source)
     processed_source = get_source(source)
@@ -946,6 +950,14 @@ def _repair_wheels(workdir, metadata):
     return metadata
 
 
+def _assert_linux_distribution_exists():
+    if linux_distribution is None:
+        raise WagonError(
+            'Could not determine platform information. To build or '
+            'repair wagons on python 3.8+, install distro (eg. by '
+            'installing wagon[dist].')
+
+
 def _assert_auditwheel_exists():
     if not find_executable('auditwheel'):
         raise WagonError(
@@ -966,6 +978,7 @@ def repair(source, validate_archive=False):
     4. Repack the wagon
     """
     _assert_auditwheel_exists()
+    _assert_linux_distribution_exists()
 
     logger.info('Repairing: %s', source)
     processed_source = get_source(source)
