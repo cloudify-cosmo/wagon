@@ -1011,6 +1011,21 @@ def repair(source, validate_archive=False):
     return archive_path
 
 
+def combine(source_a, source_b, validate_archive=False):
+    """ Attempt to create a combined wagon from two separate wagons that
+    support different python versions.
+    The combine process will:
+
+    1. Extract the wagons and their metadata.
+    2. validate the wagons can be combined.
+    3. Add all wheels of the second wagon to the first one(without duplications).
+    3. Update the metadata of the combined wagon with new wheels list and
+     supported python versions.
+    4. pack the  new wagon.
+    """
+    pass
+
+
 def _create_wagon(args):
     try:
         create(
@@ -1062,6 +1077,13 @@ def _show_wagon(args):
 def _repair_wagon(args):
     try:
         repair(args.SOURCE, args.validate)
+    except WagonError as ex:
+        sys.exit(ex)
+
+
+def _combine_wagons(args):
+    try:
+        combine(args.SOURCE1, args.SOURCE2, args.validate)
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1154,14 +1176,14 @@ def _add_create_command(parser):
     return parser
 
 
-def _add_wagon_archive_source_argument(parser):
+def _add_wagon_archive_source_argument(parser, source_name='SOURCE'):
     source_help = (
         'The source from which to create the archive. '
         'Possible formats are:'
         'URL to wagon archive, '
         '/path/to/wagon/archive'
     )
-    parser.add_argument('SOURCE', help=source_help)
+    parser.add_argument(source_name, help=source_help)
     return parser
 
 
@@ -1259,6 +1281,30 @@ def _add_repair_command(parser):
     return parser
 
 
+def _add_combine_command(parser):
+    description = (
+        'Combines two wagons that support different python versions \n'
+        'The wagons are of the same package and supported platforms. \n'
+        'The output is a combined wagon contains the wheels of both wagons.'
+        'auditwheel can work and you must install auditwheel\n'
+    )
+
+    command = parser.add_parser(
+        'combine',
+        description=description,
+        help='Combine two Wagon archives')
+
+    command.add_argument(
+        '--validate',
+        default=False,
+        action='store_true',
+        help='Runs a postcreation validation on the archive')
+
+    _add_wagon_archive_source_argument(command, 'SOURCE1')
+    _add_wagon_archive_source_argument(command, 'SOURCE2')
+    _set_defaults(command, func=_combine_wagons)
+    return parser
+
 # TODO: Find a way to both provide an error handler AND multiple formatter
 # classes.
 class CustomFormatter(argparse.ArgumentParser):
@@ -1291,6 +1337,7 @@ def parse_args():
     subparsers = _add_validate_command(subparsers)
     subparsers = _add_show_command(subparsers)
     subparsers = _add_repair_command(subparsers)
+    subparsers = _add_combine_command(subparsers)
 
     _assert_atleast_one_arg(parser)
 
