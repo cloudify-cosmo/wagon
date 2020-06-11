@@ -1011,6 +1011,29 @@ def repair(source, validate_archive=False):
     return archive_path
 
 
+def _combine_wheels(processed_source_a, processed_source_b):
+    """ The workdir of the new wagon is processed_source_a dir  """
+    pass
+
+
+def _compare_metadatas_field(metadata_a, metadata_b, field):
+    if not (metadata_a[field] == metadata_b[field]):
+        logger.info(
+            "{0} is different between accepted wagons,"
+            " cant combine them".format(field))
+        return False
+    return True
+
+
+def _validate_combine(metadata_a, metadata_b):
+    fields_to_validate = ["build_server_os_properties",
+                          "created_by_wagon_version", "package_name",
+                          "package_version", "supported_platform"]
+    for field in fields_to_validate:
+        if not _compare_metadatas_field(metadata_a, metadata_b, field):
+            raise WagonError("Combine validation failed!")
+
+
 def combine(source_a, source_b, validate_archive=False):
     """ Attempt to create a combined wagon from two separate wagons that
     support different python versions.
@@ -1023,7 +1046,14 @@ def combine(source_a, source_b, validate_archive=False):
      supported python versions.
     4. pack the  new wagon.
     """
-    pass
+    _assert_linux_distribution_exists()
+    logger.info('combining: {0} , {1}'.format(source_a, source_b))
+    processed_source_a = get_source(source_a)
+    processed_source_b = get_source(source_b)
+    metadata_a = _get_metadata(processed_source_a)
+    metadata_b = _get_metadata(processed_source_b)
+    _validate_combine(metadata_a, metadata_b)
+    # new_metadata = _combine_wheels(processed_source_a, processed_source_b)
 
 
 def _create_wagon(args):

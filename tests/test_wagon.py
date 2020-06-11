@@ -831,3 +831,18 @@ class TestShowMetadata:
         with pytest.raises(SystemExit) as ex:
             _parse('wagon show non_existing_archive')
         assert 'Failed to retrieve info for package' in str(ex)
+
+
+class TestCombine:
+
+    def test_compare_metadatas_field(self):
+        metadata_a = {"key": "val"}
+        metadata_b = {"key": "val2"}
+        assert not wagon._compare_metadatas_field(metadata_a, metadata_b,
+                                                  "key")
+
+    @mock.patch('wagon._compare_metadatas_field', return_value=False)
+    def test_validate_combine(self, _):
+        with pytest.raises(wagon.WagonError) as ex:
+            wagon._validate_combine(metadata_a={}, metadata_b={})
+        assert 'Combine validation failed!' in str(ex.value)
