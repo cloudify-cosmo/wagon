@@ -1011,9 +1011,20 @@ def repair(source, validate_archive=False):
     return archive_path
 
 
-def _combine_wheels(processed_source_a, processed_source_b):
+def _combine_wheels(processed_source_a, processed_source_b, metadata_a,
+                    metadata_b):
     """ The workdir of the new wagon is processed_source_a dir  """
-    pass
+    wheels_path_a = os.path.join(processed_source_a, DEFAULT_WHEELS_PATH)
+    wheels_path_b = os.path.join(processed_source_b, DEFAULT_WHEELS_PATH)
+
+    for wheel in _get_downloaded_wheels(wheels_path_b):
+        if not os.path.isfile(os.path.join(wheels_path_a, wheel)):
+            logger.info("copying wheel {0}".format(wheel))
+            shutil.copy2(src=os.path.join(wheels_path_b, wheel),
+                         dst=wheels_path_a)
+            metadata_a["wheels"].append(wheel)
+    logger.info("finished combining wheels!")
+    return metadata_a
 
 
 def _compare_metadatas_field(metadata_a, metadata_b, field):
@@ -1054,7 +1065,38 @@ def combine(source_a, source_b, validate_archive=False):
     metadata_a = _get_metadata(processed_source_a)
     metadata_b = _get_metadata(processed_source_b)
     _validate_combine(metadata_a, metadata_b)
-    # new_metadata = _combine_wheels(processed_source_a, processed_source_b)
+    new_metadata = _combine_wheels(processed_source_a, processed_source_b,
+                                   metadata_a, metadata_b)
+    # new supported_python_versions is the union.
+    new_metadata['supported_python_versions'] = list(
+        set(metadata_a['supported_python_versions']) | set(
+            metadata_b['supported_python_versions']))
+    archive_name = _set_archive_name(
+        new_metadata['package_name'],
+        new_metadata['package_version'],
+        new_metadata['supported_python_versions'],
+        new_metadata['supported_platform'],
+        new_metadata['build_tag'])
+
+    _generate_metadata_file(
+        processed_source_a,
+        archive_name,
+        new_metadata['supported_platform'],
+        new_metadata['supported_python_versions'],
+        new_metadata['package_name'],
+        new_metadata['package_version'],
+        new_metadata['build_tag'],
+        new_metadata['package_source'],
+        new_metadata['wheels'])
+    archive_path = os.path.join(os.getcwd(), archive_name)
+    _create_wagon_archive(processed_source_a, archive_path)
+
+    if validate_archive:
+        validate(archive_path)
+    shutil.rmtree(processed_source_a, ignore_errors=True)
+    shutil.rmtree(processed_source_b, ignore_errors=True)
+    logger.info('Wagon created successfully at: %s', archive_path)
+    return archive_path
 
 
 def _create_wagon(args):
