@@ -1041,10 +1041,11 @@ def combine(source_a, source_b, validate_archive=False):
 
     1. Extract the wagons and their metadata.
     2. validate the wagons can be combined.
-    3. Add all wheels of the second wagon to the first one(without duplications).
-    3. Update the metadata of the combined wagon with new wheels list and
+    3. Add all wheels of the second wagon to the first one
+    (without duplications).
+    4. Update the metadata of the combined wagon with new wheels list and
      supported python versions.
-    4. pack the  new wagon.
+    5. pack the  new wagon.
     """
     _assert_linux_distribution_exists()
     logger.info('combining: {0} , {1}'.format(source_a, source_b))
@@ -1334,6 +1335,7 @@ def _add_combine_command(parser):
     _add_wagon_archive_source_argument(command, 'SOURCE2')
     _set_defaults(command, func=_combine_wagons)
     return parser
+
 
 # TODO: Find a way to both provide an error handler AND multiple formatter
 # classes.
