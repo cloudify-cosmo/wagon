@@ -895,6 +895,7 @@ class TestCombine:
             "created_by_wagon_version"]
         assert metadata["package_name"] == self.expected_metadata_a[
             "package_name"]
-        assert metadata["supported_python_versions"] == ["py27", "py36"]
+        assert "py27" in metadata["supported_python_versions"]
+        assert "py36" in metadata["supported_python_versions"]
         os.remove(res)
         shutil.rmtree(proccesed_source, ignore_errors=True)
