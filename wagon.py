@@ -73,6 +73,10 @@ ALL_PLATFORMS_TAG = 'any'
 
 PROCESS_POLLING_INTERVAL = 0.1
 
+FIELDS_TO_VALIDATE_ON_COMBINE = ["build_server_os_properties",
+                                 "created_by_wagon_version", "package_name",
+                                 "package_version", "supported_platform"]
+
 
 def setup_logger():
     handler = logging.StreamHandler(sys.stdout)
@@ -1028,19 +1032,17 @@ def _combine_wheels(processed_source_a, processed_source_b, metadata_a,
 
 
 def _compare_metadatas_field(metadata_a, metadata_b, field):
-    if not (metadata_a[field] == metadata_b[field]):
+    if metadata_a[field] != metadata_b[field]:
         logger.info(
             "{0} is different between accepted wagons,"
-            " cant combine them.".format(field))
+            " can't combine them.".format(field))
         return False
     return True
 
 
 def _validate_combine(metadata_a, metadata_b):
-    fields_to_validate = ["build_server_os_properties",
-                          "created_by_wagon_version", "package_name",
-                          "package_version", "supported_platform"]
-    for field in fields_to_validate:
+
+    for field in FIELDS_TO_VALIDATE_ON_COMBINE:
         if not _compare_metadatas_field(metadata_a, metadata_b, field):
             raise WagonError("Combine validation failed!")
 
@@ -1059,7 +1061,7 @@ def combine(source_a, source_b, validate_archive=False):
     5. pack the  new wagon.
     """
     _assert_linux_distribution_exists()
-    logger.info('combining: {0} , {1}'.format(source_a, source_b))
+    logger.info('Combining: {0} , {1}'.format(source_a, source_b))
     processed_source_a = get_source(source_a)
     processed_source_b = get_source(source_b)
     metadata_a = _get_metadata(processed_source_a)
