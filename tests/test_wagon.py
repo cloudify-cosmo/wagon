@@ -835,6 +835,26 @@ class TestShowMetadata:
 
 class TestCombine:
 
+    def setup_method(self, test_method):
+        self.archive_path_a = wagon.create(source=TEST_PACKAGE, force=True,python_versions=[27])
+        self.extracted_source_a = wagon.get_source(self.archive_path_a)
+        self.expected_metadata_a = wagon._get_metadata(self.extracted_source_a)
+        test_package_version = "0.11"
+        test_package = '{0}=={1}'.format(TEST_PACKAGE_NAME,
+                                         test_package_version)
+        self.archive_path_b = wagon.create(source=test_package, force=True)
+
+        self.archive_path_c = wagon.create(source=TEST_PACKAGE, force=True,python_versions=[36])
+        self.extracted_source_c = wagon.get_source(self.archive_path_c)
+        self.expected_metadata_c = wagon._get_metadata(self.extracted_source_c)
+
+    def teardown_method(self, test_method):
+        os.remove(self.archive_path_a)
+        shutil.rmtree(self.extracted_source_a, ignore_errors=True)
+        os.remove(self.archive_path_b)
+        os.remove(self.archive_path_c)
+        shutil.rmtree(self.extracted_source_c, ignore_errors=True)
+
     def test_compare_metadatas_field(self):
         metadata_a = {"key": "val"}
         metadata_b = {"key": "val2"}
@@ -846,3 +866,35 @@ class TestCombine:
         with pytest.raises(wagon.WagonError) as ex:
             wagon._validate_combine(metadata_a={}, metadata_b={})
         assert 'Combine validation failed!' in str(ex.value)
+
+    def test_combine_wagon_to_itself(self):
+        res = wagon.combine(self.archive_path_a, self.archive_path_a,
+                            validate_archive=False)
+        proccesed_source = wagon.get_source(res)
+        metadata = wagon._get_metadata(proccesed_source)
+        assert metadata["created_by_wagon_version"] == self.expected_metadata_a[
+            "created_by_wagon_version"]
+        assert metadata["package_name"] == self.expected_metadata_a[
+            "package_name"]
+        assert metadata["package_version"] == self.expected_metadata_a[
+            "package_version"]
+        assert metadata["wheels"] == self.expected_metadata_a[
+            "wheels"]
+
+    def test_try_to_combine_different_package_versions(self):
+        with pytest.raises(wagon.WagonError) as ex:
+            wagon.combine(self.archive_path_a, self.archive_path_b)
+            assert 'Combine validation failed!' in str(ex.value)
+
+    def test_combine_different_python_versions(self):
+        res = wagon.combine(self.archive_path_a, self.archive_path_c,
+                            validate_archive=False)
+        proccesed_source = wagon.get_source(res)
+        metadata = wagon._get_metadata(proccesed_source)
+        assert metadata["created_by_wagon_version"] == self.expected_metadata_c[
+            "created_by_wagon_version"]
+        assert metadata["package_name"] == self.expected_metadata_a[
+            "package_name"]
+        assert metadata["supported_python_versions"] == ["py27", "py36"]
+        os.remove(res)
+        shutil.rmtree(proccesed_source, ignore_errors=True)

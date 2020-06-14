@@ -1031,7 +1031,7 @@ def _compare_metadatas_field(metadata_a, metadata_b, field):
     if not (metadata_a[field] == metadata_b[field]):
         logger.info(
             "{0} is different between accepted wagons,"
-            " cant combine them".format(field))
+            " cant combine them.".format(field))
         return False
     return True
 
@@ -1076,7 +1076,7 @@ def combine(source_a, source_b, validate_archive=False):
         new_metadata['package_version'],
         new_metadata['supported_python_versions'],
         new_metadata['supported_platform'],
-        new_metadata['build_tag'])
+        new_metadata['package_build_tag'])
 
     _generate_metadata_file(
         processed_source_a,
@@ -1085,7 +1085,7 @@ def combine(source_a, source_b, validate_archive=False):
         new_metadata['supported_python_versions'],
         new_metadata['package_name'],
         new_metadata['package_version'],
-        new_metadata['build_tag'],
+        new_metadata['package_build_tag'],
         new_metadata['package_source'],
         new_metadata['wheels'])
     archive_path = os.path.join(os.getcwd(), archive_name)
@@ -1358,8 +1358,7 @@ def _add_combine_command(parser):
     description = (
         'Combines two wagons that support different python versions \n'
         'The wagons are of the same package and supported platforms. \n'
-        'The output is a combined wagon contains the wheels of both wagons.'
-        'auditwheel can work and you must install auditwheel\n'
+        'The output is a combined wagon contains the wheels of both wagons.\n'
     )
 
     command = parser.add_parser(
