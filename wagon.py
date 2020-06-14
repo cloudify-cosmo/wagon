@@ -1047,7 +1047,8 @@ def _validate_combine(metadata_a, metadata_b):
             raise WagonError("Combine validation failed!")
 
 
-def combine(source_a, source_b, validate_archive=False):
+def combine(source_a, source_b, validate_archive=False,
+            archive_destination_dir='.'):
     """ Attempt to create a combined wagon from two separate wagons that
     support different python versions.
     The combine process will:
@@ -1090,7 +1091,10 @@ def combine(source_a, source_b, validate_archive=False):
         new_metadata['package_build_tag'],
         new_metadata['package_source'],
         new_metadata['wheels'])
-    archive_path = os.path.join(os.getcwd(), archive_name)
+
+    if not os.path.isdir(archive_destination_dir):
+        os.makedirs(archive_destination_dir)
+    archive_path = os.path.join(archive_destination_dir, archive_name)
     _create_wagon_archive(processed_source_a, archive_path)
 
     if validate_archive:
@@ -1158,7 +1162,8 @@ def _repair_wagon(args):
 
 def _combine_wagons(args):
     try:
-        combine(args.SOURCE1, args.SOURCE2, args.validate)
+        combine(args.SOURCE1, args.SOURCE2, args.validate,
+                args.output_directory)
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1373,6 +1378,12 @@ def _add_combine_command(parser):
         default=False,
         action='store_true',
         help='Runs a postcreation validation on the archive')
+
+    command.add_argument(
+        '-o',
+        '--output-directory',
+        default='.',
+        help='Output directory for the archive')
 
     _add_wagon_archive_source_argument(command, 'SOURCE1')
     _add_wagon_archive_source_argument(command, 'SOURCE2')
