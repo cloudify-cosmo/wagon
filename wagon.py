@@ -204,14 +204,14 @@ def wheel(package,
             raise WagonError('Failed to download wheels for: {0}'.format(
                 requirement_files))
 
-        wheel_command = _construct_wheel_command(
-            wheels_path,
-            wheel_args,
-            package=package, pip_path=pip_path)
-        process = _run(wheel_command)
-        if not process.returncode == 0:
-            raise WagonError(
-                'Failed to download wheels for: {0}'.format(package))
+    wheel_command = _construct_wheel_command(
+        wheels_path,
+        wheel_args,
+        package=package, pip_path=pip_path)
+    process = _run(wheel_command)
+    if not process.returncode == 0:
+        raise WagonError(
+            'Failed to download wheels for: {0}'.format(package))
 
     wheels = _get_downloaded_wheels(wheels_path)
 
