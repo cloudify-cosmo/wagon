@@ -190,15 +190,16 @@ def _construct_wheel_command(wheels_path='package',
 def wheel(package,
           requirement_files=None,
           wheels_path='package',
-          wheel_args=None, pip_path=None):
+          wheel_args=None,
+          pip_path=None):
     logger.info('Downloading Wheels for %s...', package)
 
     if requirement_files:
         wheel_command = _construct_wheel_command(
             wheels_path,
             wheel_args,
-            requirement_files, pip_path=pip_path)
-        logger.info("wheel command {0}".format(wheel_command))
+            requirement_files,
+            pip_path=pip_path)
         process = _run(wheel_command)
         if not process.returncode == 0:
             raise WagonError('Failed to download wheels for: {0}'.format(
@@ -1163,7 +1164,7 @@ def _add_create_command(parser):
         required=False,
         action='append',
         help='Path to the pip that will perform the wheel cmd.'
-             'This argument can be provided multiple times')
+             'This argument can be provided multiple times.')
 
     _set_defaults(command, func=_create_wagon)
     return parser
