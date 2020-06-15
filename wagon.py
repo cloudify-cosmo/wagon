@@ -1164,7 +1164,8 @@ def _add_create_command(parser):
         default=None,
         required=False,
         action='append',
-        help='Path to the pip that will perform the wheel cmd.'
+        help='Path to pip, used for packaging and downloading wheels '
+             '(eg. one py2, one py3) .'
              'This argument can be provided multiple times.')
 
     _set_defaults(command, func=_create_wagon)
