@@ -685,7 +685,7 @@ def create(source,
            validate_archive=False,
            wheel_args='',
            archive_format='zip',
-           build_tag='',venvs=[None]):
+           build_tag='', venvs=[None]):
     """Create a Wagon archive and returns its path.
 
     Package name and version are extracted from the setup.py file
