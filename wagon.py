@@ -208,7 +208,8 @@ def wheel(package,
     wheel_command = _construct_wheel_command(
         wheels_path,
         wheel_args,
-        package=package, pip_path=pip_path)
+        package=package,
+        pip_path=pip_path)
     process = _run(wheel_command)
     if not process.returncode == 0:
         raise WagonError(
