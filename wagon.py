@@ -689,7 +689,7 @@ def create(source,
            wheel_args='',
            archive_format='zip',
            build_tag='',
-           pip_paths=[None]):
+           pip_paths=None):
     """Create a Wagon archive and returns its path.
 
     Package name and version are extracted from the setup.py file
@@ -721,7 +721,7 @@ def create(source,
     tempdir = tempfile.mkdtemp()
     workdir = os.path.join(tempdir, package_name)
     wheels_path = os.path.join(workdir, DEFAULT_WHEELS_PATH)
-
+    pip_paths = pip_paths if pip_paths else [None]
     try:
         for pip_path in pip_paths:
             wheels = wheel(
