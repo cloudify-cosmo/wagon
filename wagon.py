@@ -166,8 +166,9 @@ class WagonError(Exception):
 def _construct_wheel_command(wheels_path='package',
                              wheel_args=None,
                              requirement_files=None,
-                             package=None):
-    wheel_cmd = _pip() + [
+                             package=None, pip_path=None):
+    pip = [pip_path] if pip_path else _pip()
+    wheel_cmd = pip + [
         'wheel',
         '--wheel-dir', wheels_path,
         '--find-links', wheels_path
@@ -189,14 +190,16 @@ def _construct_wheel_command(wheels_path='package',
 def wheel(package,
           requirement_files=None,
           wheels_path='package',
-          wheel_args=None):
+          wheel_args=None,
+          pip_path=None):
     logger.info('Downloading Wheels for %s...', package)
 
     if requirement_files:
         wheel_command = _construct_wheel_command(
             wheels_path,
             wheel_args,
-            requirement_files)
+            requirement_files,
+            pip_path=pip_path)
         process = _run(wheel_command)
         if not process.returncode == 0:
             raise WagonError('Failed to download wheels for: {0}'.format(
@@ -205,10 +208,12 @@ def wheel(package,
     wheel_command = _construct_wheel_command(
         wheels_path,
         wheel_args,
-        package=package)
+        package=package,
+        pip_path=pip_path)
     process = _run(wheel_command)
     if not process.returncode == 0:
-        raise WagonError('Failed to download wheels for: {0}'.format(package))
+        raise WagonError(
+            'Failed to download wheels for: {0}'.format(package))
 
     wheels = _get_downloaded_wheels(wheels_path)
 
@@ -683,7 +688,8 @@ def create(source,
            validate_archive=False,
            wheel_args='',
            archive_format='zip',
-           build_tag=''):
+           build_tag='',
+           pip_paths=None):
     """Create a Wagon archive and returns its path.
 
     Package name and version are extracted from the setup.py file
@@ -715,13 +721,15 @@ def create(source,
     tempdir = tempfile.mkdtemp()
     workdir = os.path.join(tempdir, package_name)
     wheels_path = os.path.join(workdir, DEFAULT_WHEELS_PATH)
-
+    pip_paths = pip_paths if pip_paths else [None]
     try:
-        wheels = wheel(
-            processed_source,
-            requirement_files,
-            wheels_path,
-            wheel_args)
+        for pip_path in pip_paths:
+            wheels = wheel(
+                processed_source,
+                requirement_files,
+                wheels_path,
+                wheel_args,
+                pip_path)
     finally:
         if processed_source != source:
             shutil.rmtree(processed_source, ignore_errors=True)
@@ -1023,7 +1031,8 @@ def _create_wagon(args):
             validate_archive=args.validate,
             wheel_args=args.wheel_args,
             archive_format=args.format,
-            build_tag=args.build_tag)
+            build_tag=args.build_tag,
+            pip_paths=args.pip or [None])
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1149,6 +1158,15 @@ def _add_create_command(parser):
         required=False,
         help='Allows to pass additional arguments to `pip wheel`. '
              '(e.g. --no-cache-dir -c constains.txt)')
+
+    command.add_argument(
+        '--pip',
+        default=None,
+        required=False,
+        action='append',
+        help='Path to pip, used for packaging and downloading wheels '
+             '(eg. one py2, one py3) .'
+             'This argument can be provided multiple times.')
 
     _set_defaults(command, func=_create_wagon)
     return parser
