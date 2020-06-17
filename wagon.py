@@ -285,8 +285,9 @@ def install_package(package,
 
     result = _run(pip_command)
     if not result.returncode == 0:
-        raise WagonError('Could not install package: {0} ({1})'.format(
-            package, result.aggr_stderr))
+        raise WagonError(
+            'Could not install package: {0} (`{1}` returned `{2}`)'.format(
+                package, pip_command, result.aggr_stderr))
 
 
 def _get_downloaded_wheels(path):
