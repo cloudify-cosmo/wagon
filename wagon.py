@@ -737,8 +737,15 @@ def create(source,
             shutil.rmtree(processed_source, ignore_errors=True)
 
     platform = _get_platform_for_set_of_wheels(wheels_path)
+    if supported_platform is not None:
+        platform = supported_platform
+    elif 'manylinux' in platform:
+        # this is a hack to support Cloudify 5.1, who doesn't handle
+        # manylinux wagons. Rename manylinux to linux_x86_64.
+        platform = 'linux_x86_64'
     if is_verbose():
         logger.debug('Platform is: %s', platform)
+
     python_versions = _set_python_versions(python_versions)
 
     if not os.path.isdir(archive_destination_dir):
@@ -748,13 +755,6 @@ def create(source,
     archive_path = os.path.join(archive_destination_dir, archive_name)
 
     _handle_output_file(archive_path, force)
-
-    if supported_platform is not None:
-        platform = supported_platform
-    elif 'manylinux' in platform:
-        # this is a hack to support Cloudify 5.1, who doesn't handle
-        # manylinux wagons. Rename manylinux to linux_x86_64.
-        platform = 'linux_x86_64'
 
     _generate_metadata_file(
         workdir,
