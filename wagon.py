@@ -741,8 +741,10 @@ def create(source,
         platform = supported_platform
     elif 'manylinux' in platform:
         # this is a hack to support Cloudify 5.1, who doesn't handle
-        # manylinux wagons. Rename manylinux to linux_x86_64.
-        platform = 'linux_x86_64'
+        # manylinux wagons. Rename manylinux{1,2010,2014} to linux.
+        _manylinux, _, arch = platform.partition('_')
+        platform = 'linux_{0}'.format(arch or 'x86_64')
+
     if is_verbose():
         logger.debug('Platform is: %s', platform)
 
