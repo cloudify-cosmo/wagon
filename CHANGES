@@ -1,4 +1,12 @@
-## 0.8.0 (UNRELEASED)
+## 0.11.0
+
+* When a wagon would be tagged "manylinux", tag it with linux_x86_64 instead.
+  This is done to allow supporting Cloudify 5.1 (and earlier), which doesn't
+  handle manylinux wagons correctly.
+* `wagon create` now supports a `--supported-platform` flag, allowing the
+  supported platform field to be overridden when creating a wagon.
+
+## 0.8.0
 
 BACKWARD COMPATIBILITY:
 * This version breaks support for pip<=7.x as it replaces the `--use-wheel` flag with the `--no-binary` flag removed in pip 10.
