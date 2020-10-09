@@ -690,7 +690,8 @@ def create(source,
            wheel_args='',
            archive_format='zip',
            build_tag='',
-           pip_paths=None):
+           pip_paths=None,
+           supported_platform=None):
     """Create a Wagon archive and returns its path.
 
     Package name and version are extracted from the setup.py file
@@ -736,8 +737,17 @@ def create(source,
             shutil.rmtree(processed_source, ignore_errors=True)
 
     platform = _get_platform_for_set_of_wheels(wheels_path)
+    if supported_platform is not None:
+        platform = supported_platform
+    elif 'manylinux' in platform:
+        # this is a hack to support Cloudify 5.1, who doesn't handle
+        # manylinux wagons. Rename manylinux{1,2010,2014} to linux.
+        _manylinux, _, arch = platform.partition('_')
+        platform = 'linux_{0}'.format(arch or 'x86_64')
+
     if is_verbose():
         logger.debug('Platform is: %s', platform)
+
     python_versions = _set_python_versions(python_versions)
 
     if not os.path.isdir(archive_destination_dir):
@@ -747,6 +757,7 @@ def create(source,
     archive_path = os.path.join(archive_destination_dir, archive_name)
 
     _handle_output_file(archive_path, force)
+
     _generate_metadata_file(
         workdir,
         archive_name,
@@ -1168,6 +1179,13 @@ def _add_create_command(parser):
         help='Path to pip, used for packaging and downloading wheels '
              '(eg. one py2, one py3) .'
              'This argument can be provided multiple times.')
+
+    command.add_argument(
+        '--supported-platform',
+        default=None,
+        required=False,
+        help='Platform supported by the wagon (eg. linux_x86_64 '
+             'or manylinux1).')
 
     _set_defaults(command, func=_create_wagon)
     return parser

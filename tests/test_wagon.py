@@ -502,9 +502,10 @@ class TestCreateBadSources:
 class TestCreate:
     def setup_method(self, test_method):
         if wagon.IS_WIN:
-            self.platform = 'win32'
+            self.platform = self.output_platform = 'win32'
         else:
             self.platform = 'manylinux1_x86_64'
+            self.output_platform = 'linux_x86_64'
         self.python_versions = [wagon._get_python_version()]
         self.package_version = TEST_PACKAGE_VERSION
         self.package_name = TEST_PACKAGE_NAME
@@ -512,7 +513,7 @@ class TestCreate:
             self.package_name,
             self.package_version,
             self.python_versions,
-            self.platform)
+            self.output_platform)
         self.wagon_version = wagon._get_wagon_version()
         self.build_tag = ''
 
@@ -542,7 +543,7 @@ class TestCreate:
         assert self.package_version == metadata['package_version']
         assert self.build_tag == metadata['package_build_tag']
         assert self.package_name == metadata['package_name']
-        assert self.platform == metadata['supported_platform']
+        assert self.output_platform == metadata['supported_platform']
         assert len(metadata['wheels']) == expected_number_of_wheels
 
         if wagon.IS_LINUX and self.platform != 'any':
@@ -559,7 +560,7 @@ class TestCreate:
             self.package_version,
             '.'.join(self.python_versions),
             'none',
-            self.platform
+            self.output_platform
         ]
         if self.build_tag:
             archive_name_parts.insert(2, self.build_tag)
@@ -579,7 +580,7 @@ class TestCreate:
             self.package_name,
             self.package_version,
             self.python_versions,
-            self.platform,
+            self.output_platform,
             self.build_tag)
 
         result = _wagon(['create', TEST_PACKAGE, '-v', '-f',
@@ -593,7 +594,7 @@ class TestCreate:
             TEST_PACKAGE_NAME,
             TEST_PACKAGE_VERSION,
             self.python_versions,
-            self.platform)
+            self.output_platform)
         result = _wagon(['create', TEST_ZIP, '-v', '-f', '-t', 'tar.gz'])
         metadata = self._test(result)
         assert metadata['package_source'] == TEST_ZIP
@@ -615,7 +616,6 @@ class TestCreate:
         shutil.rmtree(temp_dir, ignore_errors=True)
         package = 'wheel'
         try:
-            self.platform = 'any'
             pypi_version = \
                 wagon._get_package_info_from_pypi(package)['version']
             self.archive_name = \
@@ -623,11 +623,10 @@ class TestCreate:
                     package,
                     pypi_version,
                     self.python_versions,
-                    self.platform)
+                    'any')
             result = _wagon(['create', package, '-v', '-f', '-o', temp_dir])
             assert result.returncode == 0
             metadata = wagon.show(os.path.join(temp_dir, self.archive_name))
-            self.platform = 'linux_x86_64'
             assert pypi_version == metadata['package_version']
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
