@@ -663,9 +663,9 @@ def get_source(source):
         tmpdir = tempfile.mkdtemp()
         try:
             source = extract_source(source, tmpdir)
-        except:
+        except Exception as ex:
             shutil.rmtree(tmpdir)
-            source = None
+            raise ex
     elif os.path.isdir(os.path.expanduser(source)):
         source = os.path.expanduser(source)
     elif '==' in source:
@@ -679,8 +679,6 @@ def get_source(source):
 
 
 def _get_metadata(source_path):
-    if not source_path:
-        raise WagonError('Unknown wagon source')
     with open(os.path.join(source_path, METADATA_FILE_NAME)) as metadata_file:
         metadata = json.loads(metadata_file.read())
     return metadata
@@ -935,10 +933,8 @@ def show(source):
     if is_verbose():
         logger.info('Retrieving Metadata for: %s', source)
     processed_source = get_source(source)
-    try:
-        metadata = _get_metadata(processed_source)
-    finally:
-        shutil.rmtree(processed_source)
+    metadata = _get_metadata(processed_source)
+    shutil.rmtree(processed_source)
     return metadata
 
 
