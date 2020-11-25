@@ -661,7 +661,11 @@ def get_source(source):
                 schema))
     elif os.path.isfile(source):
         tmpdir = tempfile.mkdtemp()
-        source = extract_source(source, tmpdir)
+        try:
+            source = extract_source(source, tmpdir)
+        except:
+            shutil.rmtree(tmpdir)
+            source = None
     elif os.path.isdir(os.path.expanduser(source)):
         source = os.path.expanduser(source)
     elif '==' in source:
@@ -675,6 +679,8 @@ def get_source(source):
 
 
 def _get_metadata(source_path):
+    if not source_path:
+        return None
     with open(os.path.join(source_path, METADATA_FILE_NAME)) as metadata_file:
         metadata = json.loads(metadata_file.read())
     return metadata
@@ -930,7 +936,8 @@ def show(source):
         logger.info('Retrieving Metadata for: %s', source)
     processed_source = get_source(source)
     metadata = _get_metadata(processed_source)
-    shutil.rmtree(processed_source)
+    if processed_source:
+        shutil.rmtree(processed_source)
     return metadata
 
 
