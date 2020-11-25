@@ -680,7 +680,7 @@ def get_source(source):
 
 def _get_metadata(source_path):
     if not source_path:
-        return None
+        raise WagonError('Unknown wagon source')
     with open(os.path.join(source_path, METADATA_FILE_NAME)) as metadata_file:
         metadata = json.loads(metadata_file.read())
     return metadata
@@ -935,8 +935,9 @@ def show(source):
     if is_verbose():
         logger.info('Retrieving Metadata for: %s', source)
     processed_source = get_source(source)
-    metadata = _get_metadata(processed_source)
-    if processed_source:
+    try:
+        metadata = _get_metadata(processed_source)
+    finally:
         shutil.rmtree(processed_source)
     return metadata
 
