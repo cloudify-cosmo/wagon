@@ -661,7 +661,11 @@ def get_source(source):
                 schema))
     elif os.path.isfile(source):
         tmpdir = tempfile.mkdtemp()
-        source = extract_source(source, tmpdir)
+        try:
+            source = extract_source(source, tmpdir)
+        except Exception:
+            shutil.rmtree(tmpdir)
+            raise
     elif os.path.isdir(os.path.expanduser(source)):
         source = os.path.expanduser(source)
     elif '==' in source:
