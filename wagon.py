@@ -663,9 +663,9 @@ def get_source(source):
         tmpdir = tempfile.mkdtemp()
         try:
             source = extract_source(source, tmpdir)
-        except Exception as ex:
+        except Exception:
             shutil.rmtree(tmpdir)
-            raise ex
+            raise
     elif os.path.isdir(os.path.expanduser(source)):
         source = os.path.expanduser(source)
     elif '==' in source:
