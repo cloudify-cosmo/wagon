@@ -291,8 +291,8 @@ def install_package(package,
 
 
 def _get_downloaded_wheels(path):
-    return [filename for filename in os.listdir(path)
-            if os.path.splitext(filename)[1].lower() == '.whl']
+    return sorted([filename for filename in os.listdir(path)
+                   if os.path.splitext(filename)[1].lower() == '.whl'])
 
 
 def _open_url(url):
