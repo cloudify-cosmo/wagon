@@ -1,3 +1,7 @@
+## 0.11.1
+
+* Sort wheel list during platform naming to ensure that wagons are consistently labelled from build to build.
+
 ## 0.11.0
 
 * When a wagon would be tagged "manylinux", tag it with linux_x86_64 instead.
