@@ -749,16 +749,24 @@ def create(source,
         # handle new wheel naming convention manylinux*.manylinux*
         # by getting the last part of platform
         # example :
-        # >>> platform='manylinux_2_5_x86_64.manylinux1_x86_64'
-        # >>> while 'manylinux' in platform.partition('_')[2]:
-        # ...     platform=platform.partition('_')[2]
-        # >>> platform
-        # '64.manylinux1_x86_64'
-        # >>> platform.partition('_')
-        # ('64.manylinux1', '_', 'x86_64')
-        while 'manylinux' in platform.partition('_')[2]:
-            platform=platform.partition('_')[2]
-        _manylinux, _, arch = platform.partition('_')
+        # >>> arch='manylinux_2_5_x86_64.manylinux1_x86_64'
+        # >>> arch != 'x86_64' and arch.count('_')>0:
+        # ...     arch = arch.partition('_')[2]
+        # >>> arch
+        # 'x86_64'
+        # >>> arch="manylinux_2_5_x86_64"
+        # >>> while arch != 'x86_64' and arch.count('_')>0:
+        # ...     arch = arch.partition('_')[2]
+        # >>> arch
+        # 'x86_64'
+        # >>> arch="manylinux_2_12_i686.manylinux2010_i686"
+        # >>> while arch != 'x86_64' and arch.count('_')>0:
+        # ...     arch = arch.partition('_')[2]
+        # >>> arch
+        # 'i686'
+        arch = platform
+        while arch != 'x86_64' and arch.count('_')>0:
+            arch = arch.partition('_')[2]
         platform = 'linux_{0}'.format(arch or 'x86_64')
 
     if is_verbose():
