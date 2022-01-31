@@ -765,7 +765,7 @@ def create(source,
         # >>> arch
         # 'i686'
         arch = platform
-        while arch != 'x86_64' and arch.count('_')>0:
+        while arch != 'x86_64' and arch.count('_') > 0:
             arch = arch.partition('_')[2]
         platform = 'linux_{0}'.format(arch or 'x86_64')
 
