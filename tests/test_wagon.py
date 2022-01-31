@@ -68,7 +68,7 @@ class TestBase:
         wagon._download_file(TEST_TAR, path)
         try:
             os.remove(path)
-        except:
+        except Exception:
             pytest.xfail(
                 "Failed to remove file, which means it was not downloaded")
 
@@ -532,7 +532,7 @@ class TestCreate:
 
         try:
             wagon._untar(self.archive_name, '.')
-        except:
+        except Exception:
             wagon._unzip(self.archive_name, '.')
         with open(os.path.join(
                 self.package_name,

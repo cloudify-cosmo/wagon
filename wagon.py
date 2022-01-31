@@ -746,7 +746,27 @@ def create(source,
     elif 'manylinux' in platform:
         # this is a hack to support Cloudify 5.1, who doesn't handle
         # manylinux wagons. Rename manylinux{1,2010,2014} to linux.
-        _manylinux, _, arch = platform.partition('_')
+        # handle new wheel naming convention manylinux*.manylinux*
+        # by getting the last part of platform
+        # example :
+        # >>> arch='manylinux_2_5_x86_64.manylinux1_x86_64'
+        # >>> arch != 'x86_64' and arch.count('_')>0:
+        # ...     arch = arch.partition('_')[2]
+        # >>> arch
+        # 'x86_64'
+        # >>> arch="manylinux_2_5_x86_64"
+        # >>> while arch != 'x86_64' and arch.count('_')>0:
+        # ...     arch = arch.partition('_')[2]
+        # >>> arch
+        # 'x86_64'
+        # >>> arch="manylinux_2_12_i686.manylinux2010_i686"
+        # >>> while arch != 'x86_64' and arch.count('_')>0:
+        # ...     arch = arch.partition('_')[2]
+        # >>> arch
+        # 'i686'
+        arch = platform
+        while arch != 'x86_64' and arch.count('_') > 0:
+            arch = arch.partition('_')[2]
         platform = 'linux_{0}'.format(arch or 'x86_64')
 
     if is_verbose():
@@ -1048,7 +1068,8 @@ def _create_wagon(args):
             wheel_args=args.wheel_args,
             archive_format=args.format,
             build_tag=args.build_tag,
-            pip_paths=args.pip or [None])
+            pip_paths=args.pip or [None],
+            supported_platform=args.supported_platform)
     except WagonError as ex:
         sys.exit(ex)
 
