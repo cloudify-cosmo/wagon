@@ -1,0 +1,27 @@
+version: 2.1
+
+jobs:
+  flake8:
+    docker:
+      - image: cimg/python:3.10.6
+    steps:
+      - checkout
+      - run: pip install flake8 --user
+      - run: ~/.local/bin/flake8 -v
+
+  test:
+    docker:
+      - image: cimg/python:3.10.6
+    steps:
+      - checkout
+      - run: python -mvenv ~/venv
+      - run: ~/venv/bin/pip install -r dev-requirements.txt
+      - run: ~/venv/bin/pip install .
+      - run: ~/venv/bin/pytest -sv
+
+workflows:
+  version: 2
+  run_test:
+    jobs:
+      - flake8
+      - test

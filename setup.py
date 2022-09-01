@@ -43,8 +43,8 @@ setup(
         "wheel",
     ],
     extras_require={
-        'dist': ['distro>=0.6.0'],
-        'venv': ['virtualenv>=12.1'],
+        'dist': ['distro>=1.7.0'],
+        'venv': ['virtualenv>=20.16.4'],
     },
     python_requires='>=2.6,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     classifiers=[
@@ -56,6 +56,10 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Natural Language :: English',
         'Environment :: Console',
         'Intended Audience :: Developers',
