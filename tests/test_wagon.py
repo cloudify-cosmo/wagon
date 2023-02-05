@@ -29,8 +29,6 @@ import virtualenv  # NOQA
 
 import wagon
 
-IS_PY3 = wagon.IS_PY3
-
 TEST_TAR = 'https://github.com/pallets/flask/archive/0.10.1.tar.gz'  # NOQA
 TEST_ZIP = 'https://github.com/pallets/flask/archive/0.10.1.zip'  # NOQA
 TEST_PACKAGE_NAME = 'Flask'
@@ -78,19 +76,9 @@ class TestBase:
         assert "Failed to download file" in str(ex)
 
     def test_download_bad_url(self):
-        if IS_PY3:
-            with pytest.raises(ValueError) as ex:
-                wagon._download_file('something', 'file')
-            assert "unknown url type: 'something'" in str(ex.value)
-        else:
-            with pytest.raises(IOError) as ex:
-                wagon._download_file('something', 'file')
-            if wagon.IS_WIN:
-                assert "cannot find the file specified: 'something'" \
-                    in str(ex.value)
-            else:
-                assert "No such file or directory: 'something'" \
-                    in str(ex.value)
+        with pytest.raises(ValueError) as ex:
+            wagon._download_file('something', 'file')
+        assert "unknown url type: 'something'" in str(ex.value)
 
     def test_download_missing_path(self):
         with pytest.raises(IOError) as ex:
@@ -315,10 +303,7 @@ class TestCli:
         with pytest.raises(SystemExit) as ex:
             _parse('wagon create')
 
-        if wagon.IS_PY3:
-            assert 'the following arguments are required' in str(ex.value)
-        else:
-            assert 'too few arguments' in str(ex.value)
+        assert 'the following arguments are required' in str(ex.value)
 
     def test_bad_argument(self):
         with pytest.raises(SystemExit) as ex:
