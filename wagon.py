@@ -62,7 +62,7 @@ METADATA_FILE_NAME = 'package.json'
 DEFAULT_WHEELS_PATH = 'wheels'
 
 DEFAULT_INDEX_SOURCE_URL_TEMPLATE = 'https://pypi.python.org/pypi/{0}/json'
-IS_VIRTUALENV = hasattr(sys, 'real_prefix')
+IS_VIRTUALENV = sys.prefix != sys.base_prefix
 
 PLATFORM = sys.platform
 IS_WIN = (os.name == 'nt')
@@ -454,7 +454,7 @@ def _make_virtualenv(virtualenv_dir=None):
     if not virtualenv_dir:
         virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
-    _run([sys.executable, '-m', 'virtualenv', virtualenv_dir])
+    _run([sys.executable, '-m', 'venv', virtualenv_dir])
     return virtualenv_dir
 
 
@@ -711,8 +711,6 @@ def create(source,
     will be automatically extracted from either the GitHub archive URL
     or the local path provided provided in `source`.
     """
-    if validate_archive:
-        _assert_virtualenv_is_installed()
     _assert_linux_distribution_exists()
 
     logger.info('Creating archive for %s...', source)
@@ -886,16 +884,6 @@ def install(source,
                 processed_source), ignore_errors=True)
 
 
-def _assert_virtualenv_is_installed():
-    try:
-        import virtualenv  # NOQA
-    except ImportError:
-        raise WagonError(
-            'virtualenv is not installed and is required for the '
-            'validation process. Please make sure virtualenv is installed '
-            'and is in the path. (You can run `pip install wagon[venv]`')
-
-
 def validate(source):
     """Validate a Wagon archive. Return True if succeeds, False otherwise.
     It also prints a list of all validation errors.
@@ -909,7 +897,6 @@ def validate(source):
     checks that the required wheels exist vs. the list of wheels
     supplied in the `wheels` key.
     """
-    _assert_virtualenv_is_installed()
 
     logger.info('Validating %s', source)
     processed_source = get_source(source)
