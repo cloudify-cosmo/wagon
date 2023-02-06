@@ -55,9 +55,6 @@ except ImportError:
 DESCRIPTION = \
     '''Create and install wheel based packages with their dependencies'''
 
-
-IS_PY3 = sys.version_info[:2] > (2, 7)
-
 METADATA_FILE_NAME = 'package.json'
 DEFAULT_WHEELS_PATH = 'wheels'
 
@@ -222,9 +219,7 @@ def wheel(package,
 
 def _pip(venv=None):
     pip_module = 'pip'
-    if sys.version_info[:2] == (2, 6):
-        # in 2.6, packages aren't executable
-        pip_module = 'pip.__main__'
+
     return [_get_python_path(venv), '-m', pip_module]
 
 
@@ -296,20 +291,16 @@ def _get_downloaded_wheels(path):
 
 
 def _open_url(url):
-    if IS_PY3:
-        try:
-            response = urlopen(url)
-            # Sometimes bytes are returned here and sometimes strings.
-            try:
-                response.text = response.read().decode('utf-8')
-            except UnicodeDecodeError:
-                response.text = response.read()
-            response.code = 200
-        except urllib.error.HTTPError as ex:
-            response = type('obj', (object,), {'code': ex.code})
-    else:
+    try:
         response = urlopen(url)
-        response.text = response.read()
+        # Sometimes bytes are returned here and sometimes strings.
+        try:
+            response.text = response.read().decode('utf-8')
+        except UnicodeDecodeError:
+            response.text = response.read()
+        response.code = 200
+    except urllib.error.HTTPError as ex:
+        response = type('obj', (object,), {'code': ex.code})
 
     return response
 
