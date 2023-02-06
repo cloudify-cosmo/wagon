@@ -809,9 +809,10 @@ def create(source,
                     files_path,
                     exist_ok=True,
                 )
+                filename = os.path.basename(source_path)
                 destination_path = os.path.join(
                     files_path,
-                    source_path,
+                    filename,
                 )
                 shutil.copy(
                     source_path,
@@ -1017,19 +1018,22 @@ def list_files(source):
         ignore_errors=True,
     )
 
+    return metadata['files']
+
 
 def get_file(source, filename, output_directory='.'):
     processed_source = get_source(source)
 
     source_path = os.path.join(processed_source, 'files', filename)
     destination_path = os.path.join(output_directory, filename)
+    absolute_destination_path = os.path.abspath(destination_path)
 
     if os.path.isfile(source_path):
         shutil.copy(
             source_path,
             destination_path,
         )
-        logger.info(f'File was saved in: {os.path.abspath(destination_path)}')
+        logger.info(f'File was saved in: {absolute_destination_path}')
     else:
         logger.info(f'File does not exist: {filename}')
 
@@ -1037,6 +1041,8 @@ def get_file(source, filename, output_directory='.'):
         processed_source,
         ignore_errors=True,
     )
+
+    return absolute_destination_path
 
 
 def _repair_wheels(workdir, metadata):

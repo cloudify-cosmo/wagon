@@ -684,6 +684,48 @@ class TestCreate:
             _parse('wagon create non_existing_package -v -f')
         assert 'Failed to retrieve info for package' in str(ex)
 
+    def test_create_with_files(self):
+        test_package = os.path.join(
+            os.path.dirname(__file__),
+            'resources',
+            'test-package',
+        )
+        temp_dir_path = tempfile.mkdtemp()
+        temp_filename = 'test.yaml'
+        temp_file_path = os.path.join(temp_dir_path, temp_filename)
+        temp_file_content = 'TEST_CONTENT'
+
+        with open(temp_file_path, 'w') as f:
+            f.write(temp_file_content)
+
+        archive_path = wagon.create(
+            source=test_package,
+            force=True,
+            add_file=[temp_file_path],
+        )
+        os.remove(temp_file_path)
+
+        list_files = wagon.list_files(archive_path)
+        assert temp_filename in list_files
+
+        wagon.get_file(
+            archive_path,
+            temp_filename,
+            temp_dir_path,
+        )
+
+        assert os.path.isfile(temp_file_path)
+
+        with open(temp_file_path) as f:
+            file_content = f.readline()
+
+        assert temp_file_content == file_content
+
+        shutil.rmtree(
+            temp_dir_path,
+            ignore_errors=True,
+        )
+
 
 class TestInstall:
     def setup_method(self, test_method):
