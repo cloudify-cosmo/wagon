@@ -14,7 +14,7 @@ jobs:
       - image: cimg/python:3.10.6
     steps:
       - checkout
-      - run: python -mvenv ~/venv
+      - run: python -m venv ~/venv
       - run: ~/venv/bin/pip install -r dev-requirements.txt
       - run: ~/venv/bin/pip install .
       - run: ~/venv/bin/pytest -sv

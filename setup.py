@@ -44,7 +44,6 @@ setup(
     ],
     extras_require={
         'dist': ['distro>=1.7.0'],
-        'venv': ['virtualenv>=20.16.4'],
     },
     python_requires='>=3.4.0',
     classifiers=[

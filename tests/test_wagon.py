@@ -25,7 +25,6 @@ from contextlib import closing
 
 import mock
 import pytest
-import virtualenv  # NOQA
 
 import wagon
 
