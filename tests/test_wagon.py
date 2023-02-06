@@ -25,11 +25,8 @@ from contextlib import closing
 
 import mock
 import pytest
-import virtualenv  # NOQA
 
 import wagon
-
-IS_PY3 = wagon.IS_PY3
 
 TEST_TAR = 'https://github.com/pallets/flask/archive/0.10.1.tar.gz'  # NOQA
 TEST_ZIP = 'https://github.com/pallets/flask/archive/0.10.1.zip'  # NOQA
@@ -78,19 +75,9 @@ class TestBase:
         assert "Failed to download file" in str(ex)
 
     def test_download_bad_url(self):
-        if IS_PY3:
-            with pytest.raises(ValueError) as ex:
-                wagon._download_file('something', 'file')
-            assert "unknown url type: 'something'" in str(ex.value)
-        else:
-            with pytest.raises(IOError) as ex:
-                wagon._download_file('something', 'file')
-            if wagon.IS_WIN:
-                assert "cannot find the file specified: 'something'" \
-                    in str(ex.value)
-            else:
-                assert "No such file or directory: 'something'" \
-                    in str(ex.value)
+        with pytest.raises(ValueError) as ex:
+            wagon._download_file('something', 'file')
+        assert "unknown url type: 'something'" in str(ex.value)
 
     def test_download_missing_path(self):
         with pytest.raises(IOError) as ex:
@@ -315,10 +302,7 @@ class TestCli:
         with pytest.raises(SystemExit) as ex:
             _parse('wagon create')
 
-        if wagon.IS_PY3:
-            assert 'the following arguments are required' in str(ex.value)
-        else:
-            assert 'too few arguments' in str(ex.value)
+        assert 'the following arguments are required' in str(ex.value)
 
     def test_bad_argument(self):
         with pytest.raises(SystemExit) as ex:
@@ -632,7 +616,11 @@ class TestCreate:
             shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_create_with_requirements(self):
-        test_package = os.path.join('tests', 'resources', 'test-package')
+        test_package = os.path.join(
+            os.path.dirname(__file__),
+            'resources',
+            'test-package',
+        )
         requirement_files = [os.path.join(test_package, 'requirements.txt')]
 
         archive_path = wagon.create(
@@ -746,7 +734,7 @@ class TestInstall:
         venv = 'test_env'
         assert not wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
         python = wagon._get_python_path(venv)
-        wagon._run(wagon._pip() + [
+        wagon._run(wagon._pip(venv) + [
             'install', os.path.dirname(wagon.__file__)
         ])
         assert not wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
@@ -815,7 +803,11 @@ class TestValidate:
         assert len(result) == 1
 
     def test_fail_validation_exclude_and_missing_wheel(self):
-        test_package = os.path.join('tests', 'resources', 'test-package')
+        test_package = os.path.join(
+            os.path.dirname(__file__),
+            'resources',
+            'test-package',
+        )
         requirement_files = [os.path.join(test_package, 'requirements.txt')]
         archive_path = wagon.create(source=test_package,
                                     requirement_files=requirement_files,

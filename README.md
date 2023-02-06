@@ -159,7 +159,7 @@ The `validate` function provides shallow validation of a Wagon archive. Basicall
 
 This shallow validation should, at the very least, verify that a Wagon archive is not corrupted. Note that the `--validate` flag provided with the `create` function uses this same validation method. Also note that validation must take place only on an OS distribution which supports the wagon archive if it contains C extensions. For instance, a win32 specific wagon archive will fail to validate on a Linux machine.
 
-`virtualenv` must be installed for Wagon to be able to validate an archive to not pollute the current environment. You can run `pip install wagon[venv]` to install the relevant dependency.
+`venv` Python's stdlib module must be installed for Wagon to be able to validate an archive to not pollute the current environment.
 
 ```bash
 $ wagon validate Flask-0.12-py27-none-linux_x86_64.wgn
