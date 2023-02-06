@@ -455,7 +455,7 @@ def _make_virtualenv(virtualenv_dir=None):
     if not virtualenv_dir:
         virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
-    venv.create(virtualenv_dir)
+    venv.create(virtualenv_dir, with_pip=True)
     return virtualenv_dir
 
 
