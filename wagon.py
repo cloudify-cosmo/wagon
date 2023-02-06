@@ -1006,13 +1006,6 @@ def list_files(source):
     processed_source = get_source(source)
     metadata = _get_metadata(processed_source)
 
-    if len(metadata['files']) > 0:
-        logger.info('List of files:')
-        for file in metadata['files']:
-            logger.info(f'  {file}')
-    else:
-        logger.info('There is no files.')
-
     shutil.rmtree(
         processed_source,
         ignore_errors=True,
@@ -1033,9 +1026,8 @@ def get_file(source, filename, output_directory='.'):
             source_path,
             destination_path,
         )
-        logger.info(f'File was saved in: {absolute_destination_path}')
     else:
-        logger.info(f'File does not exist: {filename}')
+        absolute_destination_path = None
 
     shutil.rmtree(
         processed_source,
@@ -1174,20 +1166,32 @@ def _install_wagon(args):
 
 def _list_files(args):
     try:
-        list_files(
+        files = list_files(
             source=args.SOURCE,
         )
+
+        if len(files) > 0:
+            logger.info('List of files:')
+            for file in files:
+                logger.info(f'  {file}')
+        else:
+            logger.info('There is no files.')
     except WagonError as ex:
         sys.exit(ex)
 
 
 def _get_file(args):
     try:
-        get_file(
+        file_path = get_file(
             source=args.SOURCE,
             filename=args.filename,
             output_directory=args.output_directory,
         )
+
+        if file_path:
+            logger.info(f'File was saved in: {file_path}')
+        else:
+            logger.info('File does not exist!')
     except WagonError as ex:
         sys.exit(ex)
 
