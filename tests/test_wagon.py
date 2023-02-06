@@ -631,7 +631,11 @@ class TestCreate:
             shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_create_with_requirements(self):
-        test_package = os.path.join('tests', 'resources', 'test-package')
+        test_package = os.path.join(
+            os.path.dirname(__file__),
+            'resources',
+            'test-package',
+        )
         requirement_files = [os.path.join(test_package, 'requirements.txt')]
 
         archive_path = wagon.create(
@@ -703,7 +707,7 @@ class TestInstall:
         venv = 'test_env'
         assert not wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
         python = wagon._get_python_path(venv)
-        wagon._run(wagon._pip() + [
+        wagon._run(wagon._pip(venv) + [
             'install', os.path.dirname(wagon.__file__)
         ])
         assert not wagon._check_installed(TEST_PACKAGE_NAME, venv=venv)
@@ -772,7 +776,11 @@ class TestValidate:
         assert len(result) == 1
 
     def test_fail_validation_exclude_and_missing_wheel(self):
-        test_package = os.path.join('tests', 'resources', 'test-package')
+        test_package = os.path.join(
+            os.path.dirname(__file__),
+            'resources',
+            'test-package',
+        )
         requirement_files = [os.path.join(test_package, 'requirements.txt')]
         archive_path = wagon.create(source=test_package,
                                     requirement_files=requirement_files,
