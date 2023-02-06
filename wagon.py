@@ -29,6 +29,7 @@ import tempfile
 import subprocess
 import pkg_resources
 import distutils.util
+import venv
 from io import StringIO
 from threading import Thread
 from contextlib import closing
@@ -454,7 +455,7 @@ def _make_virtualenv(virtualenv_dir=None):
     if not virtualenv_dir:
         virtualenv_dir = tempfile.mkdtemp()
     logger.debug('Creating Virtualenv %s...', virtualenv_dir)
-    _run([sys.executable, '-m', 'venv', virtualenv_dir])
+    venv.create(virtualenv_dir)
     return virtualenv_dir
 
 
