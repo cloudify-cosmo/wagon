@@ -429,10 +429,24 @@ def _get_os_properties():
     and will be removed in Python 3.7. By that time, distro will become
     mandatory.
     """
+    os_properties = {
+        'distribution': None,
+        'distribution_version': None,
+        'distribution_release': None,
+    }
+
     try:
-        return linux_distribution(full_distribution_name=False)
+        distribution, version, release = linux_distribution(
+            full_distribution_name=False,
+        )
+
+        os_properties['distribution'] = distribution.lower()
+        os_properties['distribution_version'] = version.lower()
+        os_properties['distribution_release'] = release.lower()
     except TypeError:
-        return None, None, None
+        pass
+
+    return os_properties
 
 
 def _get_python_path(venv=None):
@@ -537,13 +551,11 @@ def _generate_metadata_file(workdir,
         'files': files,
     }
     if IS_LINUX and platform != ALL_PLATFORMS_TAG:
-        distribution, version, release = _get_os_properties()
         metadata.update(
-            {'build_server_os_properties': {
-                'distribution': distribution.lower() if distribution else None,
-                'distribution_version': version.lower() if version else None,
-                'distribution_release': release.lower() if release else None,
-            }})
+            {
+                'build_server_os_properties': _get_os_properties(),
+            }
+        )
 
     formatted_metadata = json.dumps(metadata, indent=4, sort_keys=True)
     if is_verbose():
@@ -989,6 +1001,44 @@ def show(source):
     return metadata
 
 
+def list_files(source):
+    processed_source = get_source(source)
+    metadata = _get_metadata(processed_source)
+
+    if len(metadata['files']) > 0:
+        logger.info('List of files:')
+        for file in metadata['files']:
+            logger.info(f'  {file}')
+    else:
+        logger.info('There is no files.')
+
+    shutil.rmtree(
+        processed_source,
+        ignore_errors=True,
+    )
+
+
+def get_file(source, filename, output_directory='.'):
+    processed_source = get_source(source)
+
+    source_path = os.path.join(processed_source, 'files', filename)
+    destination_path = os.path.join(output_directory, filename)
+
+    if os.path.isfile(source_path):
+        shutil.copy(
+            source_path,
+            destination_path,
+        )
+        logger.info(f'File was saved in: {os.path.abspath(destination_path)}')
+    else:
+        logger.info(f'File does not exist: {filename}')
+
+    shutil.rmtree(
+        processed_source,
+        ignore_errors=True,
+    )
+
+
 def _repair_wheels(workdir, metadata):
     wheels_path = os.path.join(workdir, DEFAULT_WHEELS_PATH)
 
@@ -1015,13 +1065,11 @@ def _repair_wheels(workdir, metadata):
     metadata['wheels'] = updated_wheels
     metadata['supported_platform'] = manylinux1_platform
 
-    distribution, version, release = _get_os_properties()
     metadata.update(
-        {'build_server_os_properties': {
-            'distribution': distribution.lower() if distribution else None,
-            'distribution_version': version.lower() if version else None,
-            'distribution_release': release.lower() if release else None,
-        }})
+        {
+            'build_server_os_properties': _get_os_properties(),
+        }
+    )
     return metadata
 
 
@@ -1114,6 +1162,26 @@ def _install_wagon(args):
             upgrade=args.upgrade,
             ignore_platform=args.ignore_platform,
             install_args=args.install_args)
+    except WagonError as ex:
+        sys.exit(ex)
+
+
+def _list_files(args):
+    try:
+        list_files(
+            source=args.SOURCE,
+        )
+    except WagonError as ex:
+        sys.exit(ex)
+
+
+def _get_file(args):
+    try:
+        get_file(
+            source=args.SOURCE,
+            filename=args.filename,
+            output_directory=args.output_directory,
+        )
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1362,6 +1430,50 @@ def _add_repair_command(parser):
     return parser
 
 
+def _add_list_files_command(parser):
+    description = ('List Wagon archive files')
+
+    command = parser.add_parser(
+        'list-files',
+        description=description,
+        help=description,
+    )
+
+    _add_wagon_archive_source_argument(command)
+    _set_defaults(command, func=_list_files)
+
+    return parser
+
+
+def _add_get_file_command(parser):
+    description = ('Get file from Wagon archive')
+
+    command = parser.add_parser(
+        'get-file',
+        description=description,
+        help=description,
+    )
+
+    command.add_argument(
+        '-f',
+        '--filename',
+        required=True,
+        help='Filename to get from Wagon',
+    )
+
+    command.add_argument(
+        '-o',
+        '--output-directory',
+        default='.',
+        help='Output directory for the file',
+    )
+
+    _add_wagon_archive_source_argument(command)
+    _set_defaults(command, func=_get_file)
+
+    return parser
+
+
 def _validate_file_path(path):
     return os.path.isfile(path)
 
@@ -1398,6 +1510,8 @@ def parse_args():
     subparsers = _add_validate_command(subparsers)
     subparsers = _add_show_command(subparsers)
     subparsers = _add_repair_command(subparsers)
+    subparsers = _add_list_files_command(subparsers)
+    subparsers = _add_get_file_command(subparsers)
 
     _assert_atleast_one_arg(parser)
 

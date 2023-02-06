@@ -546,12 +546,13 @@ class TestCreate:
         assert self.output_platform == metadata['supported_platform']
 
         if wagon.IS_LINUX and self.platform != 'any':
-            distribution, version, release = wagon._get_os_properties()
-            assert distribution.lower() == \
+            os_properties = wagon._get_os_properties()
+
+            assert os_properties['distribution'] == \
                 metadata['build_server_os_properties']['distribution']
-            assert version.lower() == \
+            assert os_properties['distribution_version'] == \
                 metadata['build_server_os_properties']['distribution_version']
-            assert release.lower() == \
+            assert os_properties['distribution_release'] == \
                 metadata['build_server_os_properties']['distribution_release']
 
         archive_name_parts = [
