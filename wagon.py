@@ -58,6 +58,7 @@ DESCRIPTION = \
 
 METADATA_FILE_NAME = 'package.json'
 DEFAULT_WHEELS_PATH = 'wheels'
+DEFAULT_FILES_PATH = 'files'
 
 DEFAULT_INDEX_SOURCE_URL_TEMPLATE = 'https://pypi.python.org/pypi/{0}/json'
 IS_VIRTUALENV = sys.prefix != sys.base_prefix
@@ -420,7 +421,24 @@ def _get_os_properties():
     and will be removed in Python 3.7. By that time, distro will become
     mandatory.
     """
-    return linux_distribution(full_distribution_name=False)
+    os_properties = {
+        'distribution': None,
+        'distribution_version': None,
+        'distribution_release': None,
+    }
+
+    try:
+        distribution, version, release = linux_distribution(
+            full_distribution_name=False,
+        )
+
+        os_properties['distribution'] = distribution.lower()
+        os_properties['distribution_version'] = version.lower()
+        os_properties['distribution_release'] = release.lower()
+    except TypeError:
+        pass
+
+    return os_properties
 
 
 def _get_python_path(venv=None):
@@ -502,7 +520,8 @@ def _generate_metadata_file(workdir,
                             package_version,
                             build_tag,
                             package_source,
-                            wheels):
+                            wheels,
+                            files):
     """Generate a metadata file for the package.
     """
     logger.debug('Generating Metadata...')
@@ -521,15 +540,14 @@ def _generate_metadata_file(workdir,
         'package_build_tag': build_tag,
         'package_source': package_source,
         'wheels': wheels,
+        'files': files,
     }
     if IS_LINUX and platform != ALL_PLATFORMS_TAG:
-        distribution, version, release = _get_os_properties()
         metadata.update(
-            {'build_server_os_properties': {
-                'distribution': distribution.lower(),
-                'distribution_version': version.lower(),
-                'distribution_release': release.lower()
-            }})
+            {
+                'build_server_os_properties': _get_os_properties(),
+            }
+        )
 
     formatted_metadata = json.dumps(metadata, indent=4, sort_keys=True)
     if is_verbose():
@@ -687,7 +705,8 @@ def create(source,
            archive_format='zip',
            build_tag='',
            pip_paths=None,
-           supported_platform=None):
+           supported_platform=None,
+           add_file=None):
     """Create a Wagon archive and returns its path.
 
     Package name and version are extracted from the setup.py file
@@ -717,6 +736,8 @@ def create(source,
     tempdir = tempfile.mkdtemp()
     workdir = os.path.join(tempdir, package_name)
     wheels_path = os.path.join(workdir, DEFAULT_WHEELS_PATH)
+    files_path = os.path.join(workdir, DEFAULT_FILES_PATH)
+    files = []
     pip_paths = pip_paths if pip_paths else [None]
     try:
         for pip_path in pip_paths:
@@ -772,6 +793,28 @@ def create(source,
 
     _handle_output_file(archive_path, force)
 
+    if add_file:
+        for source_path in add_file:
+            if _validate_file_path(source_path):
+                os.makedirs(
+                    files_path,
+                    exist_ok=True,
+                )
+                filename = os.path.basename(source_path)
+                destination_path = os.path.join(
+                    files_path,
+                    filename,
+                )
+                shutil.copy(
+                    source_path,
+                    destination_path,
+                )
+                files.append(
+                    os.path.basename(
+                        destination_path,
+                    )
+                )
+
     _generate_metadata_file(
         workdir,
         archive_name,
@@ -781,7 +824,9 @@ def create(source,
         package_version,
         build_tag,
         source,
-        wheels)
+        wheels,
+        files,
+    )
 
     _create_wagon_archive(workdir, archive_path, archive_format)
     if not keep_wheels:
@@ -937,6 +982,41 @@ def show(source):
     return metadata
 
 
+def list_files(source):
+    processed_source = get_source(source)
+    metadata = _get_metadata(processed_source)
+
+    shutil.rmtree(
+        processed_source,
+        ignore_errors=True,
+    )
+
+    return metadata['files']
+
+
+def get_file(source, filename, output_directory='.'):
+    processed_source = get_source(source)
+
+    source_path = os.path.join(processed_source, 'files', filename)
+    destination_path = os.path.join(output_directory, filename)
+    absolute_destination_path = os.path.abspath(destination_path)
+
+    if os.path.isfile(source_path):
+        shutil.copy(
+            source_path,
+            destination_path,
+        )
+    else:
+        absolute_destination_path = None
+
+    shutil.rmtree(
+        processed_source,
+        ignore_errors=True,
+    )
+
+    return absolute_destination_path
+
+
 def _repair_wheels(workdir, metadata):
     wheels_path = os.path.join(workdir, DEFAULT_WHEELS_PATH)
 
@@ -963,13 +1043,11 @@ def _repair_wheels(workdir, metadata):
     metadata['wheels'] = updated_wheels
     metadata['supported_platform'] = manylinux1_platform
 
-    distribution, version, release = _get_os_properties()
     metadata.update(
-        {'build_server_os_properties': {
-            'distribution': distribution.lower(),
-            'distribution_version': version.lower(),
-            'distribution_release': release.lower()
-        }})
+        {
+            'build_server_os_properties': _get_os_properties(),
+        }
+    )
     return metadata
 
 
@@ -1001,7 +1079,6 @@ def repair(source, validate_archive=False):
     4. Repack the wagon
     """
     _assert_auditwheel_exists()
-    _assert_linux_distribution_exists()
 
     logger.info('Repairing: %s', source)
     processed_source = get_source(source)
@@ -1048,7 +1125,9 @@ def _create_wagon(args):
             archive_format=args.format,
             build_tag=args.build_tag,
             pip_paths=args.pip or [None],
-            supported_platform=args.supported_platform)
+            supported_platform=args.supported_platform,
+            add_file=args.add_file,
+        )
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1061,6 +1140,38 @@ def _install_wagon(args):
             upgrade=args.upgrade,
             ignore_platform=args.ignore_platform,
             install_args=args.install_args)
+    except WagonError as ex:
+        sys.exit(ex)
+
+
+def _list_files(args):
+    try:
+        files = list_files(
+            source=args.SOURCE,
+        )
+
+        if len(files) > 0:
+            logger.info('List of files:')
+            for file in files:
+                logger.info(f'  {file}')
+        else:
+            logger.info('There are no files.')
+    except WagonError as ex:
+        sys.exit(ex)
+
+
+def _get_file(args):
+    try:
+        file_path = get_file(
+            source=args.SOURCE,
+            filename=args.filename,
+            output_directory=args.output_directory,
+        )
+
+        if file_path:
+            logger.info(f'File was saved in: {file_path}')
+        else:
+            logger.info('File does not exist!')
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1191,6 +1302,15 @@ def _add_create_command(parser):
         help='Platform supported by the wagon (eg. linux_x86_64 '
              'or manylinux1).')
 
+    command.add_argument(
+        '--add-file',
+        type=str,
+        nargs='+',
+        default=None,
+        required=False,
+        help='Path to add to the Wagon.'
+    )
+
     _set_defaults(command, func=_create_wagon)
     return parser
 
@@ -1300,6 +1420,54 @@ def _add_repair_command(parser):
     return parser
 
 
+def _add_list_files_command(parser):
+    description = ('List Wagon archive files')
+
+    command = parser.add_parser(
+        'list-files',
+        description=description,
+        help=description,
+    )
+
+    _add_wagon_archive_source_argument(command)
+    _set_defaults(command, func=_list_files)
+
+    return parser
+
+
+def _add_get_file_command(parser):
+    description = ('Get file from Wagon archive')
+
+    command = parser.add_parser(
+        'get-file',
+        description=description,
+        help=description,
+    )
+
+    command.add_argument(
+        '-f',
+        '--filename',
+        required=True,
+        help='Filename to get from Wagon',
+    )
+
+    command.add_argument(
+        '-o',
+        '--output-directory',
+        default='.',
+        help='Output directory for the file',
+    )
+
+    _add_wagon_archive_source_argument(command)
+    _set_defaults(command, func=_get_file)
+
+    return parser
+
+
+def _validate_file_path(path):
+    return os.path.isfile(path)
+
+
 # TODO: Find a way to both provide an error handler AND multiple formatter
 # classes.
 class CustomFormatter(argparse.ArgumentParser):
@@ -1332,6 +1500,8 @@ def parse_args():
     subparsers = _add_validate_command(subparsers)
     subparsers = _add_show_command(subparsers)
     subparsers = _add_repair_command(subparsers)
+    subparsers = _add_list_files_command(subparsers)
+    subparsers = _add_get_file_command(subparsers)
 
     _assert_atleast_one_arg(parser)
 
