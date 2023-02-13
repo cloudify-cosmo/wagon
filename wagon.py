@@ -1155,7 +1155,7 @@ def _list_files(args):
             for file in files:
                 logger.info(f'  {file}')
         else:
-            logger.info('There is no files.')
+            logger.info('There are no files.')
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1308,7 +1308,7 @@ def _add_create_command(parser):
         nargs='+',
         default=None,
         required=False,
-        help='Path to file which would be add to the Wagon.'
+        help='Path to add to the Wagon.'
     )
 
     _set_defaults(command, func=_create_wagon)
