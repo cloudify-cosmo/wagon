@@ -1036,14 +1036,19 @@ def get_file(source, filename, output_directory='.'):
     return absolute_destination_path
 
 
-def _repair_wheels(workdir, metadata):
+def _repair_wheels(workdir, metadata, auditwheel_args=None):
     wheels_path = os.path.join(workdir, DEFAULT_WHEELS_PATH)
 
     for wheel in _get_downloaded_wheels(wheels_path):
         if _get_platform_from_wheel_name(wheel).startswith('linux'):
             wheel_path = os.path.join(wheels_path, wheel)
-            outcome = _run(
-                ['auditwheel', 'repair', wheel_path, '-w', wheels_path])
+
+            auditwheel_cmd = ['auditwheel', 'repair', wheel_path, '-w', wheels_path]
+            if auditwheel_args:
+                if not isinstance(auditwheel_args, list):
+                    auditwheel_args = shlex.split(auditwheel_args, posix=not IS_WIN)
+                auditwheel_cmd += auditwheel_args
+            outcome = _run(auditwheel_cmd)
             if outcome.returncode != 0:
                 raise WagonError('Failed to repair wagon')
             os.remove(wheel_path)
@@ -1052,15 +1057,15 @@ def _repair_wheels(workdir, metadata):
     # a different set of wheels which have been repaired.
     updated_wheels = _get_downloaded_wheels(wheels_path)
     for wheel in updated_wheels:
-        manylinux1_platform = _get_platform_from_wheel_name(wheel)
-        if manylinux1_platform.startswith('manylinux1'):
+        manylinux_platform = _get_platform_from_wheel_name(wheel)
+        if manylinux_platform.startswith('manylinux'):
             # It's enough to get the new platform from a single
             # repaired wheel.
             break
 
     # TODO: Return this and update in another function
     metadata['wheels'] = updated_wheels
-    metadata['supported_platform'] = manylinux1_platform
+    metadata['supported_platform'] = manylinux_platform
 
     metadata.update(
         {
@@ -1086,7 +1091,7 @@ def _assert_auditwheel_exists():
             'Please see https://github.com/pypa/auditwheel for more info.')
 
 
-def repair(source, validate_archive=False):
+def repair(source, validate_archive=False, auditwheel_args=None):
     """Use auditwheel (https://github.com/pypa/auditwheel)
     to attempt and repair all wheels in a wagon.
 
@@ -1102,7 +1107,7 @@ def repair(source, validate_archive=False):
     logger.info('Repairing: %s', source)
     processed_source = get_source(source)
     metadata = _get_metadata(processed_source)
-    new_metadata = _repair_wheels(processed_source, metadata)
+    new_metadata = _repair_wheels(processed_source, metadata, auditwheel_args)
 
     archive_name = _set_archive_name(
         new_metadata['package_name'],
@@ -1217,7 +1222,7 @@ def _show_wagon(args):
 
 def _repair_wagon(args):
     try:
-        repair(args.SOURCE, args.validate)
+        repair(args.SOURCE, args.validate, args.auditwheel_args)
     except WagonError as ex:
         sys.exit(ex)
 
@@ -1434,6 +1439,13 @@ def _add_repair_command(parser):
         default=False,
         action='store_true',
         help='Runs a postcreation validation on the archive')
+
+    command.add_argument(
+        '-a',
+        '--auditwheel-args',
+        required=False,
+        help='Allows to pass additional arguments to `auditwheel`. '
+             '(e.g. --no-cache-dir -c constains.txt)')
 
     _add_wagon_archive_source_argument(command)
     _set_defaults(command, func=_repair_wagon)
