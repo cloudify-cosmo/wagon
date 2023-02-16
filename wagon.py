@@ -34,6 +34,7 @@ from io import StringIO
 from threading import Thread
 from contextlib import closing
 from distutils.spawn import find_executable
+from pkginfo import Wheel
 
 try:
     import urllib.error
@@ -487,6 +488,20 @@ def _set_python_versions(python_versions=None):
         return [_get_python_version()]
 
 
+def _set_python_requires(wheels_path):
+    python_requires = set()
+    wheels = _get_downloaded_wheels(wheels_path)
+
+    for _wheel in wheels:
+        wheel_path = os.path.join(wheels_path, _wheel)
+        package = Wheel(wheel_path)
+
+        if package.requires_python:
+            python_requires.add(package.requires_python)
+
+    return ','.join(python_requires)
+
+
 def _get_name_and_version_from_setup(source_path):
 
     def get_arg(arg_type, setuppy_path):
@@ -516,6 +531,7 @@ def _generate_metadata_file(workdir,
                             archive_name,
                             platform,
                             python_versions,
+                            python_requires,
                             package_name,
                             package_version,
                             build_tag,
@@ -530,6 +546,7 @@ def _generate_metadata_file(workdir,
         'archive_name': archive_name,
         'supported_platform': platform,
         'supported_python_versions': python_versions,
+        'python_requires': python_requires,
         'build_server_os_properties': {
             'distribution': None,
             'distribution_version': None,
@@ -784,6 +801,7 @@ def create(source,
         logger.debug('Platform is: %s', platform)
 
     python_versions = _set_python_versions(python_versions)
+    python_requires = _set_python_requires(wheels_path)
 
     if not os.path.isdir(archive_destination_dir):
         os.makedirs(archive_destination_dir)
@@ -820,6 +838,7 @@ def create(source,
         archive_name,
         platform,
         python_versions,
+        python_requires,
         package_name,
         package_version,
         build_tag,
@@ -1097,6 +1116,7 @@ def repair(source, validate_archive=False):
         archive_name,
         new_metadata['supported_platform'],
         new_metadata['supported_python_versions'],
+        new_metadata['python_requires'],
         new_metadata['package_name'],
         new_metadata['package_version'],
         new_metadata['build_tag'],
