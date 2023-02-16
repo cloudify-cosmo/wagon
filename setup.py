@@ -41,6 +41,7 @@ setup(
     entry_points={'console_scripts': ['wagon = wagon:main']},
     install_requires=[
         "wheel",
+        "pkginfo",
     ],
     extras_require={
         'dist': ['distro>=1.7.0'],
