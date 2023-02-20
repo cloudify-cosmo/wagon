@@ -3,7 +3,7 @@
 * `distro` package as optional dependency.
 * Add static files support. User can add,
   list or get static files from the Wagon.
-* Drop support for Python 2.
+* Drop Python 2 support.
 * Switch `virtualenv` to stdlib `venv`.
 * Add `python_requires` information to METADATA.
 
