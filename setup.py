@@ -27,7 +27,7 @@ def read(*parts):
 
 setup(
     name='wagon',
-    version='1.0.1',
+    version='1.0.2',
     url='https://github.com/cloudify-cosmo/wagon',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
@@ -59,6 +59,8 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Natural Language :: English',
         'Environment :: Console',
         'Intended Audience :: Developers',
