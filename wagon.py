@@ -27,13 +27,13 @@ import logging
 import argparse
 import tempfile
 import subprocess
-import pkg_resources
-import distutils.util
+import importlib.metadata
+import sysconfig
 import venv
 from io import StringIO
 from threading import Thread
 from contextlib import closing
-from distutils.spawn import find_executable
+from shutil import which
 from pkginfo import Wheel
 
 try:
@@ -412,7 +412,7 @@ def _get_python_version():
 
 
 def get_platform():
-    return distutils.util.get_platform().replace('.', '_').replace('-', '_')
+    return sysconfig.get_platform().replace('.', '_').replace('-', '_')
 
 
 def _get_os_properties():
@@ -478,7 +478,7 @@ def _get_package_info_from_pypi(source):
 
 
 def _get_wagon_version():
-    return pkg_resources.get_distribution('wagon').version
+    return importlib.metadata.distribution('wagon').version
 
 
 def _set_python_versions(python_versions=None):
@@ -1079,7 +1079,7 @@ def _assert_linux_distribution_exists():
 
 
 def _assert_auditwheel_exists():
-    if not find_executable('auditwheel'):
+    if not which('auditwheel'):
         raise WagonError(
             'Could not find auditwheel. '
             'Please make sure auditwheel is installed and is in the PATH.\n'

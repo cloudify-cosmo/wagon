@@ -12,7 +12,7 @@ build: false
 
 install:
   - "%PYTHON%\\python.exe -m pip install --upgrade pip"
-  - "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
+  - "%PYTHON%\\python.exe -m pip install -r requirements.txt -r test-requirements.txt"
   - "%PYTHON%\\python.exe -m pip install -e ."
 
 test_script:

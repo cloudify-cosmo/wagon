@@ -264,13 +264,13 @@ class TestBase:
         assert 'virtualenv {0} does not exist'.format(non_existing_venv) \
             in str(ex.value)
 
-    @mock.patch('wagon.find_executable', return_value=False)
+    @mock.patch('wagon.which', return_value=False)
     def test_assert_auditwheel_does_not_exist(self, _):
         with pytest.raises(wagon.WagonError) as ex:
             wagon._assert_auditwheel_exists()
         assert 'Could not find auditwheel.' in str(ex.value)
 
-    @mock.patch('wagon.find_executable', return_value=True)
+    @mock.patch('wagon.which', return_value=True)
     def test_assert_auditwheel_exists(self, _):
         wagon._assert_auditwheel_exists()
 
