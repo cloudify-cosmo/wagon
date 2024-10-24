@@ -39,11 +39,11 @@ from pkginfo import Wheel
 try:
     import urllib.error
     from urllib.request import urlopen
-    from urllib.request import URLopener
+    from urllib.request import urlretrieve
 except ImportError:
     import urllib
     from urllib import urlopen
-    from urllib import URLopener
+    from urllib import urlretrieve
 
 try:
     from distro import linux_distribution
@@ -320,8 +320,7 @@ def _download_file(url, destination):
     final_url = response.geturl()
     if final_url != url and is_verbose():
         logger.debug('Redirected to %s', final_url)
-    f = URLopener()
-    f.retrieve(final_url, destination)
+    urlretrieve(final_url, destination)
 
 
 def _http_request(url):
