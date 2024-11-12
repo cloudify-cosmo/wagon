@@ -664,7 +664,7 @@ def get_source(source):
             raise WagonError(
                 'Failed to extract {0}. Please verify that the '
                 'provided file is a valid zip or tar.gz '
-                'archive'.format(source))
+                'archive'.format(os.path.basename(source)))
 
         source = os.path.join(
             destination, [d for d in next(os.walk(destination))[1]][0])

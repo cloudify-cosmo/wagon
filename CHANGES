@@ -1,3 +1,8 @@
+## 1.0.3
+
+* Remediated security vulnerability caused by messaging complete file path in
+  WagonError in extract_source method
+
 ## 1.0.2
 
 * Update dependencies, replace obsolete, making Wagon compatible with Python 3.12
