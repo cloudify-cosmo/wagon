@@ -1,3 +1,7 @@
+## 1.0.4
+
+* Replace urllib.request.URLopener import, defunct in Python 3.14, with urlretrieve.
+
 ## 1.0.3
 
 * Remediated security vulnerability caused by messaging complete file path in
