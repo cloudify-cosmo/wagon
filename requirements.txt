@@ -6,5 +6,5 @@
 #
 pkginfo==1.10.0
     # via wagon (setup.py)
-wheel==0.43.0
+wheel==0.46.2
     # via wagon (setup.py)
